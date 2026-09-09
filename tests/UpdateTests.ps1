@@ -5,9 +5,14 @@ Set-StrictMode -Version 2.0
 Import-Module (Join-Path $PSScriptRoot '../lib/UpdateTransaction.psm1') -Force
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $repo = Split-Path $PSScriptRoot -Parent
-$testRoot = Join-Path ([IO.Path]::GetTempPath()) ('Natro update tests & unicode-' + [Guid]::NewGuid().ToString('N'))
+$testRoot = Join-Path ([IO.Path]::GetTempPath()) ('Natro update tests & ' + [char]0xE9 + '-' + [Guid]::NewGuid().ToString('N'))
 [void][IO.Directory]::CreateDirectory($testRoot)
 $script:passed = 0
+foreach ($source in @('submacros/update.ps1', 'lib/UpdateTransaction.psm1')) {
+    $tokens = $null; $parseErrors = $null
+    [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $repo $source), [ref]$tokens, [ref]$parseErrors)
+    if ($parseErrors.Count) { throw "PowerShell parse failure in ${source}: $parseErrors" }
+}
 function Assert($condition, [string]$message) { if (-not $condition) { throw $message } }
 function Put([string]$path, [string]$value) {
     [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($path))
@@ -114,6 +119,22 @@ try {
         }.GetNewClosure()
         Failure ('unsafe archive ' + $script:passed) $setup 'unsafe path'
     }
+    Failure 'duplicate archive path' { param($f)
+        $zip = [IO.Compression.ZipFile]::Open($f.archive, [IO.Compression.ZipArchiveMode]::Update)
+        try { [void]$zip.CreateEntry('START.bat') } finally { $zip.Dispose() }
+        $f.request.size = (Get-Item -LiteralPath $f.archive).Length; $f.request.digest = ''
+    } 'duplicate or escaping'
+    Failure 'archive symlink' { param($f)
+        $zip = [IO.Compression.ZipFile]::Open($f.archive, [IO.Compression.ZipArchiveMode]::Update)
+        try {
+            $link = $zip.CreateEntry('link')
+            $link.ExternalAttributes = -1577058304 # Unix mode 0xA2000000: symlink
+        } finally { $zip.Dispose() }
+        $f.request.size = (Get-Item -LiteralPath $f.archive).Length; $f.request.digest = ''
+    } 'unsafe path or symbolic link'
+    Failure 'ambiguous install roots' { param($f)
+        Put (Join-Path $f.release 'second/START.bat') 'fixture'; Repack $f
+    } 'exactly one installation'
     $f = Fixture 'locked settings'
     $before = $f.state.startup
     $handle = [IO.File]::Open((Join-Path $f.old 'settings/nm_config.ini'), [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
@@ -126,8 +147,46 @@ try {
     CheckOld $f
     $script:passed++; Write-Host 'PASS locked settings'
 
-    foreach ($mode in @('copy all', 'copy none', 'unrelated startup', 'missing startup')) {
+    foreach ($scenario in @('external startup change', 'startup restore failure')) {
+        $f = Fixture $scenario
+        $state = $f.state
+        if ($scenario -eq 'external startup change') {
+            $f.operations.Launch = { $state.startup = 'external change'; throw 'Launch failed' }.GetNewClosure()
+            $expected = 'changed externally'
+        } else {
+            $f.operations.WriteStartup = { param($value)
+                $state.writes++
+                if ($state.writes -gt 1) { throw 'Registry unavailable during restore' }
+                $state.startup = $value
+            }.GetNewClosure()
+            $f.operations.Launch = { throw 'Launch failed' }
+            $expected = 'startup restoration failed'
+        }
+        $caught = $null
+        try { Invoke-NatroUpdate $f.request $f.operations | Out-Null } catch { $caught = $_ }
+        Assert ($null -ne $caught -and $caught.Exception.Message -match $expected) 'Recovery limitation was not reported'
+        if ($scenario -eq 'external startup change') { Assert ($state.startup -eq 'external change') 'External startup change overwritten' }
+        CheckOld $f
+        $script:passed++; Write-Host "PASS $scenario"
+    }
+    $f = Fixture 'concurrent updater'
+    $handle = [IO.File]::Open(($f.old + '.update.lock'), [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+    try {
+        $caught = $false
+        try { Invoke-NatroUpdate $f.request $f.operations | Out-Null } catch { $caught = $true }
+        Assert ($caught -and $f.state.writes -eq 0 -and $f.state.launches -eq 0) 'Concurrent updater was not excluded'
+    } finally { $handle.Dispose() }
+    CheckOld $f
+    $script:passed++; Write-Host 'PASS concurrent updater'
+
+    foreach ($mode in @('copy all', 'copy none', 'unrelated startup', 'missing startup', 'nested package')) {
         $f = Fixture $mode
+        if ($mode -eq 'nested package') {
+            $wrapper = Join-Path $f.root 'wrapper'
+            [void][IO.Directory]::CreateDirectory($wrapper)
+            Copy-Item -LiteralPath $f.release -Destination $wrapper -Recurse
+            $f.release = $wrapper; Repack $f
+        }
         if ($mode -eq 'copy none') { $f.request.settings = $f.request.paths = $f.request.patterns = 0 }
         if ($mode -eq 'unrelated startup') { $f.state.startup = '"C:\someone else\START.bat"' }
         if ($mode -eq 'missing startup') { $f.state.startup = $null }

@@ -22,3 +22,24 @@ These tests do not prove real key delivery, image accuracy, route correctness,
 worker-script generation, or overnight stability. The full live scenario matrix
 is in `production-audit.md`; those gates remain open in
 `docs/production-progress.md`.
+
+The updater suite also runs in both Windows PowerShell 5.1 (the production updater
+runtime) and PowerShell 7:
+
+```powershell
+./tests/UpdateTests.ps1
+```
+
+It builds disposable ZIP/install fixtures with the actual bundled AHK executables.
+Download and startup-registry dependencies are replaced with local fixtures; AHK
+syntax validation uses real Windows processes. Failure cases cover incomplete or
+corrupt downloads, unsafe archive paths, missing files, changed runtimes, invalid
+migrated scripts, locked settings, interruption around each transaction stage,
+existing destinations, startup-write failure, and launch failure. Success cases
+check retained old settings, custom paths, conflict backups, copy options, startup
+arguments, and unrelated/missing startup entries. An actual immediately exiting
+AHK fixture also checks the launch-failure boundary.
+
+The suite does not certify a release's gameplay or settings migration after startup.
+The five-second process-survival check is an early failure detector, not a health
+certificate. See `docs/updating.md` for rollback and conflict handling.

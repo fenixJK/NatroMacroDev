@@ -39,8 +39,8 @@ The AFB runtime has moved into `lib/AutoFieldBoost.ahk`. Pure decisions are in
 actual AFB configuration/cancellation handlers. Item counters conservatively
 reserve every input attempt before sending, including unconfirmed/rejected input.
 
-Still to implement in the first batch: transactional updater and confirmed planter
-harvest/reconciliation. No finding is considered live-verified yet.
+Still to implement in the first batch: confirmed planter harvest/reconciliation.
+The transactional updater is implemented in the next checkpoint below. No finding is considered live-verified yet.
 
 ## Verified checkpoint — 2026-09-09
 
@@ -65,3 +65,35 @@ user's saved HTTPS remote. No PR, merge, or production release has been created.
 Next: finish transactional updating and planter confirmation/reconciliation, then
 continue the remaining feature/accounting/reporting fixes and expand the tests.
 The full production objective remains active.
+
+
+## Transactional updater checkpoint
+
+Implemented F02 in `4c33fa0`, with CI shell configuration corrected in `a5880ae`.
+[Windows run 34410312301](https://github.com/fenixJK/NatroMacroDev/actions/runs/34410312301)
+passed 28 updater scenarios on Windows PowerShell 5.1 and PowerShell 7, plus all
+11 AHK regression groups and parsing on both bundled architectures.
+
+Updates now use structured JSON requests and a PowerShell transaction module.
+Downloads are checked against release size and optional SHA-256; extraction rejects
+unsafe paths, links and duplicates. Candidate layout, migration copies and AHK
+syntax are checked before a unique installation directory is committed. The old
+installation is preserved, startup changes are rolled back on detected failure,
+and journals support recovery after process/machine interruption. Conflicting old
+paths/patterns are backed up instead of silently replacing new shipped files.
+The update window requires the macro to be stopped and explains retention/conflicts.
+See [updating and recovering](updating.md) for behavior and limitations.
+
+Verification covers actual AHK validation and an early-exit launch fixture, with
+local fixture downloads and an in-memory startup registry. It does not certify
+real release startup, game behavior, or runtime settings migration. Runtime changes
+require manual installation until explicitly reviewed. UI layout and full release
+upgrade/downgrade remain in the live Windows matrix. The checkout action also emits
+a Node 20 deprecation warning; updating the pinned action remains a CI maintenance
+follow-up.
+
+Planter tracing confirms failed auto-harvest retries still clear records and
+placement failures still lower the user's configured planter limit. Both auto and
+manual harvest paths need shared confirmation/reconciliation. Fully grown planters
+may harvest without a Yes/No dialog, so merely requiring a Yes click is insufficient.
+These planter changes remain pending rather than claiming an incomplete fix.

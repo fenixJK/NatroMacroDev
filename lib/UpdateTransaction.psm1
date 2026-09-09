@@ -221,7 +221,10 @@ function Invoke-NatroUpdate($Request, [hashtable]$Operations = @{}) {
         if (Test-Path -LiteralPath $stage) {
             try { $journal | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $stage 'transaction.json') -Encoding UTF8 } catch {}
         }
-        throw "Update failed; your previous installation is preserved at $old. Recovery record: $stage\transaction.json. $($failure.Exception.Message)"
+        $recoveryNote = if ($journal.phase -eq 'failed-startup-restore-required') { ' Automatic startup restoration failed; restore it using the old macro Auto-Start Manager.' }
+            elseif ($journal.phase -eq 'failed-startup-changed-externally') { ' The startup entry changed externally and was left alone.' }
+            else { '' }
+        throw "Update failed; your previous installation is preserved at $old. Recovery record: $stage\transaction.json. $($failure.Exception.Message)$recoveryNote"
     } finally { $lock.Dispose() }
     # A reporting failure must not roll back an already-running new process.
     $journal.phase = 'launched'

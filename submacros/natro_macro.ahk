@@ -2453,6 +2453,8 @@ nm_AutoUpdateGUI(*)
 	if MajorUpdate
 		UpdateGui.Add("Button", "x60 y+5 w180 h18", "Why are some options disabled?").OnEvent("Click", nm_MajorUpdateHelp)
 
+	UpdateGui.SetFont("s8")
+	UpdateGui.Add("Text", "x12 y+6 w266 +Center", "Previous installation is kept for rollback.`nConflicting paths/patterns are saved for review.")
 	UpdateGui.SetFont("s9")
 	UpdateGui.Add("Button", "x8 y+12 w92 h26", "Never").OnEvent("Click", nm_NeverButton)
 	UpdateGui.Add("Button", "xp+96 yp wp hp vDismissButton", "Dismiss (120)").OnEvent("Click", nm_DismissButton)
@@ -2460,7 +2462,7 @@ nm_AutoUpdateGUI(*)
 
 	UpdateGui.SetFont("Bold")
 	(GuiCtrl := UpdateGui.Add("Button", "xp+96 yp wp hp", "Update")).OnEvent("Click", nm_UpdateButton)
-	UpdateGui.Show("w290 h168")
+	UpdateGui.Show("w290")
 	GuiCtrl.Focus()
 	WinWaitClose "ahk_id " UpdateGui.Hwnd, , 125
 	GuiClose()
@@ -2536,7 +2538,7 @@ nm_MajorUpdateHelp(*)
 {
 	MsgBox "v" VersionID " to v" LatestVer " is a major version update.`n`n"
 	. "This means that backward compatibility of Paths and Patterns cannot be guaranteed, so they cannot be automatically copied.`n"
-	. "However, in Natro Macro, your Settings are guaranteed to be transferable to any new version, so that option remains enabled.`n`n"
+	. "Your settings can still be copied. Verify them in the new version; the previous installation is retained for recovery.`n`n"
 	. "For more information, you can review the convention at https://semver.org/", "Major Update", 0x1040
 }
 
