@@ -119,12 +119,18 @@ nm_AutoFieldBoost(fieldName){
 }
 nm_fieldBoostCheck(fieldName, variant:=0){
 
-	GetRobloxClientPos(hwnd:=GetRobloxHWND())
+	if !GetRobloxClientPos(hwnd:=GetRobloxHWND())
+		throw Error("Cannot detect a field boost without a Roblox window.")
 	pBMScreen:=Gdip_BitmapFromScreen(windowX "|" windowY + GetYOffset(hwnd) + 36 "|" windowWidth "|" 38)
 	loop Floor(windowWidth/38) ; flooring because you won't have half of an icon
 	{
 		ico:=(A_Index-1)*38
-		if (Gdip_ImageSearch(pBMScreen, bitmaps["boost"][StrReplace(fieldName, " ") variant],,ico,,ico+38,,(variant=1 || variant=0) ? 35 : 50)) ; testing tighter variation
+		result := Gdip_ImageSearch(pBMScreen, bitmaps["boost"][StrReplace(fieldName, " ") variant],,ico,,ico+38,,(variant=1 || variant=0) ? 35 : 50)
+		if (result < 0) {
+			Gdip_DisposeImage(pBMScreen)
+			throw Error("Field boost detection failed", , "Image search error " result)
+		}
+		if (result = 1)
 		{ ; check with original 30 not 35
 			p:=PixelGetColor(ico+windowX, windowY+GetYOffset(hwnd)+73)
 			if ((p & 0xFF0000 >= 0xa60000) && (p & 0xFF0000 <= 0xcf0000)) ; a6b2b8-blackBG|cfdbe1-whiteBG

@@ -1568,6 +1568,8 @@ SendHourlyReport()
 *************************************************************************************************************/
 FormatNumber(n)
 {
+	if (n = 0)
+		return "0"
 	static numnames := ["M","B","T","Qa","Qi"]
 	digit := floor(log(abs(n)))+1
 	if (digit > 6)

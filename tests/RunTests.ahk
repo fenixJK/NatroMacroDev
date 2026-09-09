@@ -10,6 +10,9 @@
 ; No Roblox, network, real GUI, or keyboard input is used by these tests.
 ; AFB's observation/travel functions below throw if unexpectedly reached.
 TestNow := 10000
+HideErrors := 1, AutoFieldBoostRefresh := 10, FieldBooster := Map()
+windowX := windowY := windowWidth := 0, bitmaps := Map(), CurrentField := ""
+LastBlueBoost := LastRedBoost := LastMountainBoost := 0
 AutoFieldBoostActive := MacroState := 0
 AFBHoursLimitEnable := AFBHoursLimit := serverStart := 0
 AFBDiceEnable := AFBGlitterEnable := AFBFieldEnable := 0
@@ -18,9 +21,9 @@ AFBDiceLimitEnable := AFBGlitterLimitEnable := 0
 AFBDiceLimit := AFBGlitterLimit := AFBdiceUsed := AFBglitterUsed := 0
 AFBDiceHotbar := 2, AFBGlitterHotbar := 3
 AFBGui := Map(), MainGui := Map(), LastTestStatus := ""
-for item in ["Dice", "Glitter", "Hours"] {
-	AFBGui["AFB" item "LimitEnableSel"] := {Text: "None"}
-	AFBGui["AFB" item "Limit"] := {Enabled: false}
+for setupItem in ["Dice", "Glitter", "Hours"] {
+	AFBGui["AFB" setupItem "LimitEnableSel"] := {Text: "None"}
+	AFBGui["AFB" setupItem "Limit"] := {Enabled: false}
 }
 AFBGui["AutoFieldBoostActive"] := {Value: 0}
 MainGui["AutoFieldBoostButton"] := {Text: ""}
@@ -36,9 +39,9 @@ try {
 			test.Call()
 			passed++
 			FileAppend "PASS " test.Name "`n", "*"
-		} catch as err {
+		} catch as testFailure {
 			failed++
-			FileAppend "FAIL " test.Name ": " err.Message "`n" err.Stack "`n", "*"
+			FileAppend "FAIL " test.Name ": " testFailure.Message "`n" testFailure.Stack "`n", "*"
 		}
 	}
 } finally {

@@ -9319,7 +9319,7 @@ blc_mutations(*) {
 		;two more switches for "stop on mythic" and "stop on gifted"
 		for i, j in extrasettings {
 			x := 10 + (tw:=(w-12)/extrasettings.length) * (i-1), y:=(316+h-42)//2-10
-			Gdip_FillRoundedRectanglePath(G, brush:=Gdip_BrushCreateSolid("0xFF262832"), x, y, 40, 18, 9), Gdip_DeleteBrush(brush), Gdip_DeleteBrush(brush)
+			Gdip_FillRoundedRectanglePath(G, brush:=Gdip_BrushCreateSolid("0xFF262832"), x, y, 40, 18, 9), Gdip_DeleteBrush(brush)
 			Gdip_FillEllipse(G, brush:=Gdip_BrushCreateSolid("0xFFFEC6DF"), %j.name% ? x+18 : x-2, y-2, 22, 22)
 			Gdip_TextToGraphics(G, j.text, "s14 x" x+46 " y" y " vCenter c" brush, "Comic Sans MS", tw,20), Gdip_DeleteBrush(brush)
 			if !%j.name% {
@@ -9521,7 +9521,9 @@ blc_mutations(*) {
 			Gdip_BitmapApplyEffect(pBitmap, pEffect)
 			Gdip_DisposeEffect(pEffect)
 			hBitmap := Gdip_CreateHBITMAPFromBitmap(pBitmap)
-			pIRandomAccessStream := HBitmapToRandomAccessStream(hBitmap)
+			Gdip_DisposeImage(pBitmap)
+			try pIRandomAccessStream := HBitmapToRandomAccessStream(hBitmap)
+			finally DllCall("DeleteObject", "Ptr", hBitmap)
 			text:= RegExReplace(ocr(pIRandomAccessStream), "i)([\r\n\s]|mutation)*")
 			found := 0
 			for i, j in selectedMutations
@@ -18180,7 +18182,7 @@ SearchforVB(movement, field){
 				if (++VBInactiveHoney < 5) {
 					nm_setStatus("Warning", "Vicious Bee — Inactive Honey — Retrying")
 				} else {
-					; don't retry yet: not enough inactive honey triggers
+					; Consecutive failures exhausted this search; continue the cycle.
 					vic.result := 0
 				}
 			}
@@ -18388,7 +18390,6 @@ nm_hotbar(boost:=0){
 					else
 						num := 0
 
-					Gdip_DisposeImage(pBMArea)
 					HotkeyNum:=ActiveHotkeys[key][2]
 					;use snowflake if detected snowflake buff is below user selected maximum (num = "" implies 100% or indeterminate)
 					if ((num != "") && (num < HotbarMax%HotkeyNum%)) {
@@ -18396,6 +18397,7 @@ nm_hotbar(boost:=0){
 						LastHotkeyN:=nowUnix()
 						IniWrite LastHotkeyN, "settings\nm_config.ini", "Boost", "LastHotkey" HotkeyNum
 						ActiveHotkeys[key][4]:=LastHotkeyN
+						Gdip_DisposeImage(pBMArea)
 						break
 					}
 				}
