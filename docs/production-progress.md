@@ -62,7 +62,7 @@ SSH identity successfully pushed the workflow and code to the user's fork; use
 `git@github.com:fenixJK/NatroMacroDev.git` for subsequent pushes without changing the
 user's saved HTTPS remote. No PR, merge, or production release has been created.
 
-Next: finish transactional updating and planter confirmation/reconciliation, then
+Next: finish planter confirmation/reconciliation, then
 continue the remaining feature/accounting/reporting fixes and expand the tests.
 The full production objective remains active.
 
@@ -97,3 +97,12 @@ placement failures still lower the user's configured planter limit. Both auto an
 manual harvest paths need shared confirmation/reconciliation. Fully grown planters
 may harvest without a Yes/No dialog, so merely requiring a Yes click is insufficient.
 These planter changes remain pending rather than claiming an incomplete fix.
+
+
+Final updater code checkpoint: `36a7b0bd03e25f1e0ac3354c2156ecf6e6b50bd2`.
+[Windows run 34410593964](https://github.com/fenixJK/NatroMacroDev/actions/runs/34410593964)
+passed **35 update scenarios on each PowerShell version** and **11 regression
+groups on each AHK architecture**. The expanded cases include duplicate/link ZIP
+entries, nested/ambiguous package roots, concurrent updates, externally changed
+startup entries, and failed startup restoration. The main update-window changes
+also passed AHK parsing. Live upgrade/UI/game verification is still pending.
