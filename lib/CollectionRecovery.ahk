@@ -20,6 +20,11 @@ class nm_CollectionRecovery {
 		IniWrite values[1] "|" values[2] "|" values[3], "settings\nm_config.ini", "CollectionRecovery", key
 	}
 
+	static Ready(key) {
+		retryAfter := this.Read(key)[2], current := nowUnix()
+		return retryAfter <= current || retryAfter - current > this.Delay
+	}
+
 	static Begin(key) {
 		previousCritical := A_IsCritical
 		Critical "On"

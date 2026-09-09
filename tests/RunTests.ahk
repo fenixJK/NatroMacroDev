@@ -8,6 +8,7 @@
 #Include "%A_ScriptDir%\..\lib\TimeTracking.ahk"
 #Include "%A_ScriptDir%\..\lib\CollectionRecovery.ahk"
 #Include "%A_ScriptDir%\..\lib\DispenserCollection.ahk"
+#Include "%A_ScriptDir%\..\lib\CollectionInterrupts.ahk"
 #Include "%A_ScriptDir%\..\lib\Conversion.ahk"
 #Include "%A_ScriptDir%\..\lib\DurationFromSeconds.ahk"
 #Include "%A_ScriptDir%\..\lib\PlanterObservation.ahk"
@@ -23,6 +24,13 @@ TestCollectionMode := false, TestCollectionReads := 0, TestCollectionThrow := fa
 HoneyDisCheck := TreatDisCheck := BlueberryDisCheck := StrawberryDisCheck := CoconutDisCheck := 0
 LastHoneyDis := LastTreatDis := LastBlueberryDis := LastStrawberryDis := LastCoconutDis := 0
 CoconutBoosterCheck := BoostChaserCheck := 0
+beesmasActive := BeesmasGatherInterruptCheck := MemoryMatchInterruptCheck := 0
+StockingsCheck := FeastCheck := RBPDelevelCheck := GingerbreadCheck := SnowMachineCheck := 0
+CandlesCheck := SamovarCheck := LidArtCheck := GummyBeaconCheck := WinterMemoryMatchCheck := 0
+NormalMemoryMatchCheck := MegaMemoryMatchCheck := ExtremeMemoryMatchCheck := 0
+LastStockings := LastFeast := LastRBPDelevel := LastGingerbread := LastSnowMachine := 0
+LastCandles := LastSamovar := LastLidArt := LastGummyBeacon := LastWinterMemoryMatch := 0
+LastNormalMemoryMatch := LastMegaMemoryMatch := LastExtremeMemoryMatch := 0
 HideErrors := 1, AutoFieldBoostRefresh := 10, FieldBooster := Map()
 windowX := windowY := windowWidth := 0, bitmaps := Map(), CurrentField := ""
 LastBlueBoost := LastRedBoost := LastMountainBoost := 0
@@ -47,7 +55,7 @@ SetWorkingDir testDirectory
 passed := failed := 0
 try {
 	for test in [TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
-		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures] {
+		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures, TestCollectionInterrupts] {
 		try {
 			test.Call()
 			passed++
@@ -663,4 +671,23 @@ TestDispenserFailures() {
 	} finally {
 		TestCollectionMode := false, TestCollectionThrow := false
 	}
+}
+
+TestCollectionInterrupts() {
+	global TestNow := 2000000, beesmasActive := 1, BeesmasGatherInterruptCheck := 1, MemoryMatchInterruptCheck := 1
+	global StockingsCheck := 1, NormalMemoryMatchCheck := 1
+	Assert(nm_BeesmasInterrupt(), "Eligible seasonal collection interrupts gathering")
+	Assert(nm_MemoryMatchInterrupt(), "Eligible Memory Match interrupts gathering")
+	Assert(nm_CollectionRecovery.Begin("LastStockings"), "Reserve stockings visit")
+	Assert(nm_CollectionRecovery.Begin("LastNormalMemoryMatch"), "Reserve Memory Match visit")
+	nm_CollectionRecovery.Failed("LastStockings")
+	nm_CollectionRecovery.Failed("LastNormalMemoryMatch")
+	Assert(!nm_BeesmasInterrupt(), "Failed seasonal visit permits gathering during backoff")
+	Assert(!nm_MemoryMatchInterrupt(), "Failed Memory Match permits gathering during backoff")
+	TestNow += 299
+	Assert(!nm_BeesmasInterrupt() && !nm_MemoryMatchInterrupt(), "No early interruption")
+	TestNow += 1
+	Assert(nm_BeesmasInterrupt() && nm_MemoryMatchInterrupt(), "Interrupts resume at retry boundary")
+	beesmasActive := MemoryMatchInterruptCheck := 0
+	Assert(!nm_BeesmasInterrupt() && !nm_MemoryMatchInterrupt(), "Feature gates remain authoritative")
 }

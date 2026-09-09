@@ -10574,22 +10574,7 @@ nm_MondoInterrupt() => (utc_min := FormatTime(A_NowUTC, "m"), now := nowUnix(),
 		)
 	)
 )
-nm_BeesmasInterrupt() {
-	global BeesmasGatherInterruptCheck
-	now := nowUnix()
-	return ((beesmasActive = 1) && (BeesmasGatherInterruptCheck = 1)
-		&& ((StockingsCheck && (now-LastStockings)>3600)
-		|| (FeastCheck && (now-LastFeast)>5400)
-		|| (RBPDelevelCheck && (now-LastRBPDelevel)>10800)
-		|| (GingerbreadCheck && (now-LastGingerbread)>7200)
-		|| (SnowMachineCheck && (now-LastSnowMachine)>7200)
-		|| (CandlesCheck && (now-LastCandles)>14400)
-		|| (SamovarCheck && (now-LastSamovar)>21600)
-		|| (LidArtCheck && (now-LastLidArt)>28800)
-		|| (GummyBeaconCheck && (now-LastGummyBeacon)>28800)
-		|| (WinterMemoryMatchCheck && (now-LastWinterMemoryMatch)>14400))
-	)
-}
+#Include "%A_ScriptDir%\..\lib\CollectionInterrupts.ahk"
 nm_BugrunInterrupt() {
 	global BugrunInterruptCheck
 	now := nowUnix()
@@ -10622,16 +10607,7 @@ nm_BugrunInterrupt() {
 			&& ((now-LastBugrunWerewolf)>floor(3600*multiplier))))
 }
 nm_GatherBoostInterrupt() => (now := nowUnix(), ((now-GatherFieldBoostedStart<900) || (now-LastGlitter<900) || nm_boostBypassCheck()))
-nm_MemoryMatchInterrupt() {
-	global MemoryMatchInterruptCheck
-	now := nowUnix()
-	return ((MemoryMatchInterruptCheck = 1)
-		&& ((NormalMemoryMatchCheck && (now-LastNormalMemoryMatch)>7200)
-		|| (MegaMemoryMatchCheck && (now-LastMegaMemoryMatch)>14400)
-		|| (ExtremeMemoryMatchCheck && (now-LastExtremeMemoryMatch)>28800)
-		|| ((beesmasActive = 1) && WinterMemoryMatchCheck && (now-LastWinterMemoryMatch)>14400))
-	)
-}
+
 
 ;stats/status
 nm_setStats(){
@@ -17505,11 +17481,11 @@ nm_confirmNight()
 
 nm_NightMemoryMatch(){
 	; night (general) + no amulet + nightmm ready + night confirmed (last b/c reset)
-	if (!nm_NightInterrupt() || nm_AmuletPrompt() || !(NightMemoryMatchCheck && (nowUnix()-LastNightMemoryMatch)>28800))
+	if (!nm_NightInterrupt() || nm_AmuletPrompt() || !(NightMemoryMatchCheck && (nowUnix()-LastNightMemoryMatch)>28800 && nm_CollectionRecovery.Ready("LastNightMemoryMatch")))
 			return
 	nm_MemoryMatch("Night")
 }
-nm_NightInterrupt() => CheckNight=1 && ((NightMemoryMatchCheck && (nowUnix()-LastNightMemoryMatch)>28800) || !(StingerCheck=0 || (StingerDailyBonusCheck=1 && (VBStart-VBLastKilled)<79200)))
+nm_NightInterrupt() => CheckNight=1 && ((NightMemoryMatchCheck && (nowUnix()-LastNightMemoryMatch)>28800 && nm_CollectionRecovery.Ready("LastNightMemoryMatch")) || !(StingerCheck=0 || (StingerDailyBonusCheck=1 && (VBStart-VBLastKilled)<79200)))
 nm_ViciousBee(){
 	if nm_locateVB() = 0
 		VBEnd({ result: VBResults.notfound, reason: "All fields checked" })
