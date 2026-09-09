@@ -33,6 +33,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "HashFile.ahk"
 #Include "RuntimePolicy.ahk"
 #Include "PlanterRecovery.ahk"
+#Include "PlanterObservation.ahk"
 
 #Warn VarUnset, Off
 
@@ -7581,7 +7582,8 @@ nm_WebhookGUI(*){
 	ExitFunc(*)
 	{
 		DiscordGui.Destroy()
-		try Gdip_Shutdown(pToken)
+		try nm_PlanterProgressReader.Release()
+	try Gdip_Shutdown(pToken)
 		ReplaceSystemCursors()
 	}
 	'
@@ -10726,40 +10728,18 @@ nm_updateAction(action){
 }
 nm_PlanterDetection()
 {
-	static pBMProgressStart, pBMProgressEnd, pBMRemain
-
-	;defines the bitmaps via hex color
-	if !(IsSet(pBMProgressStart) && IsSet(pBMProgressEnd) && IsSet(pBMRemain))
-	{
-		pBMProgressStart := Gdip_CreateBitmap(1,8)
-		pGraphics := Gdip_GraphicsFromImage(pBMProgressStart), Gdip_GraphicsClear(pGraphics, 0xff86d570), Gdip_DeleteGraphics(pGraphics)
-		pBMProgressEnd := Gdip_CreateBitmap(1,2)
-		pGraphics := Gdip_GraphicsFromImage(pBMProgressEnd), Gdip_GraphicsClear(pGraphics, 0xff86d570), Gdip_DeleteGraphics(pGraphics)
-		pBMRemain := Gdip_CreateBitmap(1,8)
-		pGraphics := Gdip_GraphicsFromImage(pBMRemain), Gdip_GraphicsClear(pGraphics, 0xff567848), Gdip_DeleteGraphics(pGraphics)
-	}
-
-	ActivateRoblox()
-	GetRobloxClientPos()
-	pBMScreen := Gdip_BitmapFromScreen(windowX "|" windowY "|" windowWidth "|" windowHeight)
-
-	if ((sPlanterStart := Gdip_ImageSearch(pBMScreen, pBMProgressStart, &PStart, , , , , , , 5)) = 1) {
-		x := SubStr(PStart, 1, InStr(PStart, ",")-1), y := SubStr(PStart, InStr(PStart, ",")+1)
-		sPlanterEnd := Gdip_ImageSearch(pBMScreen, pBMProgressEnd, &PEnd, x, y, , y+2, , , 8)
-		sPBarEnd := Gdip_ImageSearch(pBMScreen, pBMRemain, &PBarEnd, x, y, , y+8, , , 8)
-	}
-
-	Gdip_DisposeImage(pBMScreen)
-
-	if !((sPlanterStart = 0) || (sPlanterEnd = 0) || (sPBarEnd = 0))
-	{
-		cx2 := SubStr(PEnd, 1, InStr(PEnd, ",")-1)+1, dx2 := SubStr(PBarEnd, 1, InStr(PBarEnd, ",")-1)+1
-		PlanterBarRemain := Round((dx2-cx2)/(dx2-x)*100, 2)
-		PlanterBarProgress := (cx2-x)/(dx2-x)
-		return PlanterBarProgress
-	}
-	else
+	if !(hwnd := GetRobloxHWND())
 		return 0
+	ActivateRoblox()
+	GetRobloxClientPos(hwnd)
+	if windowWidth <= 0 || windowHeight <= 0
+		return 0
+	pBMScreen := Gdip_BitmapFromScreen(windowX "|" windowY "|" windowWidth "|" windowHeight)
+	try return nm_PlanterProgressReader.Read(pBMScreen)
+	finally {
+		if pBMScreen
+			Gdip_DisposeImage(pBMScreen)
+	}
 }
 nm_PlanterTimeUpdate(FieldName, SetStatus := 1)
 {

@@ -106,3 +106,39 @@ groups on each AHK architecture**. The expanded cases include duplicate/link ZIP
 entries, nested/ambiguous package roots, concurrent updates, externally changed
 startup entries, and failed startup restoration. The main update-window changes
 also passed AHK parsing. Live upgrade/UI/game verification is still pending.
+
+
+## Planter recovery containment
+
+`ab02f85` replaces the destructive response to five failed auto-harvest attempts
+with a persistent five-minute retry delay, preserving name, field, nectar and
+harvest metadata. Manual harvest failures use the same recovery wrapper. The delay
+is reserved before an action, so interruption also leaves a retry marker; successful
+results clear it. New planter identities do not inherit another planter's delay.
+All four automatic placement retry paths and the three-planter capacity rejection
+now defer placement instead of lowering `MaxAllowedPlanters`. Paper, Ticket,
+Festive and unknown stacked planter types cannot be cleared solely because an
+inventory icon was found. A manual phantom-check miss now reports failure.
+
+[Windows run 34411004501](https://github.com/fenixJK/NatroMacroDev/actions/runs/34411004501)
+passed all 12 AHK regression groups on both architectures, including actual recovery
+wrapper calls, persistent retry timing, interrupted actions, preserved records and
+limits, and inventory-evidence policy. These tests use temporary INI files and
+injected action callbacks, not game interactions.
+
+The progress-bar reader is extracted into `lib/PlanterObservation.ahk`. It requires
+successful image searches for every anchor, treats missing/failed observations as
+unknown, bounds the computed fraction, and releases captures and cached needles.
+Synthetic bitmap tests exercise known bar proportions, missing anchors, capture
+failure, a real GDI bitmap-lock error, and reader resource rebuilding.
+
+F05 remains open: both harvest implementations still need reliable post-action
+confirmation (including full-grown harvests without a Yes/No prompt), then shared
+state commits and reconciliation. Placement also still needs positive completion
+verification. The new retry wrapper contains reported failures; it cannot correct
+an action that incorrectly reports success. Synthetic bar tests do not certify
+real game image accuracy or establish that a missing bar means a harvested planter.
+
+The user confirmed no Windows/Roblox machine is currently available and asked to
+continue code fixes and CI. Live verification remains a required, explicitly open
+gate; it does not block independent implementation and automated regression work.

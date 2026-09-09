@@ -43,3 +43,12 @@ AHK fixture also checks the launch-failure boundary.
 The suite does not certify a release's gameplay or settings migration after startup.
 The five-second process-survival check is an early failure detector, not a health
 certificate. See `docs/updating.md` for rollback and conflict handling.
+
+
+Planter recovery tests call the production retry wrapper with controlled action
+results and temporary INI files. They cover retry limits/delays, interrupted action
+reservations, changed planter identities, preservation of records and configured
+capacity, and exclusion of stacked consumables from inventory-only reconciliation.
+Planter observation tests run real GDI image search against synthetic progress bars,
+including missing anchors and locked-bitmap failures. They exercise the reader and
+resource cleanup; real-world harvest evidence and UI timing still require live tests.

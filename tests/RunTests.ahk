@@ -3,6 +3,7 @@
 #Warn All, StdOut
 #Include "%A_ScriptDir%\..\lib\RuntimePolicy.ahk"
 #Include "%A_ScriptDir%\..\lib\PlanterRecovery.ahk"
+#Include "%A_ScriptDir%\..\lib\PlanterObservation.ahk"
 #Include "%A_ScriptDir%\..\lib\FailureLog.ahk"
 #Include "%A_ScriptDir%\..\lib\Gdip_All.ahk"
 #Include "%A_ScriptDir%\..\lib\Gdip_ImageSearch.ahk"
@@ -35,7 +36,7 @@ SetWorkingDir testDirectory
 passed := failed := 0
 try {
 	for test in [TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
-		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery] {
+		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation] {
 		try {
 			test.Call()
 			passed++
@@ -251,4 +252,51 @@ TestPlanterRecovery() {
 }
 ThrowPlanterInterruption() {
 	throw ValueError("Interrupted planter action")
+}
+
+TestPlanterObservation() {
+	token := Gdip_Startup()
+	Assert(token, "GDI+ must initialize for bitmap tests")
+	screen := 0
+	try {
+		AssertEqual(nm_PlanterProgressReader.Read(0), 0, "Capture failure is unknown")
+		screen := Gdip_CreateBitmap(150, 30)
+		Assert(screen, "Synthetic screen allocated")
+		graphics := Gdip_GraphicsFromImage(screen)
+		try Gdip_GraphicsClear(graphics, 0xff000000)
+		finally Gdip_DeleteGraphics(graphics)
+		AssertEqual(nm_PlanterProgressReader.Read(screen), 0, "Blank image is unknown")
+		for filled in [25, 50, 75, 99] {
+			DrawPlanterTestBar(screen, filled, true)
+			Assert(Abs(nm_PlanterProgressReader.Read(screen) - filled / 100) < 0.00001, "Known bar proportion: " filled)
+		}
+		AssertEqual(Gdip_LockBits(screen, 0, 0, 150, 30, &stride, &scan, &locked), 0, "Test can lock the source bitmap")
+		try AssertEqual(nm_PlanterProgressReader.Read(screen), 0, "Image-search lock failure is unknown, not an unset-variable error")
+		finally Gdip_UnlockBits(screen, &locked)
+		DrawPlanterTestBar(screen, 75, false)
+		AssertEqual(nm_PlanterProgressReader.Read(screen), 0, "Missing remaining-bar anchor is unknown")
+		nm_PlanterProgressReader.Release()
+		DrawPlanterTestBar(screen, 50, true)
+		AssertEqual(nm_PlanterProgressReader.Read(screen), 0.5, "Reader rebuilds after resource release")
+		AssertEqual(nm_PlanterProgressReader.Needles.Length, 3, "Needles are cached rather than leaked per observation")
+	} finally {
+		nm_PlanterProgressReader.Release()
+		if screen
+			Gdip_DisposeImage(screen)
+		Gdip_Shutdown(token)
+	}
+}
+DrawPlanterTestBar(screen, filled, remaining) {
+	graphics := Gdip_GraphicsFromImage(screen)
+	green := Gdip_BrushCreateSolid(0xff86d570)
+	dark := Gdip_BrushCreateSolid(0xff567848)
+	try {
+		Gdip_GraphicsClear(graphics, 0xff000000)
+		Gdip_FillRectangle(graphics, green, 10, 10, filled, 8)
+		if remaining
+			Gdip_FillRectangle(graphics, dark, 10+filled, 10, 100-filled, 8)
+	} finally {
+		Gdip_DeleteBrush(green), Gdip_DeleteBrush(dark)
+		Gdip_DeleteGraphics(graphics)
+	}
 }
