@@ -2,6 +2,7 @@
 #SingleInstance Off
 #Warn All, StdOut
 #Include "%A_ScriptDir%\..\lib\RuntimePolicy.ahk"
+#Include "%A_ScriptDir%\..\lib\PlanterRecovery.ahk"
 #Include "%A_ScriptDir%\..\lib\FailureLog.ahk"
 #Include "%A_ScriptDir%\..\lib\Gdip_All.ahk"
 #Include "%A_ScriptDir%\..\lib\Gdip_ImageSearch.ahk"
@@ -34,7 +35,7 @@ SetWorkingDir testDirectory
 passed := failed := 0
 try {
 	for test in [TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
-		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets] {
+		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery] {
 		try {
 			test.Call()
 			passed++
@@ -206,4 +207,48 @@ TestUpdateAssets() {
 	AssertThrows(nm_SelectUpdateAsset.Bind([bad]), "Zero size must fail")
 	bad := asset.Clone(), bad["browser_download_url"] := "https://example.com/fake.zip"
 	AssertThrows(nm_SelectUpdateAsset.Bind([bad]), "Non-release download must fail")
+}
+
+TestPlanterRecovery() {
+	global TestNow
+	TestNow := 10000
+	IniWrite "PaperPlanter", "settings\nm_config.ini", "Planters", "PlanterName1"
+	IniWrite "Sunflower", "settings\nm_config.ini", "Planters", "PlanterField1"
+	IniWrite 3, "settings\nm_config.ini", "Planters", "MaxAllowedPlanters"
+	state := {calls: 0, result: 0}
+	action := (slot) => (state.calls++, state.result)
+	AssertEqual(nm_PlanterRecovery.Harvest(1, "PaperPlanter", "Sunflower", action), 0, "Failed harvest stays unconfirmed")
+	AssertEqual(state.calls, 5, "Harvest retry count bounded")
+	AssertEqual(IniRead("settings\nm_config.ini", "Planters", "PlanterName1"), "PaperPlanter", "Failure retains identity")
+	AssertEqual(IniRead("settings\nm_config.ini", "Planters", "PlanterField1"), "Sunflower", "Failure retains field")
+	AssertEqual(nm_PlanterRecovery.Harvest(1, "PaperPlanter", "Sunflower", action), 0, "Persistent delay applies")
+	AssertEqual(state.calls, 5, "Deferred action receives no input")
+	Assert(!nm_PlanterRecovery.Ready("Harvest1", "PaperPlanter:Sunflower", 10299), "Delay holds until boundary")
+	Assert(nm_PlanterRecovery.Ready("Harvest1", "PaperPlanter:Sunflower", 10300), "Delay expires at boundary")
+	Assert(nm_PlanterRecovery.Ready("Harvest1", "PlasticPlanter:Sunflower", 10000), "Changed planter does not inherit delay")
+	TestNow := 10300, state.result := 1
+	AssertEqual(nm_PlanterRecovery.Harvest(1, "PaperPlanter", "Sunflower", action), 1, "Successful retry returns success")
+	AssertEqual(state.calls, 6, "Success stops retry loop")
+	AssertEqual(IniRead("settings\nm_config.ini", "PlanterRecovery", "Harvest1"), "", "Success clears recovery marker")
+	state.result := 2
+	AssertEqual(nm_PlanterRecovery.Harvest(1, "PaperPlanter", "Sunflower", action), 2, "Not-ready/held result preserved")
+	AssertThrows(() => nm_PlanterRecovery.Harvest(2, "PlasticPlanter", "Rose", (slot) => ThrowPlanterInterruption()), "Interruption propagates")
+	Assert(!nm_PlanterRecovery.Ready("Harvest2", "PlasticPlanter:Rose", TestNow), "Interruption leaves reservation")
+	nm_PlanterRecovery.Clear("Placement")
+	place := () => (state.calls++, 3)
+	AssertEqual(nm_PlanterRecovery.Placement(place), 3, "Capacity rejection retained")
+	calls := state.calls
+	AssertEqual(nm_PlanterRecovery.Placement(place), 3, "Placement delay stops caller")
+	AssertEqual(state.calls, calls, "Placement delay does not repeat input")
+	nm_PlanterRecovery.PlacementFailed()
+	AssertEqual(IniRead("settings\nm_config.ini", "Planters", "MaxAllowedPlanters"), 3, "Failure must not lower configured capacity")
+	Assert(nm_PlanterRecovery.Ready("Placement", "Planters", TestNow - 1000), "Clock rollback does not strand placement")
+	for name in ["PaperPlanter", "TicketPlanter", "FestivePlanter", "UnknownPlanter"]
+		Assert(!nm_PlanterInventoryConfirmsAbsent(name, [30, 200]), "Stack/unknown inventory is not absence evidence")
+	Assert(nm_PlanterInventoryConfirmsAbsent("PlasticPlanter", [30, 200]), "Reusable inventory observation accepted")
+	for pos in [0, -1, "error", [], [0, 200], [30, -1]]
+		Assert(!nm_PlanterInventoryConfirmsAbsent("PlasticPlanter", pos), "Invalid observation rejected")
+}
+ThrowPlanterInterruption() {
+	throw ValueError("Interrupted planter action")
 }

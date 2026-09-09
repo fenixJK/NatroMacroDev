@@ -32,6 +32,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "ErrorHandling.ahk"
 #Include "HashFile.ahk"
 #Include "RuntimePolicy.ahk"
+#Include "PlanterRecovery.ahk"
 
 #Warn VarUnset, Off
 
@@ -20468,26 +20469,7 @@ ba_planter(){
 		Loop 3 {
 			if((PlanterHarvestTime%A_Index% < nowUnix()) && (PlanterName%A_Index%!="None") && (PlanterField%A_Index%!="None")){
 				i := A_Index
-				Loop 5 {
-					if (ba_harvestPlanter(i) = 1)
-						break
-					if (A_Index = 5) {
-						nm_setStatus("Error", "Failed to harvest " PlanterName%i% " in " PlanterField%i% "!")
-						;clear planter
-						PlanterName%i% := "None"
-						PlanterField%i% := "None"
-						PlanterNectar%i% := "None"
-						PlanterHarvestTime%i% := 2147483647
-						PlanterEstPercent%i% := 0
-						;write values to ini
-						IniWrite "None", "settings\nm_config.ini", "Planters", "PlanterName" i
-						IniWrite "None", "settings\nm_config.ini", "Planters", "PlanterField" i
-						IniWrite "None", "settings\nm_config.ini", "Planters", "PlanterNectar" i
-						IniWrite 2147483647, "settings\nm_config.ini", "Planters", "PlanterHarvestTime" i
-						IniWrite 0, "settings\nm_config.ini", "Planters", "PlanterEstPercent" i
-						break
-					}
-				}
+				nm_PlanterRecovery.Harvest(i, PlanterName%i%, PlanterField%i%, ba_harvestPlanter)
 			}
 		}
 	}
@@ -20599,7 +20581,7 @@ ba_planter(){
 					if (((nectarPercent + estimatedNectarPercent) < nectarMinPercent)){
 						success:=-1, atField:=0
 						while (success!=1 && nextField!="none" && nextPlanter[1]!="none") {
-							success := ba_placePlanter(nextField, nextPlanter, planterNum, atField)
+							success := nm_PlanterRecovery.Placement(ba_placePlanter.Bind(nextField, nextPlanter, planterNum, atField))
 							switch success {
 								case 1: ;planter placed successfully, break loop
 								plantersplaced++
@@ -20635,10 +20617,7 @@ ba_planter(){
 									atField:=1
 							}
 							if (A_Index = 10) {
-								nm_setStatus("Error", "Failed to place planter in 10 tries!`nMaxAllowedPlanters has been reduced.")
-								MaxAllowedPlanters:=max(0, MaxAllowedPlanters-1)
-								MainGui["MaxAllowedPlanters"].Value := MaxAllowedPlanters
-								IniWrite MaxAllowedPlanters, "settings\nm_config.ini", "Planters", "MaxAllowedPlanters"
+								nm_PlanterRecovery.PlacementFailed()
 								break
 							}
 						}
@@ -20755,7 +20734,7 @@ ba_planter(){
 				if (key=lowToHigh.Length){
 					success:=-1, atField:=0
 					while (success!=1 && nextField!="none" && nextPlanter[1]!="none") {
-						success := ba_placePlanter(nextField, nextPlanter, planterNum, atField)
+						success := nm_PlanterRecovery.Placement(ba_placePlanter.Bind(nextField, nextPlanter, planterNum, atField))
 						switch success {
 							case 1: ;planter placed successfully, break loop
 							plantersplaced++
@@ -20791,10 +20770,7 @@ ba_planter(){
 								atField:=1
 						}
 						if (A_Index = 10) {
-							nm_setStatus("Error", "Failed to place planter in 10 tries!`nMaxAllowedPlanters has been reduced.")
-							MaxAllowedPlanters:=max(0, MaxAllowedPlanters-1)
-							MainGui["MaxAllowedPlanters"].Value := MaxAllowedPlanters
-							IniWrite MaxAllowedPlanters, "settings\nm_config.ini", "Planters", "MaxAllowedPlanters"
+							nm_PlanterRecovery.PlacementFailed()
 							break
 						}
 					}
@@ -20803,7 +20779,7 @@ ba_planter(){
 					if ((nectarPercent + estimatedNectarPercent) <= lowToHigh[key+1][1]){
 						success:=-1, atField:=0
 						while (success!=1 && nextField!="none" && nextPlanter[1]!="none") {
-							success := ba_placePlanter(nextField, nextPlanter, planterNum, atField)
+							success := nm_PlanterRecovery.Placement(ba_placePlanter.Bind(nextField, nextPlanter, planterNum, atField))
 							switch success {
 								case 1: ;planter placed successfully, break loop
 								plantersplaced++
@@ -20839,10 +20815,7 @@ ba_planter(){
 									atField:=1
 							}
 							if (A_Index = 10) {
-								nm_setStatus("Error", "Failed to place planter in 10 tries!`nMaxAllowedPlanters has been reduced.")
-								MaxAllowedPlanters:=max(0, MaxAllowedPlanters-1)
-								MainGui["MaxAllowedPlanters"].Value := MaxAllowedPlanters
-								IniWrite MaxAllowedPlanters, "settings\nm_config.ini", "Planters", "MaxAllowedPlanters"
+								nm_PlanterRecovery.PlacementFailed()
 								break
 							}
 						}
@@ -20924,7 +20897,7 @@ ba_planter(){
 					}
 					success:=-1, atField:=0
 					while (success!=1 && nextField!="none" && nextPlanter[1]!="none") {
-						success := ba_placePlanter(nextField, nextPlanter, planterNum, atField)
+						success := nm_PlanterRecovery.Placement(ba_placePlanter.Bind(nextField, nextPlanter, planterNum, atField))
 						switch success {
 							case 1: ;planter placed successfully, break loop
 							plantersplaced++
@@ -20960,10 +20933,7 @@ ba_planter(){
 								atField:=1
 						}
 						if (A_Index = 10) {
-							nm_setStatus("Error", "Failed to place planter in 10 tries!`nMaxAllowedPlanters has been reduced.")
-							MaxAllowedPlanters:=max(0, MaxAllowedPlanters-1)
-							MainGui["MaxAllowedPlanters"].Value := MaxAllowedPlanters
-							IniWrite MaxAllowedPlanters, "settings\nm_config.ini", "Planters", "MaxAllowedPlanters"
+							nm_PlanterRecovery.PlacementFailed()
 							break
 						}
 					}
@@ -21196,10 +21166,7 @@ ba_placePlanter(fieldName, planter, planterNum, atField:=0){
 		Sleep 100
 		imgPos := nm_imgSearch("3Planters.png",30,"lowright")
 		If (imgPos[1] = 0){
-			MaxAllowedPlanters:=max(0, MaxAllowedPlanters-1)
-			MainGui["MaxAllowedPlanters"].Value := MaxAllowedPlanters
-			nm_setStatus("Error", "3 Planters already placed!`nMaxAllowedPlanters has been reduced.")
-			ba_saveConfig_()
+			nm_PlanterRecovery.PlacementFailed()
 			Sleep 500
 			return 3
 		}
@@ -21241,7 +21208,7 @@ ba_harvestPlanter(planterNum){
 		nm_OpenMenu("itemmenu")
 		planterPos := nm_InventorySearch(planterName, "up", 4)
 
-		if (planterPos != 0) { ; found planter in inventory planter is a phantom
+		if nm_PlanterInventoryConfirmsAbsent(planterName, planterPos) { ; reusable planter returned to inventory
 			nm_setStatus("Found", planterName . ". Clearing Data.")
 			;reset values
 			PlanterName%planterNum% := "None"
@@ -21389,6 +21356,7 @@ ba_SavePlacedPlanter(fieldName, planter, planterNum, nectar){
 	;temp2:=planter[2]
 	;temp3:=planter[3]
 	;temp4:=planter[4]
+	nm_PlanterRecovery.Clear("Harvest" planterNum)
 	;save placed planter to ini
 	PlanterName%planterNum%:=planter[1]
 	PlanterField%planterNum%:=fieldName
@@ -21504,10 +21472,10 @@ mp_Planter() { ;//todo: merge these manual planter functions as much as possible
 				IniWrite MPlanterSmoking%A_Index%, "settings\nm_config.ini", "Planters", "MPlanterSmoking" A_Index
 			}
 			If (PlanterHarvestTime%A_Index% > 2147483646 ) {
-				mp_PlantPlanter(A_Index)
+				nm_PlanterRecovery.Placement(mp_PlantPlanter.Bind(A_Index))
 			} Else if (!MPlanterHold%A_Index% && (PlanterName%A_Index%!="None") && (PlanterField%A_Index%!="None")) {
 				If (nowUnix() >= PlanterHarvestTime%A_Index%)
-					mp_HarvestPlanter(A_Index)
+					nm_PlanterRecovery.Harvest(A_Index, PlanterName%A_Index%, PlanterField%A_Index%, mp_HarvestPlanter, 1)
 				If (PlanterHarvestFull%A_Index% == "Full" && (nowUnix() - LastGlitter >= 900) && PlanterGlitterC%A_Index% && !PlanterGlitter%A_Index%) {
 					i := A_Index, field := StrReplace(PlanterField%A_Index%, " ")
 					for k,v in %field%Planters {
@@ -21712,6 +21680,7 @@ mp_PlantPlanter(PlanterIndex) {
 		}
 	}
 
+	nm_PlanterRecovery.Clear("Harvest" PlanterIndex)
 	PlanterName%PlanterIndex% := MPlanterName
 	PlanterField%PlanterIndex% := MFieldName
 	PlanterNectar%PlanterIndex% := MFieldNectars[StrTitle(MFieldName)]
@@ -21856,7 +21825,7 @@ mp_HarvestPlanter(PlanterIndex) {
 
 		planterPos := nm_InventorySearch(MPlanterName, "up", 4) ;~ new function
 
-		if (planterPos != 0) { ; found planter in inventory planter is a phantom
+		if nm_PlanterInventoryConfirmsAbsent(MPlanterName, planterPos) { ; stacked items cannot establish absence
 			nm_setStatus("Found", MPlanterName . ". Clearing Data.")
 
 			;reset disable auto harvest values if phantom planter
@@ -21887,9 +21856,10 @@ mp_HarvestPlanter(PlanterIndex) {
 			IniWrite PlanterGlitterC%PlanterIndex%, "settings\nm_config.ini", "Planters", "PlanterGlitterC" PlanterIndex
 			IniWrite PlanterHarvestFull%PlanterIndex%, "settings\nm_config.ini", "Planters", "PlanterHarvestFull" PlanterIndex
 			IniWrite PlanterHarvestTime%PlanterIndex%, "settings\nm_config.ini", "Planters", "PlanterHarvestTime" PlanterIndex
+			return 1
 		}
 
-		return 1
+		return 0
 	}
 	else if ((MPuffModeA = 1) && (MPuffMode%PlanterIndex% = 1) && (PlanterHarvestNow%PlanterIndex% != 1)) {
 		; screenshot and set to hold instead of harvest, if auto harvest is disabled for the slot, and the user hasn't selected to release it by remote control
