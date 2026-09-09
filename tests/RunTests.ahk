@@ -34,7 +34,7 @@ SetWorkingDir testDirectory
 passed := failed := 0
 try {
 	for test in [TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
-		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging] {
+		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets] {
 		try {
 			test.Call()
 			passed++
@@ -194,4 +194,16 @@ ActivateRoblox() => UnexpectedObservation()
 nm_toBooster(*) => UnexpectedObservation()
 UnexpectedObservation() {
 	throw Error("Test unexpectedly attempted game observation or input")
+}
+
+TestUpdateAssets() {
+	asset := Map("browser_download_url", "https://github.com/NatroTeam/NatroMacro/releases/download/v1.2/Natro_Macro.zip", "size", 100)
+	other := Map("browser_download_url", "https://github.com/NatroTeam/NatroMacro/releases/download/v1.2/SHA256.txt", "size", 10)
+	Assert(nm_SelectUpdateAsset([other, asset]) = asset, "Choose ZIP rather than first asset")
+	AssertThrows(nm_SelectUpdateAsset.Bind([other]), "No ZIP must fail")
+	AssertThrows(nm_SelectUpdateAsset.Bind([asset, asset]), "Ambiguous ZIP must fail")
+	bad := asset.Clone(), bad["size"] := 0
+	AssertThrows(nm_SelectUpdateAsset.Bind([bad]), "Zero size must fail")
+	bad := asset.Clone(), bad["browser_download_url"] := "https://example.com/fake.zip"
+	AssertThrows(nm_SelectUpdateAsset.Bind([bad]), "Non-release download must fail")
 }

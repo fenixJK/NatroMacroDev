@@ -22,3 +22,16 @@ jobs:
       - name: Validate scripts and run regression tests
         shell: pwsh
         run: ./tests/run-windows.ps1 -Architecture '${{ matrix.architecture }}'
+
+  updater:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shell: [powershell, pwsh]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Exercise updater failures and migration
+        shell: ${{ matrix.shell }}
+        run: ./tests/UpdateTests.ps1

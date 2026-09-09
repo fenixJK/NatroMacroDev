@@ -14,7 +14,7 @@ Baseline: `66648fd6a290d472dacc45e9407e4c0ca4fa744a`.
 
 ## Verification gates
 
-- Pending: actual AHK tests on both bundled architectures.
+- Passed for checkpoint `548a617`: actual AHK tests on both bundled architectures; additional tests remain required as the remaining features change.
 - Pending: failure-injection tests for updates, interrupted actions, consumable limits, and permissions.
 - Pending: live Windows/Roblox scenario matrix from the audit (including routes, game images, UI timing, pause/stop, reconnect, and mixed overnight run).
 - Pending: measured baseline and comparison for performance changes.
@@ -23,7 +23,7 @@ Local source/static checks are supporting evidence only. They do not certify liv
 
 ## First implementation checkpoint
 
-Implemented, awaiting Windows CI and live validation: F01 (remove unowned tab closure),
+Implemented; Windows parsing and the covered regression groups passed, with live validation still pending: F01 (remove unowned tab closure),
 F03–F04 (live AFB flags, centralized cancellation and pre-input budgets), F07 (no
 automatic desktop fallback), F09 (validated ordered reconnect candidates), F10
 (Vicious Bee retry/timeout/threshold/config fixes), F12 (numeric nectar sort), F16
@@ -41,3 +41,27 @@ reserve every input attempt before sending, including unconfirmed/rejected input
 
 Still to implement in the first batch: transactional updater and confirmed planter
 harvest/reconciliation. No finding is considered live-verified yet.
+
+## Verified checkpoint — 2026-09-09
+
+Code commit: `548a6178461d8e1d442b8dcb7a27d7f918e985b2`, pushed to
+`fenixJK/NatroMacroDev`, branch `codex/production-recovery`.
+[Windows run 34409151841](https://github.com/fenixJK/NatroMacroDev/actions/runs/34409151841)
+completed successfully. All six submacro entry scripts passed `/Validate` on both
+bundled architectures. Each architecture passed all 10 regression groups, with no
+warnings in the final run. Earlier CI caught an invalid AHK switch `break` in the
+new command-denial path; commit `370c64b` corrected it before the successful runs.
+
+The checkpoint also fixes the snowflake double-disposal, the auto-jelly bitmap /
+HBITMAP leak and duplicate brush disposal, zero honey formatting, and treating a
+field-boost image-search error as a match. These changes parse on Windows; actual
+GDI resource growth and generated auto-jelly execution still need dedicated tests.
+
+GitHub's HTTPS OAuth credential lacks `workflow` scope. The existing authorized
+SSH identity successfully pushed the workflow and code to the user's fork; use
+`git@github.com:fenixJK/NatroMacroDev.git` for subsequent pushes without changing the
+user's saved HTTPS remote. No PR, merge, or production release has been created.
+
+Next: finish transactional updating and planter confirmation/reconciliation, then
+continue the remaining feature/accounting/reporting fixes and expand the tests.
+The full production objective remains active.

@@ -66,3 +66,24 @@ nm_CommandAuthorized(allowed, userID, roles := 0) {
 			return true
 	return false
 }
+
+; Release APIs may list checksums or other attachments before the ZIP.
+nm_SelectUpdateAsset(assets)
+{
+	selected := 0
+	for asset in assets
+	{
+		if !(asset is Map) || !asset.Has("browser_download_url")
+			continue
+		if !RegExMatch(asset["browser_download_url"], "i)^https://github\.com/NatroTeam/NatroMacro/releases/download/[^/?#]+/[^/?#]+\.zip$")
+			continue
+		if selected
+			throw ValueError("This release contains multiple update ZIPs. Download the correct package from the release page.")
+		if !asset.Has("size") || !IsNumber(asset["size"]) || asset["size"] <= 0 || asset["size"] > 536870912
+			throw ValueError("The update ZIP has an invalid download size.")
+		selected := asset
+	}
+	if !selected
+		throw ValueError("No supported Natro Macro update ZIP was found in this release.")
+	return selected
+}

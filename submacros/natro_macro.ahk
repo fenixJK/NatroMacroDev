@@ -2415,7 +2415,13 @@ nm_AutoUpdateHandler(req)
 nm_AutoUpdateGUI(*)
 {
 	global
-	local size, downloads, posW, hBM, UpdateText, GuiCtrl
+	local size, downloads, posW, hBM, UpdateText, GuiCtrl, asset
+	try asset := nm_SelectUpdateAsset(latest_release["assets"])
+	catch as err
+	{
+		MsgBox err.Message, "Update unavailable", 0x1010
+		return
+	}
 	GuiClose(*){
 		if (IsSet(UpdateGui) && IsObject(UpdateGui))
 			UpdateGui.Destroy(), UpdateGui := ""
@@ -2430,7 +2436,7 @@ nm_AutoUpdateGUI(*)
 	UpdateGui.Add("Text", "x" 149-posW//2 " y40 +BackgroundTrans", "Natro Macro v" VersionID " ⮕ ")
 	UpdateGui.Add("Text", "x+0 yp +c379e37 +BackgroundTrans", "v" LatestVer)
 
-	posW := TextExtent((size := Round(latest_release["assets"][1]["size"]/1048576, 2)) " MB // Downloads: " (downloads := latest_release["assets"][1]["download_count"]), UpdateText)
+	posW := TextExtent((size := Round(asset["size"]/1048576, 2)) " MB // Downloads: " (downloads := asset["download_count"]), UpdateText)
 	UpdateGui.Add("Text", "x" 150-posW//2 " y54 +BackgroundTrans", size " MB // Downloads: " downloads)
 
 	hBM := Gdip_CreateHBITMAPFromBitmap(bitmaps["githubgui"]), UpdateGui.Add("Picture", "x76 y+1 w16 h16 +BackgroundTrans", "HBITMAP:*" hBM).OnEvent("Click", GitHubRepoLink), DllCall("DeleteObject", "ptr", hBM)
@@ -2443,7 +2449,7 @@ nm_AutoUpdateGUI(*)
 	UpdateGui.Add("CheckBox", "xp+8 yp+16 Checked vCopySettings", "Copy Settings")
 	UpdateGui.Add("CheckBox", "xp+92 yp vCopyPatterns Checked" (!MajorUpdate) " Disabled" MajorUpdate, "Copy Patterns")
 	UpdateGui.Add("CheckBox", "xp-92 yp+16 vCopyPaths Checked" (!MajorUpdate) " Disabled" MajorUpdate, "Copy Paths")
-	UpdateGui.Add("CheckBox", "xp+92 yp vDeleteOld", "Delete v" VersionID)
+	UpdateGui.Add("Text", "xp+92 yp+2", "Keep rollback copy")
 	if MajorUpdate
 		UpdateGui.Add("Button", "x60 y+5 w180 h18", "Why are some options disabled?").OnEvent("Click", nm_MajorUpdateHelp)
 
@@ -2498,51 +2504,32 @@ nm_NeverButton(*)
 }
 nm_UpdateButton(*)
 {
-	global latest_release, VersionID, UpdateGui
-	url := latest_release["assets"][1]["browser_download_url"]
-	olddir := A_WorkingDir
-	CopySettings := UpdateGui["CopySettings"].Value
-	CopyPatterns := UpdateGui["CopyPatterns"].Value
-	CopyPaths := UpdateGui["CopyPaths"].Value
-	DeleteOld := UpdateGui["DeleteOld"].Value
-	changedpaths := ""
-	UpdateGui.Destroy(), UpdateGui := ""
-
-	if (CopyPaths = 1)
+	global latest_release, UpdateGui, MacroState
+	if (MacroState != 0)
 	{
-		try
-		{
-			wr := ComObject("WinHttp.WinHttpRequest.5.1")
-			wr.Open("GET", "https://api.github.com/repos/NatroTeam/NatroMacro/tags?per_page=100", 1)
-			wr.SetRequestHeader("accept", "application/vnd.github+json")
-			wr.SetRequestHeader("X-GitHub-Api-Version", "2022-11-28")
-			wr.Send()
-			wr.WaitForResponse()
-			for k,v in (tags := JSON.parse(wr.ResponseText))
-				if ((VerCompare(Trim(v["name"], "v"), VersionID) <= 0) && (base := v["name"]))
-					break
-			if !base
-				throw
-
-			wr := ComObject("WinHttp.WinHttpRequest.5.1")
-			wr.Open("GET", "https://api.github.com/repos/NatroTeam/NatroMacro/compare/" base "..." latest_release["tag_name"] , 1)
-			wr.SetRequestHeader("accept", "application/vnd.github+json")
-			wr.SetRequestHeader("X-GitHub-Api-Version", "2022-11-28")
-			wr.Send()
-			wr.WaitForResponse()
-			for k,v in (files := JSON.parse(wr.ResponseText)["files"])
-				if (SubStr(v["filename"], 1, 6) = "paths/")
-					changedpaths .= '"' SubStr(v["filename"], 7) '" '
-			changedpaths := RTrim(changedpaths)
-		}
-		catch
-		{
-			MsgBox "Unable to fetch changed paths from GitHub!`nIf you still want to update, disable 'Copy Paths' (and copy them manually) or try again later.", "Error", 0x1010 " T30"
-			return
-		}
+		MsgBox "Stop the macro before updating so settings can be copied consistently.", "Stop before updating", 0x1040
+		return
 	}
-
-	Run '"' A_WorkingDir '\submacros\update.bat" "' url '" "' olddir '" "' CopySettings '" "' CopyPatterns '" "' CopyPaths '" "' DeleteOld '" "' changedpaths '"'
+	try
+	{
+		asset := nm_SelectUpdateAsset(latest_release["assets"])
+		request := Map("url", asset["browser_download_url"], "size", asset["size"],
+			"digest", asset.Get("digest", ""), "oldDirectory", A_WorkingDir,
+			"settings", UpdateGui["CopySettings"].Value, "patterns", UpdateGui["CopyPatterns"].Value,
+			"paths", UpdateGui["CopyPaths"].Value, "parentPid", DllCall("GetCurrentProcessId"))
+		requestPath := A_Temp "\natro-update-" DllCall("GetCurrentProcessId") "-" A_TickCount ".json"
+		FileAppend JSON.stringify(request), requestPath, "UTF-8"
+		Run '"' A_WinDir '\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "'
+			. A_WorkingDir '\submacros\update.ps1" -RequestPath "' requestPath '"'
+	}
+	catch as err
+	{
+		if IsSet(requestPath)
+			try FileDelete requestPath
+		MsgBox "Could not start the update: " err.Message, "Update error", 0x1010
+		return
+	}
+	UpdateGui.Destroy(), UpdateGui := ""
 	ExitApp
 }
 nm_MajorUpdateHelp(*)
