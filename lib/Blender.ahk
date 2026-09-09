@@ -7,7 +7,9 @@ nm_Blender(){
 	, BlenderCount1, BlenderCount2, BlenderCount3
 
 	nm_BlenderRecoverCommit()
-	nm_BlenderRotation()
+	nextRecipe := nm_BlenderRotation()
+	if !nextRecipe && BlenderTime%LastBlenderRot% <= 0
+		return
 	TimeForBlender := BlenderTime%LastBlenderRot% - TimerInterval ; due to BlenderTime being calcuted with TimerInterval integrated to fix that we simply subtract it before
 
 	if (BlenderCheck && (nowUnix() - TimeForBlender) > TimerInterval) {
@@ -25,9 +27,16 @@ nm_Blender(){
 			nm_Reset()
 			nm_setStatus("Traveling", "Blender" ((A_Index > 1) ? " (Attempt 2)" : ""))
 			nm_gotoCollect("Blender")
+			hwnd := GetRobloxHWND()
+			if !hwnd
+				return
+			GetRobloxClientPos(hwnd)
+			context := {hwnd: hwnd, x: windowX, y: windowY, width: windowWidth, height: windowHeight}
 
 			searchRet := nm_imgSearch("e_button.png", 30, "high")
 			If (searchRet[1] = 0) {
+				if !nm_BlenderSameWindow(hwnd, context.x, context.y, context.width, context.height)
+					return
 				sendinput "{" SC_E " down}"
 				Sleep 100
 				sendinput "{" SC_E " up}"
@@ -36,31 +45,23 @@ nm_Blender(){
 				SearchX := windowX+windowWidth//2 - 275, SearchY := windowY+Floor(0.48*windowHeight) - 220, BlenderSS := Gdip_BitmapFromScreen(SearchX "|" SearchY "|550|400")
 
 				if (Gdip_ImageSearch(BlenderSS, bitmaps["CancelCraft"], , , , , , 2, , 7) > 0) {
-					MouseMove windowX+windowWidth//2 + 230, windowY+Floor(0.48*windowHeight) + 130 ; click cancel button
-					Sleep 150
-					Click
+					nm_BlenderClick(context, windowX+windowWidth//2 + 230, windowY+Floor(0.48*windowHeight) + 130)
 				}
 
 				if (!BlenderEnd && Gdip_ImageSearch(BlenderSS, bitmaps["EndCraftR"], , , , , , 3, , 6) > 0)
 				{
 					nm_setStatus("Confirmed", "Blender is already in use")
-					MouseMove windowX+windowwidth//2 - 250, windowY+Floor(0.48*windowHeight) - 200
-					Gdip_disposeimage(BlenderSS) ;Close GUI and dispose of bitmap
-					Sleep 150
-					Click
+					Gdip_DisposeImage(BlenderSS)
+					nm_BlenderClick(context, context.x+context.width//2-250, context.y+Floor(0.48*context.height)-200)
 					break
 				} else if (BlenderEnd && Gdip_ImageSearch(BlenderSS, bitmaps["EndCraftR"], , , , , , 3, , 6) > 0) {
 					IniWrite 0, "settings\nm_config.ini", "Blender", "BlenderEnd"
 					BlenderEnd := 0
-					MouseMove windowX+windowWidth//2 - 120, windowY+Floor(0.48*windowHeight) + 120 ; close red craft button
-					Sleep 150
-					Click
+					nm_BlenderClick(context, windowX+windowWidth//2 - 120, windowY+Floor(0.48*windowHeight) + 120)
 				}
 
 				if (Gdip_ImageSearch(BlenderSS, bitmaps["EndCraftG"], , , , , , 4, , 6) > 0) {
-					MouseMove windowX+WindowWidth//2 - 120, windowY+Floor(0.48*windowHeight) + 120 ; close green craft button
-					Sleep 150
-					Click
+					nm_BlenderClick(context, windowX+WindowWidth//2 - 120, windowY+Floor(0.48*windowHeight) + 120)
 					if nm_BlenderWaitForCollection(hwnd, windowX, windowY, windowWidth, windowHeight, BlenderItem%LastBlenderRot%) {
 						BlenderTime%LastBlenderRot% := 0
 						BlenderCount%LastBlenderRot% := BlenderAmount%LastBlenderRot%
@@ -75,7 +76,80 @@ nm_Blender(){
 				}
 				gdip_disposeimage(BlenderSS)
 				Sleep 800
-				if !nm_BlenderSameWindow(hwnd, x, y, width, height) {
+				if !nm_BlenderRotation() {
+					nm_BlenderClick(context, windowX+windowWidth//2 - 250, windowY+Floor(0.48*windowHeight) - 200)
+					return
+				}
+				loop
+				{
+					BlenderSS := Gdip_BitmapFromScreen(SearchX "|" SearchY "|170|245")
+
+					Blender := %("BlenderItem" BlenderRot)%
+					BlenderIMG := Blender "B"
+
+					if (Gdip_ImageSearch(BlenderSS, bitmaps[BlenderIMG], , , , , , 2, , 4) > 0)
+					{
+						gdip_disposeimage(BlenderSS)  ; Dispose of the bitmap
+						Sleep 200
+						BlenderSS := Gdip_BitmapFromScreen(SearchX "|" SearchY "|553|400")
+						if (Gdip_ImageSearch(BlenderSS, bitmaps["NoItems"], , , , , , 2) > 0) {
+							Gdip_DisposeImage(BlenderSS)
+							IniWrite nowUnix() + 300, "settings\nm_config.ini", "Blender", "Unavailable" BlenderRot
+							nm_setStatus("Waiting", "Blender ingredients unavailable for " Blender "; recipe retained")
+							BlenderRot := Mod(BlenderRot, 3) + 1
+							if !nm_BlenderRotation() {
+								nm_BlenderClick(context, context.x+context.width//2-250, context.y+Floor(0.48*context.height)-200)
+								return
+							}
+							break
+						}
+						gdip_disposeimage(BlenderSS)
+						executedSlot := BlenderRot
+						expectedRecipe := nm_BlenderReadRecipes()[executedSlot]
+						nm_BlenderClick(context, windowX+windowWidth//2, windowY+Floor(0.48*windowHeight) + 130)
+						Sleep 150
+						MouseMove windowX+windowWidth//2 - 60, windowY+Floor(0.48*windowHeight) + 140 ;Add more of x item
+						Sleep 150
+						While (A_Index < expectedRecipe.amount) {
+							if !nm_BlenderSameWindow(hwnd, context.x, context.y, context.width, context.height)
+								throw Error("Roblox focus or geometry changed while selecting a Blender quantity")
+							Click
+							Sleep 30
+						}
+						Sleep 200
+						nm_BlenderClick(context, windowX+windowWidth//2 + 70, windowY+Floor(0.48*windowHeight) + 130)
+						confirmed := nm_BlenderWaitForCraft(hwnd, windowX, windowY, windowWidth, windowHeight)
+						if nm_BlenderCommitAccepted(executedSlot, expectedRecipe, confirmed, nowUnix()) {
+							IniWrite 0, "settings\nm_config.ini", "Blender", "RetryAfter"
+							nm_setStatus("Crafting", "Blender: " expectedRecipe.item " (slot " executedSlot ")")
+						} else {
+							nm_setStatus("Unconfirmed", "Blender craft not recorded. Counts and timers retained; retry in 5 minutes.")
+						}
+						if nm_BlenderSameWindow(hwnd, context.x, context.y, context.width, context.height)
+							nm_BlenderClick(context, context.x+context.width//2-250, context.y+Floor(0.48*context.height)-200)
+						break 2
+					} else {
+						Sleep 50
+						nm_BlenderClick(context, windowX+windowWidth//2 + 230, windowY+Floor(0.48*windowHeight) + 110)
+						Sleep 100
+						if (A_Index = 60) {
+							if (z = 2) {
+								nm_setStatus("Failed", "Blender")
+								nm_BlenderClick(context, windowX+windowWidth//2 - 250, windowY+Floor(0.48*windowHeight) - 200)
+
+							}
+							break
+						}
+					}
+				}
+			}
+		}
+		IniWrite TimerInterval, "settings\nm_config.ini", "Blender", "TimerInterval"
+		IniWrite BlenderRot, "settings\nm_config.ini", "Blender", "BlenderRot"
+		IniWrite BlenderIndex%BlenderRot%, "settings\nm_config.ini", "Blender", "BlenderIndex" BlenderRot
+	}
+}
+nm_BlenderSameWindow(hwnd, x, y, width, height) {
 	global windowX, windowY, windowWidth, windowHeight
 	if GetRobloxHWND() != hwnd || !WinActive("ahk_id " hwnd)
 		return false
@@ -124,4 +198,14 @@ nm_BlenderWaitForCollection(hwnd, x, y, width, height, item) {
 			return 1
 	}
 	return 0
+}
+
+nm_BlenderClick(context, x, y) {
+	if !nm_BlenderSameWindow(context.hwnd, context.x, context.y, context.width, context.height)
+		throw Error("Roblox focus or geometry changed before a Blender click")
+	MouseMove x, y
+	Sleep 150
+	if !nm_BlenderSameWindow(context.hwnd, context.x, context.y, context.width, context.height)
+		throw Error("Roblox focus or geometry changed during a Blender click")
+	Click
 }

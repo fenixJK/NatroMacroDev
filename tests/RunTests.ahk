@@ -311,7 +311,10 @@ ResetBlenderTest() {
 		, BlenderTime1 := 0, BlenderTime2 := 0, BlenderTime3 := 0
 		, BlenderCount1 := 2, BlenderCount2 := 3, BlenderCount3 := 0, MainGui
 	Loop 3
+	{
 		MainGui["BlenderData" A_Index] := {Text: ""}
+		IniWrite 0, "settings\nm_config.ini", "Blender", "Unavailable" A_Index
+	}
 	IniWrite "", "settings\nm_config.ini", "Blender", "PendingCommit"
 }
 TestBlenderWriter(state, key, value) {
@@ -382,4 +385,11 @@ TestBlenderAccounting() {
 	BlenderTime1 := 0
 	AssertEqual(nm_BlenderRotation(), 0, "Empty queue has no next slot")
 	AssertEqual(BlenderCheck, 0, "Stop scheduling after final batch collected")
+	ResetBlenderTest()
+	IniWrite nowUnix() + 300, "settings\nm_config.ini", "Blender", "Unavailable1"
+	AssertEqual(nm_BlenderRotation(), 2, "Ingredient shortage temporarily skips only the affected recipe")
+	AssertEqual(BlenderIndex1, 1, "Skipping unavailable recipe preserves its repetitions")
+	IniWrite nowUnix() + 300, "settings\nm_config.ini", "Blender", "Unavailable2"
+	AssertEqual(nm_BlenderRotation(), 0, "All unavailable recipes defer travel")
+	AssertEqual(BlenderCheck, 1, "Unavailable recipes remain configured for later retry")
 }

@@ -109,106 +109,22 @@ nm_BlenderCommitAccepted(executed, expected, confirmed, started, writeSetting :=
 }
 
 nm_BlenderRotation() {
-					MouseMove windowX+windowWidth//2 - 250, windowY+Floor(0.48*windowHeight) - 200
-					Sleep 150
-					Click
-					return
-				}
-				loop
-				{
-					BlenderSS := Gdip_BitmapFromScreen(SearchX "|" SearchY "|170|245")
-
-					Blender := %("BlenderItem" BlenderRot)%
-					BlenderIMG := Blender "B"
-
-					if (Gdip_ImageSearch(BlenderSS, bitmaps[BlenderIMG], , , , , , 2, , 4) > 0)
-					{
-						gdip_disposeimage(BlenderSS)  ; Dispose of the bitmap
-						Sleep 200
-						BlenderSS := Gdip_BitmapFromScreen(SearchX "|" SearchY "|553|400")
-						if (Gdip_ImageSearch(BlenderSS, bitmaps["NoItems"], , , , , , 2) > 0) {
-							BlenderItem%BlenderRot% := "None", BlenderAmount%BlenderRot% := 0, BlenderIndex%BlenderRot% := 1, BlenderTime%BlenderRot% := 0
-
-							IniWrite "None", "settings\nm_config.ini", "Blender", "BlenderItem" BlenderRot
-							IniWrite 0, "settings\nm_config.ini", "Blender", "BlenderAmount" BlenderRot
-							IniWrite 1, "settings\nm_config.ini", "Blender", "BlenderIndex" BlenderRot
-							IniWrite 0, "settings\nm_config.ini", "Blender", "BlenderTime" BlenderRot
-
-							MainGui["BlenderAdd" BlenderRot].Text := ((BlenderItem%BlenderRot% = "None" || BlenderItem%BlenderRot% = "") ? "Add" : "Clear")
-							MainGui["BlenderData" BlenderRot].Text := "(" BlenderAmount%BlenderRot% ") [" ((BlenderIndex%BlenderRot% = "Infinite") ? "∞" : BlenderIndex%BlenderRot%) "]"
-
-							MainGui["BlenderItem" BlenderRot "Picture"].Value := ""
-							gdip_disposeimage(BlenderSS)
-							nm_BlenderRotation()
-							if !(BlenderCheck)
-								break 2
-							break
-						}
-						gdip_disposeimage(BlenderSS)
-						executedSlot := BlenderRot
-						expectedRecipe := nm_BlenderReadRecipes()[executedSlot]
-						MouseMove windowX+windowWidth//2, windowY+Floor(0.48*windowHeight) + 130 ;Open item menu
-						Sleep 150
-						click
-						Sleep 150
-						MouseMove windowX+windowWidth//2 - 60, windowY+Floor(0.48*windowHeight) + 140 ;Add more of x item
-						Sleep 150
-						While (A_Index < expectedRecipe.amount) {
-							Click
-							Sleep 30
-						}
-						Sleep 200
-						MouseMove windowX+windowWidth//2 + 70, windowY+Floor(0.48*windowHeight) + 130 ; Confirm craft
-						Sleep 150
-						Click
-						confirmed := nm_BlenderWaitForCraft(hwnd, windowX, windowY, windowWidth, windowHeight)
-						if nm_BlenderCommitAccepted(executedSlot, expectedRecipe, confirmed, nowUnix()) {
-							IniWrite 0, "settings\nm_config.ini", "Blender", "RetryAfter"
-							nm_setStatus("Crafting", "Blender: " expectedRecipe.item " (slot " executedSlot ")")
-						} else {
-							nm_setStatus("Unconfirmed", "Blender craft not recorded. Counts and timers retained; retry in 5 minutes.")
-						}
-						MouseMove windowX+windowWidth//2 - 250, windowY+Floor(0.48*windowHeight) - 200 ;Close GUI
-						Sleep 150
-						Click
-						break 2
-					} else {
-						Sleep 50
-						MouseMove windowX+windowWidth//2 + 230, windowY+Floor(0.48*windowHeight) + 110 ;not found go next item
-						Sleep 150
-						Click
-						Sleep 100
-						if (A_Index = 60) {
-							if (z = 2) {
-								nm_setStatus("Failed", "Blender")
-								MouseMove windowX+windowWidth//2 - 250, windowY+Floor(0.48*windowHeight) - 200 ;Close GUI
-								Sleep 150
-								Click
-
-							}
-							break
-						}
-					}
-				}
-			}
-		}
-		IniWrite TimerInterval, "settings\nm_config.ini", "Blender", "TimerInterval"
-		IniWrite BlenderRot, "settings\nm_config.ini", "Blender", "BlenderRot"
-		IniWrite BlenderIndex%BlenderRot%, "settings\nm_config.ini", "Blender", "BlenderIndex" BlenderRot
-	}
-}
-nm_BlenderRotation() {
 	global BlenderRot, LastBlenderRot, BlenderCheck, BlenderTime1, BlenderTime2, BlenderTime3
 	recipes := nm_BlenderReadRecipes()
+	configured := false
 	Loop 3 {
-		if nm_BlenderEligible(recipes[BlenderRot]) {
+		eligible := nm_BlenderEligible(recipes[BlenderRot])
+		configured := configured || eligible
+		retryAfter := IniRead("settings\nm_config.ini", "Blender", "Unavailable" BlenderRot, 0)
+		available := !IsNumber(retryAfter) || nowUnix() >= retryAfter || retryAfter - nowUnix() > 300
+		if eligible && available {
 			BlenderCheck := 1
 			IniWrite BlenderCheck, "settings\nm_config.ini", "Blender", "BlenderCheck"
 			return BlenderRot
 		}
 		BlenderRot := Mod(BlenderRot, 3) + 1
 	}
-	BlenderCheck := BlenderTime%LastBlenderRot% > 0
+	BlenderCheck := configured || BlenderTime%LastBlenderRot% > 0
 	IniWrite BlenderCheck, "settings\nm_config.ini", "Blender", "BlenderCheck"
 	return 0
 }
