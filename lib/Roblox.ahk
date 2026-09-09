@@ -3,21 +3,18 @@
 * @author SP
 ***********************************************************/
 
+#Include "%A_ScriptDir%\..\lib\WindowGeometry.ahk"
+
 ; Updates global variables windowX, windowY, windowWidth, windowHeight
 ; Optionally takes a known window handle to skip GetRobloxHWND call
-; Returns: 1 = successful; 0 = TargetError
+; Returns: 1 = usable visible client; 0 = absent, hidden, minimized or invalid
 GetRobloxClientPos(hwnd?)
 {
     global windowX, windowY, windowWidth, windowHeight
     if !IsSet(hwnd)
         hwnd := GetRobloxHWND()
 
-    try
-        WinGetClientPos &windowX, &windowY, &windowWidth, &windowHeight, "ahk_id " hwnd
-    catch TargetError
-        return windowX := windowY := windowWidth := windowHeight := 0
-    else
-        return 1
+    return nm_PublishClientSnapshot(nm_ClientSnapshot(hwnd))
 }
 
 ; Returns: hWnd = successful; 0 = window not found
@@ -43,57 +40,57 @@ GetRobloxHWND()
 ; Returns: offset (integer), defaults to 0 on fail (ByRef param fail is then set to 1, else 0)
 GetYOffset(hwnd?, &fail?)
 {
-	static hRoblox := 0, offset := 0
-    if !IsSet(hwnd)
-        hwnd := GetRobloxHWND()
-
-	if (hwnd = hRoblox)
-	{
+	static cache := nm_GeometryCache()
+	fail := 1
+	if !IsSet(hwnd)
+		hwnd := GetRobloxHWND()
+	snapshot := nm_ClientSnapshot(hwnd)
+	if !snapshot || snapshot.width < 120 || snapshot.height < 100 {
+		cache.Clear()
+		return 0
+	}
+	if cache.Read(snapshot, DllCall("GetTickCount64", "UInt64"), &offset) {
 		fail := 0
 		return offset
 	}
-	else if WinExist("ahk_id " hwnd)
-	{
-		try WinActivate "Roblox"
-		GetRobloxClientPos(hwnd)
-		pBMScreen := Gdip_BitmapFromScreen(windowX+windowWidth//2 "|" windowY "|60|100")
-
-		Loop 20 ; for red vignette effect
-		{ 
-			if ((Gdip_ImageSearch(pBMScreen, bitmaps["toppollen"], &pos, , , , , 20) = 1)
-				&& (Gdip_ImageSearch(pBMScreen, bitmaps["toppollenfill"], , x := SubStr(pos, 1, (comma := InStr(pos, ",")) - 1), y := SubStr(pos, comma + 1), x + 41, y + 10, 20) = 0))
-			{
-				Gdip_DisposeImage(pBMScreen)
-				hRoblox := hwnd, fail := 0
-				return offset := y - 14
-			}
-			else
-			{
-				if (A_Index = 20)
-				{
-					Gdip_DisposeImage(pBMScreen), fail := 1
-					return 0 ; default offset, change this if needed
-				}
-				else
-				{
-					Sleep 50
-					Gdip_DisposeImage(pBMScreen)
-					pBMScreen := Gdip_BitmapFromScreen(windowX+windowWidth//2 "|" windowY "|60|100")
-				}				
-			}
-		}
-	}
-	else
+	cache.Clear()
+	if !bitmaps.Has("toppollen") || !bitmaps.Has("toppollenfill") || !ActivateRoblox(hwnd)
 		return 0
+	Loop 20 {
+		if !nm_SameClient(snapshot, nm_ClientSnapshot(hwnd)) || !nm_WindowOwnsFocus(hwnd)
+			return 0
+		capture := Gdip_BitmapFromScreen(snapshot.x + snapshot.width // 2 "|" snapshot.y "|60|100")
+		if capture <= 0
+			return 0
+		try {
+			if Gdip_ImageSearch(capture, bitmaps["toppollen"], &pos, , , , , 20) = 1 {
+				xy := StrSplit(pos, ","), x := Integer(xy[1]), y := Integer(xy[2])
+				if Gdip_ImageSearch(capture, bitmaps["toppollenfill"], , x, y, x + 41, y + 10, 20) = 0 {
+					if !nm_SameClient(snapshot, nm_ClientSnapshot(hwnd)) || !nm_WindowOwnsFocus(hwnd)
+						return 0
+					offset := y - 14
+					cache.Put(snapshot, offset, DllCall("GetTickCount64", "UInt64"))
+					fail := 0
+					return offset
+				}
+			}
+		} finally Gdip_DisposeImage(capture)
+		if A_Index < 20
+			Sleep 50
+	}
+	return 0
 }
 
 ; Returns: 1 = successful; 0 = TargetError
-ActivateRoblox()
+ActivateRoblox(hwnd?)
 {
-	try
-		WinActivate "Roblox"
-	catch
-		return 0
-	else
-		return 1
+    if !IsSet(hwnd)
+        hwnd := GetRobloxHWND()
+    if !hwnd || !DllCall("IsWindow", "Ptr", hwnd)
+        return 0
+    root := DllCall("GetAncestor", "Ptr", hwnd, "UInt", 2, "Ptr")
+    try WinActivate "ahk_id " (root ? root : hwnd)
+    catch
+        return 0
+    return nm_WindowOwnsFocus(hwnd)
 }

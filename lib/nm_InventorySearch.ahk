@@ -1,101 +1,73 @@
-﻿nm_InventorySearch(item, direction:="down", prescroll:=0, prescrolldir:="", scrolltoend:=1, max:=70){ ;~ item: string of item; direction: down or up; prescroll: number of scrolls before direction switch; prescrolldir: direction to prescroll, set blank for same as direction; scrolltoend: set 0 to omit scrolling to top/bottom after prescrolls; max: number of scrolls in total
-	global bitmaps
-	static hRoblox:=0, l:=0
+#Include "%A_ScriptDir%\..\lib\InventorySearchEngine.ahk"
 
-	nm_OpenMenu("itemmenu")
+; Coordinates remain client-relative for existing callers.
+nm_InventorySearch(item, direction := "down", prescroll := 0, prescrolldir := "", scrolltoend := 1, max := 70) {
+	return nm_InventorySearchEngine(nm_InventorySurface()).Search(item, direction, prescroll, prescrolldir, scrolltoend, max)
+}
 
-	; detect inventory end for current hwnd
-	if (hwnd := GetRobloxHWND())
-	{
-		if (hwnd != hRoblox)
-		{
-			ActivateRoblox()
-			offsetY := GetYOffset(hwnd)
-			GetRobloxClientPos(hwnd)
-			pBMScreen := Gdip_BitmapFromScreen(windowX "|" windowY+offsetY+150 "|306|" windowHeight-offsetY-150)
-
-			Loop 40
-			{
-				if (Gdip_ImageSearch(pBMScreen, bitmaps["item"], &lpos, , , 6, , 2, , 2) = 1)
-				{
-					Gdip_DisposeImage(pBMScreen)
-					l := SubStr(lpos, InStr(lpos, ",")+1)-60 ; image 20px, item 80px => y+20-80 = y-60
-					hRoblox := hwnd
-					break
-				}
-				else
-				{
-					if (A_Index = 40)
-					{
-						Gdip_DisposeImage(pBMScreen)
-						return 0
-					}
-					else
-					{
-						Sleep 50
-						Gdip_DisposeImage(pBMScreen)
-						pBMScreen := Gdip_BitmapFromScreen(windowX "|" windowY+offsetY+150 "|306|" windowHeight-offsetY-150)
-					}
-				}
-			}
-		}
+class nm_InventorySurface {
+	__New() => this.Hwnd := GetRobloxHWND()
+	Open(item) {
+		if !bitmaps.Has(item) || !bitmaps.Has("item") || !ActivateRoblox(this.Hwnd)
+			return false
+		nm_OpenMenu("itemmenu")
+		return true
 	}
-	else
-		return 0 ; no roblox
-	offsetY := GetYOffset(hwnd)
-
-	; search inventory
-	Loop max
-	{
-		ActivateRoblox()
-		GetRobloxClientPos(hwnd)
-		pBMScreen := Gdip_BitmapFromScreen(windowX "|" windowY+offsetY+150 "|306|" l)
-
-		; wait for red vignette effect to disappear
-		Loop 40
-		{
-			if (Gdip_ImageSearch(pBMScreen, bitmaps["item"], , , , 6, , 2) = 1)
-				break
-			else
-			{
-				if (A_Index = 40)
-				{
-					Gdip_DisposeImage(pBMScreen)
-					return 0
-				}
-				else
-				{
-					Sleep 50
-					Gdip_DisposeImage(pBMScreen)
-					pBMScreen := Gdip_BitmapFromScreen(windowX "|" windowY+offsetY+150 "|306|" l)
-				}
-			}
-		}
-
-		if (Gdip_ImageSearch(pBMScreen, bitmaps[item], &pos, , , , , 10, , 5) = 1) {
-			Gdip_DisposeImage(pBMScreen)
-			break ; item found
-		}
-		Gdip_DisposeImage(pBMScreen)
-
-		switch A_Index
-		{
-			case (prescroll+1): ; scroll entire inventory on (prescroll+1)th search
-			if (scrolltoend = 1)
-			{
-				Loop 100
-				{
-					SendEvent "{Click " windowX+30 " " windowY+offsetY+200 " 0}"
-					SendInput "{Wheel" ((direction = "down") ? "Up" : "Down") "}"
-					Sleep 50
-				}
-			}
-			default: ; scroll once
-			SendEvent "{Click " windowX+30 " " windowY+offsetY+200 " 0}"
-			SendInput "{Wheel" ((A_Index <= prescroll) ? (prescrolldir ? ((prescrolldir = "Down") ? "Down" : "Up") : ((direction = "down") ? "Down" : "Up")) : ((direction = "down") ? "Down" : "Up")) "}"
-			Sleep 50
-		}
-		Sleep 500 ; wait for scroll to finish
+	Snapshot() {
+		if this.Hwnd != GetRobloxHWND() || !nm_WindowOwnsFocus(this.Hwnd)
+			return 0
+		before := nm_ClientSnapshot(this.Hwnd)
+		offset := GetYOffset(this.Hwnd, &failed)
+		after := nm_ClientSnapshot(this.Hwnd)
+		if failed || !nm_SameClient(before, after)
+			return 0
+		after.offset := offset
+		nm_PublishClientSnapshot(after)
+		return after
 	}
-	return (pos ? [30, SubStr(pos, InStr(pos, ",")+1)+190] : 0) ; return list of coordinates for dragging
+	Current(snapshot) {
+		current := nm_ClientSnapshot(this.Hwnd)
+		if this.Hwnd != GetRobloxHWND() || !nm_WindowOwnsFocus(this.Hwnd) || !nm_SameClient(snapshot, current)
+			return false
+		return nm_PublishClientSnapshot(current)
+	}
+	Capture(snapshot, height) {
+		if height <= 0 || !this.Current(snapshot)
+			return 0
+		capture := Gdip_BitmapFromScreen(snapshot.x "|" snapshot.y + snapshot.offset + 150 "|306|" height)
+		if capture > 0 && !this.Current(snapshot) {
+			Gdip_DisposeImage(capture)
+			return 0
+		}
+		return capture
+	}
+	Bottom(snapshot) {
+		capture := this.Capture(snapshot, snapshot.height - snapshot.offset - 150)
+		if capture <= 0
+			return 0
+		try return nm_InventoryFrameReader.Bottom(capture, bitmaps["item"])
+		finally Gdip_DisposeImage(capture)
+	}
+	Observe(snapshot, height, item) {
+		capture := this.Capture(snapshot, height)
+		if capture <= 0
+			return {state: "unknown"}
+		try return nm_InventoryFrameReader.Item(capture, bitmaps["item"], bitmaps[item])
+		finally Gdip_DisposeImage(capture)
+	}
+	Scroll(snapshot, direction) {
+		if !this.Current(snapshot) || snapshot.offset + 200 >= snapshot.height
+			return false
+		previousMode := A_CoordModeMouse
+		CoordMode "Mouse", "Screen"
+		try {
+			MouseMove snapshot.x + 30, snapshot.y + snapshot.offset + 200, 0
+			if !this.Current(snapshot)
+				return false
+			SendInput "{Wheel" direction "}"
+		} finally CoordMode "Mouse", previousMode
+		Sleep 50
+		return this.Current(snapshot)
+	}
+	Wait(milliseconds) => Sleep(milliseconds)
 }

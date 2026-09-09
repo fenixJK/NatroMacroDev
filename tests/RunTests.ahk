@@ -19,6 +19,9 @@
 #Include "%A_ScriptDir%\..\lib\Discord.ahk"
 #Include "%A_ScriptDir%\..\lib\HourlyReportDelivery.ahk"
 #Include "%A_ScriptDir%\DeliveryTests.ahk"
+#Include "%A_ScriptDir%\..\lib\WindowGeometry.ahk"
+#Include "%A_ScriptDir%\..\lib\InventorySearchEngine.ahk"
+#Include "%A_ScriptDir%\GeometryTests.ahk"
 
 ; No Roblox, network, real GUI, or keyboard input is used by these tests.
 ; AFB's observation/travel functions below throw if unexpectedly reached.
@@ -60,7 +63,7 @@ SetWorkingDir testDirectory
 passed := failed := 0
 try {
 	for test in [TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
-		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures, TestCollectionInterrupts, TestDiscordPayload, TestDeliveryQueue, TestHourlyReportDelivery, TestLocalHttpDelivery] {
+		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures, TestCollectionInterrupts, TestDiscordPayload, TestDeliveryQueue, TestHourlyReportDelivery, TestLocalHttpDelivery, TestGeometryCache, TestInventoryEngine, TestInventoryReader] {
 		try {
 			test.Call()
 			passed++
