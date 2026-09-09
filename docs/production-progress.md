@@ -319,3 +319,50 @@ performance measurement. No live gameplay or complete coordinate-layer migration
 is claimed. Quests, reporting recovery, other action/state/resource defects,
 refactoring, optimizations, proposed features and the full live-verification plan
 remain active.
+
+## Generated workers and guarded inventory dragging checkpoint
+
+Code checkpoint: `ee1405c5c28384e03fdeb5ad6ae4f9d973527d0c`.
+[Windows run 34418392687](https://github.com/fenixJK/NatroMacroDev/actions/runs/34418392687)
+passed **28 AHK regression groups per architecture**, **native Windows geometry and
+pointer integration on both architectures**, all six script validations, four emitted
+worker validations per architecture, and **35 updater scenarios per PowerShell
+version**. AHK warnings now fail the runner; this checkpoint emitted none.
+
+The preceding geometry libraries assumed entry scripts lived under `submacros`,
+which excluded root/stdin workers. Their includes now resolve beside the libraries.
+The two bee utility scripts and both walking modes use shared production builders
+that CI evaluates and validates through their actual root/stdin launch layout.
+The initial include correction was also independently verified by
+[run 34417798898](https://github.com/fenixJK/NatroMacroDev/actions/runs/34417798898).
+
+Inventory results carry their snapshot/item/boundary context while retaining their
+two-coordinate array API. The drag controller freshly observes the same item at the
+same coordinate and rejects changed geometry, missing/unknown observations, changed
+inventory boundaries and invalid destinations. Glue dispenser travel completes before
+the gumdrop search. Bitterberry/basic-egg utilities retain the selected bee slot's
+window geometry and reject later geometry changes before dragging.
+
+An owned pointer lease prevents overlapping guarded operations and invalidates
+suspended work on pause/cancel. Cleanup releases the button on success, failure,
+pause, stop and exit without allowing an old operation to release a newer owner's
+button. Native checks verify synthetic versus physical button state, refusal to
+take over an already-held button, timer cancellation, moved-window rejection and
+button release. Fixtures also cover exceptions while a drag is held.
+
+CI caught an unbound timer callback and warning-only name collisions during this
+work; these were fixed. A subsequent run exposed the existing HTTP fixture's
+sub-second COM-startup assumption. The test now holds the server response behind
+an explicit file gate until the client proves that polling returned with its
+original request still active. This preserves the asynchronous-delivery assertion
+without treating shared-runner startup timing as application behavior.
+
+[Geometry verification requirements](geometry-verification.md) retain per-process
+ownership limits, unconverted menu/dialog/input paths, other generated-worker
+coverage, actual Roblox acceptance, physical DPI transitions and live interruption
+tests. Releasing input after invalidation can still produce a game drop; neither
+cleanup nor completed input is recorded here as proof of item consumption. No
+live-game verification, complete coordinate migration or performance improvement is
+claimed. The full recovery plan remains active, including quests, remaining feature
+correctness, reporting/state/resource work, refactoring, optimizations, proposed
+features and the existing release/live-verification gates.

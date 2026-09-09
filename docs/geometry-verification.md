@@ -25,6 +25,37 @@ readable search range was exhausted) and `unknown`. Unknown geometry/observation
 does not add an automatic planter to the lost-planter list. This is not proof that
 an item is absent from the entire inventory, nor proof of successful placement.
 
+Search results also carry their observation context without changing the two-element
+coordinate array. The shared drag controller re-reads the inventory boundary and
+the same item at the same coordinate before pressing. It rejects unknown/missing
+observations, changed window geometry/focus and out-of-client destinations. Input
+completion is separate from confirmation that the game consumed an item.
+
+Glue dispenser travel now ends before searching for gumdrops. The bitterberry and
+basic-egg utilities retain the window snapshot used to select their destination bee
+slot, reject changed geometry, and wait for the selection click to be released.
+These three paths use an owned pointer operation with a distinct cancellation token.
+Pause, stop, normal exit and failure cleanup release owned input; a suspended old
+operation cannot release a newer operation's button. The native adapter installs
+the mouse hook to distinguish physical input from its own synthetic button press.
+It checks focus/geometry again for each move/press and restores mouse coordinate
+mode and critical-thread state after each short input operation.
+
+Ownership is currently per process, not coordinated across helpers or unrelated
+input routines. Geometry checks and OS input cannot form one atomic operation with
+external window changes. Bee dialog clicks/typing after the drag and other inventory
+consumers still need migration and positive game confirmation. A release after
+invalidation can still be interpreted by the game as a drop; it must not be recorded
+as confirmed consumption or placement merely because cleanup completed.
+
+Generated bee utility and walking sources now live in shared production builders.
+CI evaluates those builders, then parses the two utilities and both walking modes
+through root-working-directory stdin, matching their production launch mechanism.
+Geometry/inventory library includes resolve beside their containing libraries,
+rather than assuming every entry script is in `submacros`. This validation covers
+emitted syntax/includes; it does not execute game automation or cover every other
+generated worker in the main program.
+
 ## Verification scope and remaining gates
 
 The regression fixtures cover cache identity/lifetime changes, offset-inclusive
