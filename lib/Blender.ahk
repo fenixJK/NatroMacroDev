@@ -86,7 +86,9 @@ nm_Blender(){
 				{
 					BlenderSS := Gdip_BitmapFromScreen(SearchX "|" SearchY "|170|245")
 
-					Blender := %("BlenderItem" BlenderRot)%
+					executedSlot := BlenderRot
+					expectedRecipe := nm_BlenderReadRecipes()[executedSlot]
+					Blender := expectedRecipe.item
 					BlenderIMG := Blender "B"
 
 					if (Gdip_ImageSearch(BlenderSS, bitmaps[BlenderIMG], , , , , , 2, , 4) > 0)
@@ -106,8 +108,8 @@ nm_Blender(){
 							break
 						}
 						gdip_disposeimage(BlenderSS)
-						executedSlot := BlenderRot
-						expectedRecipe := nm_BlenderReadRecipes()[executedSlot]
+						if !nm_BlenderRecipeUnchanged(executedSlot, expectedRecipe)
+							return
 						nm_BlenderClick(context, windowX+windowWidth//2, windowY+Floor(0.48*windowHeight) + 130)
 						Sleep 150
 						MouseMove windowX+windowWidth//2 - 60, windowY+Floor(0.48*windowHeight) + 140 ;Add more of x item
@@ -119,6 +121,8 @@ nm_Blender(){
 							Sleep 30
 						}
 						Sleep 200
+						if !nm_BlenderRecipeUnchanged(executedSlot, expectedRecipe)
+							return
 						attemptStarted := nowUnix()
 						nm_BlenderRememberAttempt(executedSlot, expectedRecipe, attemptStarted)
 						nm_BlenderClick(context, windowX+windowWidth//2 + 70, windowY+Floor(0.48*windowHeight) + 130)

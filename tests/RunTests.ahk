@@ -355,7 +355,9 @@ TestBlenderAccounting() {
 		AssertEqual(BlenderIndex1, 1, "Rejection preserves current count")
 		AssertEqual(BlenderTime1, 0, "Rejection preserves timer")
 	}
+	Assert(nm_BlenderRecipeUnchanged(1, expected), "Observed recipe initially matches configuration")
 	BlenderAmount1 := 3
+	Assert(!nm_BlenderRecipeUnchanged(1, expected), "Pre-confirm check detects live recipe edit")
 	AssertEqual(nm_BlenderCommitAccepted(1, expected, 1, 10000), 0, "Live recipe edit rejects stale charge")
 	ResetBlenderTest()
 	expected := nm_BlenderReadRecipes()[1]

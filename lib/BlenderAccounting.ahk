@@ -165,3 +165,8 @@ nm_BlenderResolveAttempt(attempt, observedItem, running, finished, current) {
 		return 0
 	return nm_BlenderCommitAccepted(attempt["slot"], expected, 1, attempt["started"])
 }
+
+nm_BlenderRecipeUnchanged(slot, expected) {
+	current := nm_BlenderReadRecipes()[slot]
+	return current.item = expected.item && current.amount = expected.amount && current.remaining = expected.remaining
+}

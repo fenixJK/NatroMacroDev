@@ -154,3 +154,34 @@ the missing game evidence and acceptance criteria. No live scenario is marked pa
 Next independent feature work: Blender acceptance/accounting, conversion/pause
 intervals, and the remaining audit fixes while harvest confirmation evidence is
 unavailable. The full recovery/refactoring/verification scope remains active.
+
+## Blender accounting checkpoint
+
+Code checkpoint: `a50fa4340c573d64ad776e2e7823c20b54072091`.
+[Windows run 34412480755](https://github.com/fenixJK/NatroMacroDev/actions/runs/34412480755)
+passed **14 AHK regression groups on each architecture** and **35 updater scenarios
+on each PowerShell version**. All six main/helper scripts parsed successfully.
+
+F11 accounting is implemented in `lib/BlenderAccounting.ahk`; the game routine is
+extracted into `lib/Blender.ahk`. The executed slot is charged after a positive
+running-craft observation, then rotation advances. `LastBlenderRot` updates in
+memory and on disk. Accepted commits have a compact, replayable journal. Pending
+input attempts support delayed confirmation in the same process. The final finite
+batch remains scheduled for collection, failed searches no longer invent full craft
+timers, and ingredient shortages preserve configured recipes with temporary backoff.
+Dialog clicks verify window/focus/geometry ownership.
+
+CI caught and helped correct an extraction boundary error (`00ba939`) and multiline
+JSON being truncated by INI persistence (`e7c64c0`). The successful checkpoint uses
+compact JSON and verifies interrupted-write replay without a second decrement.
+
+[Blender verification requirements](blender-verification.md) distinguish tested
+accounting from the remaining game gates: accepted quantity, exact image signals,
+collection/cancellation transitions, interruption during input, and reconciliation
+of unconfirmed attempts after process restart. These remain open; F11 is not yet
+live-verified. The preparation path's stale observation after cancellation/End also
+needs follow-up. No release or merge has been made.
+
+Next independent correctness work: conversion/pause interval accounting, collection
+success timestamps, quest uncertainty and reporting delivery. Preserve the full
+remaining audit, refactoring, optimization, feature and verification scope.

@@ -52,3 +52,11 @@ capacity, and exclusion of stacked consumables from inventory-only reconciliatio
 Planter observation tests run real GDI image search against synthetic progress bars,
 including missing anchors and locked-bitmap failures. They exercise the reader and
 resource cleanup; real-world harvest evidence and UI timing still require live tests.
+
+Blender tests execute production planning, commit, journal-recovery and rotation
+functions with disposable INI state. They cover the executed-versus-next-slot bug,
+finite and infinite rotations, rejected/changed recipes, interrupted persistence,
+idempotent replay, delayed confirmation, final-batch scheduling and ingredient
+backoff. These tests inject observation results; the actual Blender images, accepted
+quantity and collection/cancellation transitions still need the live checks in
+`docs/blender-verification.md`.
