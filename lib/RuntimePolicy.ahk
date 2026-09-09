@@ -87,3 +87,6 @@ nm_SelectUpdateAsset(assets)
 		throw ValueError("No supported Natro Macro update ZIP was found in this release.")
 	return selected
 }
+
+; Negative, missing and malformed observations are not proof of an empty bag.
+nm_BackpackConversionComplete(percent) => IsNumber(percent) && percent = 0

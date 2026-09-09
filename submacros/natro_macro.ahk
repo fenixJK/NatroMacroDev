@@ -35,6 +35,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "PlanterRecovery.ahk"
 #Include "PlanterObservation.ahk"
 #Include "BlenderAccounting.ahk"
+#Include "TimeTracking.ahk"
 
 #Warn VarUnset, Off
 
@@ -2075,7 +2076,6 @@ AFBuseGlitter:=0
 AFBuseBooster:=0
 MacroState:=0 ; 0=stopped, 1=paused, 2=running
 resetTime := MacroStartTime:=MacroReloadTime:=nowUnix()
-PausedRuntime:=0
 FieldGuidDetected:=0
 HasPopStar:=0
 PopStarActive:=0
@@ -7088,6 +7088,7 @@ nm_StatusLogReverseCheck(*){
 }
 nm_ResetTotalStats(*){
 	global
+	nm_TimeTracking.Flush()
 	IniWrite TotalRuntime:=0, "settings\nm_config.ini", "Status", "TotalRuntime"
 	IniWrite TotalGatherTime:=0, "settings\nm_config.ini", "Status", "TotalGatherTime"
 	IniWrite TotalConvertTime:=0, "settings\nm_config.ini", "Status", "TotalConvertTime"
@@ -7101,6 +7102,7 @@ nm_ResetTotalStats(*){
 }
 nm_ResetSessionStats(*){
 	global
+	nm_TimeTracking.Flush()
 	IniWrite SessionRuntime:=0, "settings\nm_config.ini", "Status", "SessionRuntime"
 	IniWrite SessionGatherTime:=0, "settings\nm_config.ini", "Status", "SessionGatherTime"
 	IniWrite SessionConvertTime:=0, "settings\nm_config.ini", "Status", "SessionConvertTime"
@@ -10635,13 +10637,9 @@ nm_setStats(){
 	global
 	local rundelta:=0, gatherdelta:=0, convertdelta:=0, TotalStatsString, SessionStatsString
 
-	if (MacroState=2) {
-		rundelta:=(nowUnix()-MacroStartTime)
-		if(GatherStartTime > 0)
-			gatherdelta:=(nowUnix()-GatherStartTime)
-		if(ConvertStartTime > 0)
-			convertdelta:=(nowUnix()-ConvertStartTime)
-	}
+	rundelta := nm_TimeTracking.Delta("Runtime")
+	gatherdelta := nm_TimeTracking.Delta("Gather")
+	convertdelta := nm_TimeTracking.Delta("Convert")
 
 	TotalStatsString :=
 	(
@@ -16153,153 +16151,151 @@ nm_GoGather(){
 	inactiveHoney:=0
 	bypass:=0
 	interruptReason := ""
-	GatherStartTime:=gatherStart:=nowUnix()
-	if(FieldPatternShift) {
-		nm_setShiftLock(1)
-	}
-	while(((nowUnix()-gatherStart)<(FieldUntilMins*60)) || (PFieldBoosted && (nowUnix()-GatherFieldBoostedStart)<840) || (PFieldBoostExtend && (nowUnix()-GatherFieldBoostedStart)<1800 && (nowUnix()-LastGlitter)<900) || (PFieldGuidExtend && FieldGuidDetected && (nowUnix()-gatherStart)<(FieldUntilMins*60+PFieldGuidExtend*60) && (nowUnix()-GatherFieldBoostedStart)>900 && (nowUnix()-LastGlitter)>900) || (PPopStarExtend && HasPopStar && PopStarActive)){
-		if !fieldPatternShift
-			MouseMove windowX+350, windowY+GetYOffset()+100
-		if(!DisableToolUse)
-			Click "Down"
-		nm_gather(FieldPattern, A_Index, FieldPatternSize, FieldPatternReps, FacingFieldCorner)
+	nm_TimeTracking.Begin("Gather")
+	try {
+		if(FieldPatternShift) {
+			nm_setShiftLock(1)
+		}
+		while(((nm_TimeTracking.Elapsed("Gather"))<(FieldUntilMins*60)) || (PFieldBoosted && (nowUnix()-GatherFieldBoostedStart)<840) || (PFieldBoostExtend && (nowUnix()-GatherFieldBoostedStart)<1800 && (nowUnix()-LastGlitter)<900) || (PFieldGuidExtend && FieldGuidDetected && (nm_TimeTracking.Elapsed("Gather"))<(FieldUntilMins*60+PFieldGuidExtend*60) && (nowUnix()-GatherFieldBoostedStart)>900 && (nowUnix()-LastGlitter)>900) || (PPopStarExtend && HasPopStar && PopStarActive)){
+			if !fieldPatternShift
+				MouseMove windowX+350, windowY+GetYOffset()+100
+			if(!DisableToolUse)
+				Click "Down"
+			nm_gather(FieldPattern, A_Index, FieldPatternSize, FieldPatternReps, FacingFieldCorner)
 
-		while ((GetKeyState("F14") && (A_Index <= 3600)) || (A_Index = 1)) { ; timeout 3m
-			;use glitter
-			if (Mod(A_Index, 20) = 1) { ; every 1s
-				if(PFieldBoosted && (nowUnix()-GatherFieldBoostedStart)>525 && (nowUnix()-GatherFieldBoostedStart)<900 && (nowUnix()-LastGlitter)>900 && GlitterKey!="none" && fieldOverrideReason="None") { ;between 9 and 15 mins (-minus an extra 15 seconds)
-					Send "{" GlitterKey "}"
-					LastGlitter:=nowUnix()
-					IniWrite LastGlitter, "settings\nm_config.ini", "Boost", "LastGlitter"
+			while ((GetKeyState("F14") && (A_Index <= 3600)) || (A_Index = 1)) { ; timeout 3m
+				;use glitter
+				if (Mod(A_Index, 20) = 1) { ; every 1s
+					if(PFieldBoosted && (nowUnix()-GatherFieldBoostedStart)>525 && (nowUnix()-GatherFieldBoostedStart)<900 && (nowUnix()-LastGlitter)>900 && GlitterKey!="none" && fieldOverrideReason="None") { ;between 9 and 15 mins (-minus an extra 15 seconds)
+						Send "{" GlitterKey "}"
+						LastGlitter:=nowUnix()
+						IniWrite LastGlitter, "settings\nm_config.ini", "Boost", "LastGlitter"
+					}
+					nm_autoFieldBoost(FieldName)
+					nm_fieldBoostGlitter()
 				}
-				nm_autoFieldBoost(FieldName)
-				nm_fieldBoostGlitter()
-			}
 
-			;high priority interrupts
-			if (Mod(A_Index, 5) = 1) { ; every 250ms
-				if DisconnectCheck() {
-					interruptReason := "Disconnect"
-					break
+				;high priority interrupts
+				if (Mod(A_Index, 5) = 1) { ; every 250ms
+					if DisconnectCheck() {
+						interruptReason := "Disconnect"
+						break
+					}
+					if youDied {
+						interruptReason := "You Died!"
+						break
+					}
+					if nm_NightInterrupt() {
+						interruptReason := "Night"
+						break
+					}
 				}
-				if youDied {
-					interruptReason := "You Died!"
-					break
-				}
-				if nm_NightInterrupt() {
-					interruptReason := "Night"
-					break
-				}
-			}
-			if (Mod(A_Index, 20) = 1) { ; every 1s
-				;full backpack
-				if (BackpackPercentFiltered>=(FieldUntilPack-2)) {
-					if((BackpackPercentFiltered>=(FieldUntilPack < 90 ? 98 : FieldUntilPack-2)) && ((nowUnix()-LastMicroConverter)>30) && ((MicroConverterKey!="none" && !PFieldBoosted) || (MicroConverterKey!="none" && PFieldBoosted && GatherFieldBoosted))) { ;30 seconds cooldown
-						Send "{" MicroConverterKey "}"
-						LastMicroConverter:=nowUnix()
-						IniWrite LastMicroConverter, "settings\nm_config.ini", "Boost", "LastMicroConverter"
-					} else if ((nowUnix()-LastMicroConverter)>10) {
-						interruptReason := "Backpack exceeds " .  FieldUntilPack . " percent"
-						;use glitter early if boosted and close to glitter time
-						if(PFieldBoosted && (nowUnix()-GatherFieldBoostedStart)>600 && (nowUnix()-GatherFieldBoostedStart)<900 && (nowUnix()-LastGlitter)>900 && GlitterKey!="none" && (fieldOverrideReason="None" || fieldOverrideReason="Boost")){ ;between 10 and 15 mins
-							Send "{" GlitterKey "}"
-							LastGlitter:=nowUnix()
-							IniWrite LastGlitter, "settings\nm_config.ini", "Boost", "LastGlitter"
+				if (Mod(A_Index, 20) = 1) { ; every 1s
+					;full backpack
+					if (BackpackPercentFiltered>=(FieldUntilPack-2)) {
+						if((BackpackPercentFiltered>=(FieldUntilPack < 90 ? 98 : FieldUntilPack-2)) && ((nowUnix()-LastMicroConverter)>30) && ((MicroConverterKey!="none" && !PFieldBoosted) || (MicroConverterKey!="none" && PFieldBoosted && GatherFieldBoosted))) { ;30 seconds cooldown
+							Send "{" MicroConverterKey "}"
+							LastMicroConverter:=nowUnix()
+							IniWrite LastMicroConverter, "settings\nm_config.ini", "Boost", "LastMicroConverter"
+						} else if ((nowUnix()-LastMicroConverter)>10) {
+							interruptReason := "Backpack exceeds " .  FieldUntilPack . " percent"
+							;use glitter early if boosted and close to glitter time
+							if(PFieldBoosted && (nowUnix()-GatherFieldBoostedStart)>600 && (nowUnix()-GatherFieldBoostedStart)<900 && (nowUnix()-LastGlitter)>900 && GlitterKey!="none" && (fieldOverrideReason="None" || fieldOverrideReason="Boost")){ ;between 10 and 15 mins
+								Send "{" GlitterKey "}"
+								LastGlitter:=nowUnix()
+								IniWrite LastGlitter, "settings\nm_config.ini", "Boost", "LastGlitter"
+							}
+							break
 						}
+					}
+					;inactive honey
+					if (BackpackPercentFiltered<FieldUntilPack) {
+						inactiveHoney := (nm_activeHoney() = 0) ? inactiveHoney + 1 : 0
+						if (inactiveHoney>30) {
+							interruptReason := "Inactive Honey"
+							GameFrozenCounter++
+							break
+						}
+					}
+					;boost is over
+					if (fieldOverrideReason="Boost" && (nowUnix()-GatherFieldBoostedStart>900) && (nowUnix()-LastGlitter>900)) {
+						interruptReason := "Boost Over"
+						break
+					}
+					;mondo
+					if nm_MondoInterrupt(){
+						interruptReason := "Mondo"
+						if (PMondoGuidComplete)
+							PMondoGuidComplete:=0
 						break
 					}
 				}
-				;inactive honey
-				if (BackpackPercentFiltered<FieldUntilPack) {
-					inactiveHoney := (nm_activeHoney() = 0) ? inactiveHoney + 1 : 0
-					if (inactiveHoney>30) {
-						interruptReason := "Inactive Honey"
-						GameFrozenCounter++
+				if (Mod(A_Index, 100) = 1) { ; every 5s
+					;quest interrupts
+					if ((fieldOverrideReason="Quest") && IsSet(RotateQuest) && (%RotateQuest%QuestCheck = 1)) {
+						nm_%RotateQuest%QuestProg()
+						if(FieldPatternShift) {
+							nm_setShiftLock(1)
+						}
+						;interrupt if
+						if (thisfield!=QuestGatherField || %RotateQuest%QuestComplete){ ;change fields or this field is complete
+							interruptReason := "Next Quest Step"
+							break
+						}
+					}
+				}
+
+				;low priority interrupts
+				if (Mod(A_Index, 20) = 1) {
+					;continue if boosted
+					if nm_GatherBoostInterrupt()
+						continue
+					;Manual planter gather interrupt
+					if ((fieldOverrideReason="Manual Planter") && (PlanterMode = 1) && (MPlanterGatherA)) {
+						;update current field planter progress every 2 minutes during planter gather
+						If ((nowUnix()-MPlanterGatherDetectionTime)>120) {
+							nm_PlanterTimeUpdate(FieldName, 0)
+							MPlanterGatherDetectionTime := nowUnix()
+						}
+						;interrupt if
+						if (((nowUnix() >= PlanterHarvestTime1) && (eligible.Has(1))) || ((nowUnix() >= PlanterHarvestTime2) && (eligible.Has(2))) || ((nowUnix() >= PlanterHarvestTime3) && (eligible.Has(3)))) {
+							interruptReason := "Planter Harvest"
+							break
+						}
+					}
+					if nm_BugrunInterrupt() {
+						interruptReason := "Kill Bugs"
+						break
+					}
+					if nm_BeesmasInterrupt() {
+						interruptReason := "Beesmas Machine"
+						break
+					}
+					if nm_MemoryMatchInterrupt() {
+						interruptReason := "Memory Match"
 						break
 					}
 				}
-				;boost is over
-				if (fieldOverrideReason="Boost" && (nowUnix()-GatherFieldBoostedStart>900) && (nowUnix()-LastGlitter>900)) {
-					interruptReason := "Boost Over"
-					break
-				}
-				;mondo
-				if nm_MondoInterrupt(){
-					interruptReason := "Mondo"
-					if (PMondoGuidComplete)
-						PMondoGuidComplete:=0
-					break
-				}
-			}
-			if (Mod(A_Index, 100) = 1) { ; every 5s
-				;quest interrupts
-				if ((fieldOverrideReason="Quest") && IsSet(RotateQuest) && (%RotateQuest%QuestCheck = 1)) {
-					nm_%RotateQuest%QuestProg()
-					if(FieldPatternShift) {
-						nm_setShiftLock(1)
-					}
-					;interrupt if
-					if (thisfield!=QuestGatherField || %RotateQuest%QuestComplete){ ;change fields or this field is complete
-						interruptReason := "Next Quest Step"
-						break
-					}
-				}
+				Sleep 50
 			}
 
-			;low priority interrupts
-			if (Mod(A_Index, 20) = 1) {
-				;continue if boosted
-				if nm_GatherBoostInterrupt()
-					continue
-				;Manual planter gather interrupt
-				if ((fieldOverrideReason="Manual Planter") && (PlanterMode = 1) && (MPlanterGatherA)) {
-					;update current field planter progress every 2 minutes during planter gather
-					If ((nowUnix()-MPlanterGatherDetectionTime)>120) {
-						nm_PlanterTimeUpdate(FieldName, 0)
-						MPlanterGatherDetectionTime := nowUnix()
-					}
-					;interrupt if
-					if (((nowUnix() >= PlanterHarvestTime1) && (eligible.Has(1))) || ((nowUnix() >= PlanterHarvestTime2) && (eligible.Has(2))) || ((nowUnix() >= PlanterHarvestTime3) && (eligible.Has(3)))) {
-						interruptReason := "Planter Harvest"
-						break
-					}
-				}
-				if nm_BugrunInterrupt() {
-					interruptReason := "Kill Bugs"
-					break
-				}
-				if nm_BeesmasInterrupt() {
-					interruptReason := "Beesmas Machine"
-					break
-				}
-				if nm_MemoryMatchInterrupt() {
-					interruptReason := "Memory Match"
-					break
-				}
+			Click "Up"
+			if interruptReason {
+				bypass := (interruptReason ~= "i)Disconnect|You Died!|Night|Inactive Honey")
+				if (!bypass && InStr(patterns[FieldPattern], ";@NoInterrupt"))
+					KeyWait "F14", "T180 L"
+				break
 			}
-			Sleep 50
+			(FDCEnabled) && nm_fieldDriftCompensation()
 		}
-
-		Click "Up"
-		if interruptReason {
-			bypass := (interruptReason ~= "i)Disconnect|You Died!|Night|Inactive Honey")
-			if (!bypass && InStr(patterns[FieldPattern], ";@NoInterrupt"))
-				KeyWait "F14", "T180 L"
-			break
-		}
-		(FDCEnabled) && nm_fieldDriftCompensation()
-	}
-	nm_endWalk()
+		nm_endWalk()
+	} finally nm_TimeTracking.End("Gather")
 
 	; set gather ended status
-	gatherDuration := DurationFromSeconds(nowUnix()-gatherStart, "mm:ss")
+	gatherDuration := DurationFromSeconds(nm_TimeTracking.Elapsed("Gather"), "mm:ss")
 	nm_setStatus("Gathering", "Ended`nTime " gatherDuration " - " (interruptReason ? (InStr(interruptReason, "Backpack exceeds") ? "Bag Limit" : interruptReason) : "Time Limit") " - Return: " FieldReturnType)
 
-	if(GatherStartTime) {
-		TotalGatherTime:=TotalGatherTime+(nowUnix()-GatherStartTime)
-		SessionGatherTime:=SessionGatherTime+(nowUnix()-GatherStartTime)
-	}
-	GatherStartTime:=0
+
 	nm_setShiftLock(0)
 	if(bypass = 0){
 		;rotate back
@@ -16614,154 +16610,8 @@ nm_loot(length, reps, direction, tokenlink:=0){ ; length in tiles instead of ms 
 	}
 	nm_endWalk()
 }
-nm_convert(){
-	global AFBrollingDice, AFBuseGlitter, AFBuseBooster, CurrentField, HiveConfirmed, EnzymesKey, LastEnzymes
-		, ConvertStartTime, TotalConvertTime, SessionConvertTime
-		, BackpackPercent, BackpackPercentFiltered
-		, PFieldBoosted, GatherFieldBoosted, GatherFieldBoostedStart, LastGlitter, GlitterKey
-		, GameFrozenCounter, LastConvertBalloon, ConvertBalloon, ConvertMins, HiveBees, ConvertGatherFlag
+#Include "%A_ScriptDir%\..\lib\Conversion.ahk"
 
-	if (nm_NightInterrupt() || nm_MondoInterrupt())
-		return
-
-	hwnd := GetRobloxHWND()
-	offsetY := GetYOffset(hwnd)
-	GetRobloxClientPos(hwnd)
-	pBMScreen := Gdip_BitmapFromScreen(windowX+windowWidth//2-200 "|" windowY+offsetY+36 "|400|120")
-	if ((HiveConfirmed = 0) || (state = "Converting") || (Gdip_ImageSearch(pBMScreen, bitmaps["e_button"], , , , , , 2, , 6) = 0)) {
-		Gdip_DisposeImage(pBMScreen)
-		return
-	}
-	if (Gdip_ImageSearch(pBMScreen, bitmaps["makehoney"], , , , , , 2, , 2) = 1) {
-		SendInput "{" SC_E " down}"
-		Sleep 100
-		SendInput "{" SC_E " up}"
-	}
-	Gdip_DisposeImage(pBMScreen)
-	ConvertStartTime:=nowUnix()
-	inactiveHoney:=0
-	ballooncomplete:=0
-	;empty pack
-	if (BackpackPercentFiltered > 0) {
-		nm_setStatus("Converting", "Backpack")
-		while (((BackpackConvertTime := nowUnix()-ConvertStartTime)<300) && (BackpackPercentFiltered>0)) { ;5 mins
-			Sleep 1000
-			nm_AutoFieldBoost(currentField)
-			if(AFBuseGlitter || AFBuseBooster) {
-				nm_setStatus("Interrupted", "AFB")
-				return
-			}
-			if (disconnectcheck()) {
-				return
-			}
-			if (PFieldBoosted && (nowUnix()-GatherFieldBoostedStart)>780 && (nowUnix()-GatherFieldBoostedStart)<900 && (nowUnix()-LastGlitter)>900 && GlitterKey!="none") {
-				nm_setStatus("Interrupted", "Field Boosted")
-				return
-			}
-			inactiveHoney := (nm_activeHoney() = 0) ? inactiveHoney + 1 : 0
-			if (BackpackConvertTime>60 && inactiveHoney>30) {
-				nm_setStatus("Interrupted", "Inactive Honey")
-				GameFrozenCounter++
-				return
-			}
-			GetRobloxClientPos(hwnd)
-			pBMScreen := Gdip_BitmapFromScreen(windowX+windowWidth//2-200 "|" windowY+offsetY+36 "|" windowWidth//2+200 "|" windowHeight-offsetY-36)
-			if (Gdip_ImageSearch(pBMScreen, bitmaps["makehoney"], , , , 400, 120, 2, , 2) = 1) {
-				SendInput "{" SC_E " down}"
-				Sleep 100
-				SendInput "{" SC_E " up}"
-			}
-			if ((Gdip_ImageSearch(pBMScreen, bitmaps["e_button"], , , , 400, 120, 2, , 6) = 0)
-				|| ((Gdip_ImageSearch(pBMScreen, bitmaps["hiveballoon"], , windowWidth//2, windowHeight-offsetY-36-400, , , 40, , 3) = 1) && (ballooncomplete:=1))) {
-				Gdip_DisposeImage(pBMScreen)
-				break
-			}
-			Gdip_DisposeImage(pBMScreen)
-		}
-		duration := DurationFromSeconds(BackpackConvertTime, "mm:ss")
-		nm_setStatus("Converting", "Backpack Emptied`nTime: " duration)
-	}
-	;empty balloon
-	if((ConvertBalloon="always") || (ConvertBalloon="Every" && (nowUnix() - LastConvertBalloon)>(ConvertMins*60)) || (ConvertBalloon="Gather" && (ConvertGatherFlag=1 || (nowUnix() - LastConvertBalloon)>2700))) {
-		ConvertGatherFlag := 0
-		;balloon check
-		strikes:=0
-		while ((strikes <= 5) && (A_Index <= 50)) {
-			GetRobloxClientPos(hwnd)
-			pBMScreen := Gdip_BitmapFromScreen(windowX+windowWidth//2-200 "|" windowY+offsetY+36 "|" windowWidth//2+200 "|" windowHeight-offsetY-36)
-			if ((ballooncomplete = 1) || (Gdip_ImageSearch(pBMScreen, bitmaps["hiveballoon"], , windowWidth//2, windowHeight-offsetY-36-400, , , 40, , 3) = 1)) {
-				Gdip_DisposeImage(pBMScreen)
-				nm_setStatus("Converting", "Balloon Refreshed")
-				IniWrite LastConvertBalloon:=nowUnix(), "settings\nm_config.ini", "Settings", "LastConvertBalloon"
-				PostSubmacroMessage("background", 0x5554, 6, LastConvertBalloon)
-				strikes := 10
-				break
-			}
-			if (Gdip_ImageSearch(pBMScreen, bitmaps["e_button"], , , , 400, 120, 2, , 6) != 1)
-				strikes++
-			Gdip_DisposeImage(pBMScreen)
-			Sleep 100
-		}
-		if (strikes <= 5) {
-			BalloonStartTime:=nowUnix()
-			inactiveHoney:=0
-			nm_setStatus("Converting", "Balloon")
-			while((BalloonConvertTime := nowUnix()-BalloonStartTime)<600) { ;10 mins
-				nm_AutoFieldBoost(currentField)
-				if(AFBuseGlitter || AFBuseBooster) {
-					nm_setStatus("Interrupted", "AFB")
-					return
-				}
-				inactiveHoney := (nm_activeHoney() = 0) ? inactiveHoney + 1 : 0
-				if(((EnzymesKey!="none") && (!PFieldBoosted || (PFieldBoosted && GatherFieldBoosted))) && (nowUnix()-LastEnzymes)>600 && (inactiveHoney = 0)) {
-					Send "{" EnzymesKey "}"
-					LastEnzymes:=nowUnix()
-					IniWrite LastEnzymes, "settings\nm_config.ini", "Boost", "LastEnzymes"
-				}
-				if (BalloonConvertTime>60 && inactiveHoney>30) {
-					nm_setStatus("Interrupted", "Inactive Honey")
-					GameFrozenCounter++
-					return
-				}
-				if (disconnectcheck()) {
-					return
-				}
-				if ((PFieldBoosted = 1) && (nowUnix()-GatherFieldBoostedStart)>780 && (nowUnix()-GatherFieldBoostedStart)<900 && (nowUnix()-LastGlitter)>900 && GlitterKey!="none") {
-					nm_setStatus("Interrupted", "Field Boosted")
-					return
-				}
-				GetRobloxClientPos(hwnd)
-				if (Mod(A_Index, 30) = 0) {
-					MouseMove windowX+windowWidth-30, windowY+offsetY+16
-					click
-				}
-				pBMScreen := Gdip_BitmapFromScreen(windowX+windowWidth//2-200 "|" windowY+offsetY+36 "|" windowWidth//2+200 "|" windowHeight-offsetY-36)
-				if (Gdip_ImageSearch(pBMScreen, bitmaps["makehoney"], , , , 400, 120, 2, , 2) = 1) {
-					SendInput "{" SC_E " down}"
-					Sleep 100
-					SendInput "{" SC_E " up}"
-				}
-				if ((Gdip_ImageSearch(pBMScreen, bitmaps["e_button"], , , , 400, 120, 2, , 6) = 0)
-					|| (Gdip_ImageSearch(pBMScreen, bitmaps["hiveballoon"], , windowWidth//2, windowHeight-offsetY-36-400, , , 40, , 3) = 1)) {
-					Gdip_DisposeImage(pBMScreen)
-					ballooncomplete:=1
-					break
-				}
-				Gdip_DisposeImage(pBMScreen)
-				Sleep 1000
-			}
-			if(ballooncomplete){
-				duration := DurationFromSeconds(BalloonConvertTime, "mm:ss")
-				nm_setStatus("Converting", "Balloon Refreshed`nTime: " duration)
-				IniWrite LastConvertBalloon:=nowUnix(), "settings\nm_config.ini", "Settings", "LastConvertBalloon"
-				PostSubmacroMessage("background", 0x5554, 6, LastConvertBalloon)
-			}
-		}
-	}
-	TotalConvertTime:=TotalConvertTime+(nowUnix()-ConvertStartTime)
-	SessionConvertTime:=SessionConvertTime+(nowUnix()-ConvertStartTime)
-	ConvertStartTime:=0
-}
 nm_setSprinkler(field, loc, dist){
 	global FwdKey, LeftKey, BackKey, RightKey, SC_1, SC_Space, KeyDelay, SprinklerType, MoveSpeedNum
 
@@ -18088,7 +17938,7 @@ nm_hotbar(boost:=0){
 			break
 		}
 		;GatherStart
-		else if(state="Gathering" && (fieldOverrideReason="None" || fieldOverrideReason="Boost" || (QuestBoostCheck = 1 && fieldOverrideReason="Quest")) && (nowUnix()-GatherStartTime)<10 && ActiveHotkeys[key][1]="GatherStart" && (nowUnix()-ActiveHotkeys[key][4])>ActiveHotkeys[key][3]) {
+		else if(state="Gathering" && (fieldOverrideReason="None" || fieldOverrideReason="Boost" || (QuestBoostCheck = 1 && fieldOverrideReason="Quest")) && (nm_TimeTracking.Active("Gather") && nm_TimeTracking.Elapsed("Gather")<10) && ActiveHotkeys[key][1]="GatherStart" && (nowUnix()-ActiveHotkeys[key][4])>ActiveHotkeys[key][3]) {
 			HotkeyNum:=ActiveHotkeys[key][2]
 			send "{sc00" HotkeyNum+1 "}"
 			LastHotkeyN:=nowUnix()
@@ -21791,6 +21641,7 @@ nm_FailClosed(err) {
 
 getout(*){
 	global
+	try nm_TimeTracking.Stop()
 	nm_saveGUIPos()
 	nm_endWalk()
 	DetectHiddenWindows 1
@@ -22012,9 +21863,8 @@ start(*){
 		try PostMessage 0x5552, 23, MacroState
 	DetectHiddenWindows 0
 	;set stats
-	MacroStartTime:=nowUnix()
-	global PausedRuntime:=0
 	nm_ResetSessionStats()
+	nm_TimeTracking.Begin("Runtime")
 	global CurrentField
 	global RecentFBoost:="None"
 	global QuestGatherField:="None"
@@ -22128,24 +21978,7 @@ stop(*){
 	nm_endWalk()
 	sendinput "{" FwdKey " up}{" BackKey " up}{" LeftKey " up}{" RightKey " up}{" SC_Space " up}"
 	Click "Up"
-	if(MacroState) {
-		TotalRuntime:=TotalRuntime+(nowUnix()-MacroStartTime)
-		SessionRuntime:=SessionRuntime+(nowUnix()-MacroStartTime)
-		if(!GatherStartTime)
-			GatherStartTime:=nowUnix()
-		TotalGatherTime:=TotalGatherTime+(nowUnix()-GatherStartTime)
-		SessionGatherTime:=SessionGatherTime+(nowUnix()-GatherStartTime)
-		if(!ConvertStartTime)
-			ConvertStartTime:=nowUnix()
-		TotalConvertTime:=TotalConvertTime+(nowUnix()-ConvertStartTime)
-		SessionConvertTime:=SessionConvertTime+(nowUnix()-ConvertStartTime)
-	}
-	IniWrite TotalRuntime, "settings\nm_config.ini", "Status", "TotalRuntime"
-	IniWrite SessionRuntime, "settings\nm_config.ini", "Status", "SessionRuntime"
-	IniWrite TotalGatherTime, "settings\nm_config.ini", "Status", "TotalGatherTime"
-	IniWrite SessionGatherTime, "settings\nm_config.ini", "Status", "SessionGatherTime"
-	IniWrite TotalConvertTime, "settings\nm_config.ini", "Status", "TotalConvertTime"
-	IniWrite SessionConvertTime, "settings\nm_config.ini", "Status", "SessionConvertTime"
+	nm_TimeTracking.Stop()
 	nm_setStatus("End", "Macro")
 	DetectHiddenWindows 1
 	MacroState:=0
@@ -22185,8 +22018,7 @@ nm_Pause(*){
 			try PostMessage 0x5552, 23, MacroState
 		youDied:=0
 		;manage runtimes
-		MacroStartTime:=nowUnix()
-		GatherStartTime:=nowUnix()
+		nm_TimeTracking.Resume()
 		DetectHiddenWindows 0
 		nm_setStatus(PauseState, PauseObjective)
 	} else {
@@ -22211,14 +22043,7 @@ nm_Pause(*){
 		PauseState:=state
 		PauseObjective:=objective
 		;manage runtimes
-		TotalRuntime:=TotalRuntime+(nowUnix()-MacroStartTime)
-		PausedRuntime:=PausedRuntime+(nowUnix()-MacroStartTime)
-		SessionRuntime:=SessionRuntime+(nowUnix()-MacroStartTime)
-		if(GatherStartTime) {
-			TotalGatherTime:=TotalGatherTime+(nowUnix()-GatherStartTime)
-			SessionGatherTime:=SessionGatherTime+(nowUnix()-GatherStartTime)
-		}
-		IniWrite TotalRuntime, "settings\nm_config.ini", "Status", "TotalRuntime"
+		nm_TimeTracking.Pause()
 		DetectHiddenWindows 0
 		nm_setStatus("Paused", "Press " PauseHotkey " to Continue")
 		nm_LockTabs(0)

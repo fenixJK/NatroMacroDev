@@ -5,6 +5,9 @@
 #Include "%A_ScriptDir%\..\lib\PlanterRecovery.ahk"
 #Include "%A_ScriptDir%\..\lib\JSON.ahk"
 #Include "%A_ScriptDir%\..\lib\BlenderAccounting.ahk"
+#Include "%A_ScriptDir%\..\lib\TimeTracking.ahk"
+#Include "%A_ScriptDir%\..\lib\Conversion.ahk"
+#Include "%A_ScriptDir%\..\lib\DurationFromSeconds.ahk"
 #Include "%A_ScriptDir%\..\lib\PlanterObservation.ahk"
 #Include "%A_ScriptDir%\..\lib\FailureLog.ahk"
 #Include "%A_ScriptDir%\..\lib\Gdip_All.ahk"
@@ -38,7 +41,7 @@ SetWorkingDir testDirectory
 passed := failed := 0
 try {
 	for test in [TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
-		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting] {
+		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup] {
 		try {
 			test.Call()
 			passed++
@@ -411,3 +414,138 @@ TestBlenderAccounting() {
 	attempt["pid"] := 0
 	AssertEqual(nm_BlenderResolveAttempt(attempt, "Glue", 1, 0, 10300), 0, "A restarted process needs explicit reconciliation for unconfirmed input")
 }
+
+ResetTimeTest() {
+	global TestTick := 1000000, TestNow := 10000
+		, TotalRuntime := 0, SessionRuntime := 0, TotalGatherTime := 0, SessionGatherTime := 0
+		, TotalConvertTime := 0, SessionConvertTime := 0
+		, MacroStartTime := 0, GatherStartTime := 0, ConvertStartTime := 0
+	nm_TimeTracking.Clock := nm_ActivityClock()
+	nm_TimeTracking.TickSource := TestMonotonicTick
+}
+TestMonotonicTick() => TestTick
+TestTimeTracking() {
+	global TestTick, TestNow, TotalRuntime, SessionRuntime, TotalGatherTime, SessionGatherTime
+		, TotalConvertTime, SessionConvertTime, MacroStartTime, GatherStartTime, ConvertStartTime
+	ResetTimeTest()
+	nm_TimeTracking.Begin("Runtime")
+	TestTick += 5000
+	nm_TimeTracking.Begin("Gather")
+	TestTick += 20000
+	nm_TimeTracking.Pause()
+	AssertEqual(TotalRuntime, 25, "Pause credits runtime once")
+	AssertEqual(TotalGatherTime, 20, "Pause credits active gathering")
+	AssertEqual(TotalConvertTime, 0, "Pause does not invent conversion")
+	AssertEqual(MacroStartTime + GatherStartTime + ConvertStartTime, 0, "Paused markers are cleared")
+	TestTick += 60000
+	nm_TimeTracking.Pause()
+	nm_TimeTracking.Stop()
+	nm_TimeTracking.Stop()
+	AssertEqual(TotalRuntime, 25, "Pause then stop never charges paused or already credited time")
+	AssertEqual(TotalGatherTime, 20, "Repeated stop does not double count gathering")
+	AssertEqual(IniRead("settings\nm_config.ini", "Status", "TotalRuntime"), 25, "Credited totals persisted")
+
+	ResetTimeTest()
+	nm_TimeTracking.Begin("Runtime"), nm_TimeTracking.Begin("Convert")
+	TestTick += 10000
+	nm_TimeTracking.Pause()
+	TestTick += 120000
+	AssertEqual(nm_TimeTracking.Elapsed("Convert"), 10, "Action deadline excludes paused interval")
+	nm_TimeTracking.Resume(), nm_TimeTracking.Resume()
+	Assert(!nm_TimeTracking.Active("Gather"), "Resume does not start gathering during conversion")
+	Assert(nm_TimeTracking.Active("Convert"), "Resume restores active conversion")
+	TestTick += 20000
+	nm_TimeTracking.End("Convert")
+	AssertEqual(TotalConvertTime, 30, "Conversion counts both active segments")
+	AssertEqual(nm_TimeTracking.Elapsed("Convert"), 30, "Action elapsed time survives pause and end")
+	AssertEqual(ConvertStartTime, 0, "Ended conversion marker cleared")
+	TestTick += 5000
+	nm_TimeTracking.Stop()
+	AssertEqual(TotalRuntime, 35, "Runtime includes non-conversion activity")
+	AssertEqual(TotalConvertTime, 30, "Stop does not re-credit completed conversion")
+
+	ResetTimeTest()
+	nm_TimeTracking.Begin("Runtime"), nm_TimeTracking.Begin("Gather")
+	TestTick += 20000
+	nm_TimeTracking.Flush()
+	TotalRuntime := TotalGatherTime := 0 ; same boundary used before total-stat reset
+	TestTick += 5000
+	nm_TimeTracking.Stop()
+	AssertEqual(TotalRuntime, 5, "Reset totals only include subsequent activity")
+	AssertEqual(SessionRuntime, 25, "Reset total scope preserves session activity")
+	AssertEqual(SessionGatherTime, 25, "Gathering session survives total-stat reset")
+
+	ResetTimeTest()
+	nm_TimeTracking.Begin("Runtime")
+	TestTick += 250, TestNow += 86400
+	nm_TimeTracking.Flush()
+	TestTick += 250, TestNow -= 172800
+	nm_TimeTracking.Stop()
+	AssertEqual(TotalRuntime, 0.5, "Fractional intervals retained and wall-clock changes ignored")
+	clock := nm_ActivityClock()
+	clock.Begin("Runtime", 10000)
+	AssertEqual(clock.Drain("Runtime", 9000), 0, "Backward tick cannot subtract time")
+	AssertEqual(clock.Drain("Runtime", 11000), 1, "Backward tick does not move the accounting baseline")
+}
+AdvanceConversion(returnValue, fail := false) {
+	global TestTick
+	TestTick += 4000
+	if fail
+		throw ValueError("Injected conversion interruption")
+	return returnValue
+}
+TestTimedOutConversion() {
+	global TestTick
+	TestTick += 300000
+	return nm_ConvertAtHive(0, 0)
+}
+TestAFBInterruptedConversion() {
+	global TestTick
+	TestTick += 5000
+	return nm_ConvertAtHive(0, 0)
+}
+TestConversionCleanup() {
+	global TestTick, TotalConvertTime, ConvertStartTime, LastTestStatus, AutoFieldBoostActive, AFBuseGlitter
+	global HiveConfirmed := 1, EnzymesKey := "none", LastEnzymes := 0, BackpackPercent := 50, BackpackPercentFiltered := 50
+		, PFieldBoosted := 0, GatherFieldBoosted := 0, GatherFieldBoostedStart := 0, LastGlitter := 0, GlitterKey := "none"
+		, GameFrozenCounter := 0, LastConvertBalloon := 0, ConvertBalloon := "Never", ConvertMins := 0, HiveBees := 1, ConvertGatherFlag := 0
+		, state := "", windowHeight := 600, SC_E := "e"
+	ResetTimeTest()
+	nm_TimeTracking.Begin("Runtime")
+	AssertEqual(nm_TimeTracking.Run("Convert", AdvanceConversion.Bind("interrupted")), "interrupted", "Scoped conversion preserves early-return result")
+	AssertEqual(TotalConvertTime, 4, "Early return credits elapsed conversion")
+	AssertEqual(ConvertStartTime, 0, "Early return closes conversion marker")
+	AssertThrows(() => nm_TimeTracking.Run("Convert", AdvanceConversion.Bind(0, true)), "Exception propagates through conversion scope")
+	AssertEqual(TotalConvertTime, 8, "Exception still credits its active interval")
+	AssertEqual(ConvertStartTime, 0, "Exception closes interval")
+	nm_TimeTracking.Stop()
+	AssertEqual(TotalConvertTime, 8, "Stop after exception cannot charge twice")
+	ResetTimeTest()
+	nm_TimeTracking.Begin("Runtime")
+	nm_TimeTracking.Run("Convert", TestTimedOutConversion)
+	Assert(InStr(LastTestStatus, "timed out"), "Actual conversion body reports timeout")
+	Assert(!InStr(LastTestStatus, "Emptied"), "Timeout cannot report empty backpack")
+	AssertEqual(TotalConvertTime, 300, "Actual timeout closes and credits conversion")
+	AssertEqual(ConvertStartTime, 0, "Timeout marker cleared")
+	ResetTimeTest()
+	nm_TimeTracking.Begin("Runtime")
+	AutoFieldBoostActive := 0, AFBuseGlitter := 1
+	nm_TimeTracking.Run("Convert", TestAFBInterruptedConversion)
+	Assert(InStr(LastTestStatus, "AFB"), "Actual AFB branch returns before observation/input")
+	AssertEqual(TotalConvertTime, 5, "Actual AFB early return credits its interval")
+	AssertEqual(ConvertStartTime, 0, "Actual AFB early return clears marker")
+	AFBuseGlitter := 0
+	for value in [-1, "", "unknown", 1, 100]
+		Assert(!nm_BackpackConversionComplete(value), "Only a valid zero reading is empty")
+	Assert(nm_BackpackConversionComplete(0), "Zero backpack reading recognized")
+	BackpackPercentFiltered := -1
+	nm_TimeTracking.Run("Convert", nm_ConvertAtHive.Bind(0, 0))
+	Assert(InStr(LastTestStatus, "unavailable"), "Invalid backpack observation cannot begin balloon conversion")
+	nm_TimeTracking.Stop()
+	nm_TimeTracking.TickSource := 0
+}
+nm_NightInterrupt() => UnexpectedObservation()
+nm_MondoInterrupt() => UnexpectedObservation()
+disconnectcheck() => UnexpectedObservation()
+nm_activeHoney() => UnexpectedObservation()
+PostSubmacroMessage(*) => UnexpectedObservation()
