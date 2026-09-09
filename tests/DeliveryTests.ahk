@@ -120,15 +120,25 @@ CountPendingPng() {
 }
 
 TestLocalHttpDelivery() {
-	if !A_Args.Length || !RegExMatch(A_Args[1], "^\d+$")
-		throw Error("Windows runner must supply the local HTTP fixture port")
+	if A_Args.Length < 2 || !RegExMatch(A_Args[1], "^\d+$")
+		throw Error("Windows runner must supply the local HTTP fixture port and response gate")
 	delivered := [], failures := []
 	queue := nm_DeliveryQueue(,, (job, reason) => failures.Push(reason))
-	queue.Enqueue(nm_DiscordEmbedPayload('Quoted "text"' "`n" Chr(1)), "application/json", "http://127.0.0.1:" A_Args[1] "/slow", , , (ok) => delivered.Push(ok))
+	queue.Enqueue(nm_DiscordEmbedPayload('Quoted "text"' "`n" Chr(1)), "application/json", "http://127.0.0.1:" A_Args[1] "/gated?gate=" A_PtrSize * 8, , , (ok) => delivered.Push(ok))
 	start := A_TickCount
+	while !FileExist(A_Args[2] ".received") && A_TickCount - start < 10000 {
+		queue.Pump()
+		Sleep 10
+	}
+	Assert(FileExist(A_Args[2] ".received"), "Real server received request while response remains gated")
 	queue.Pump()
-	Assert(A_TickCount - start < 1000, "Real WinHTTP poll returns before delayed response")
-	AssertEqual(queue.Items.Length, 1, "Real delayed request remains in flight")
+	AssertEqual(queue.Items.Length, 1, "Real gated request remains in flight")
+	Assert(IsObject(queue.Items[1].request) && queue.Items[1].attempts = 1, "Poll returns with original request active before server can respond")
+	AssertEqual(delivered.Length, 0, "No completion callback before server response")
+	; Release only after polling returned. This proves non-blocking response polling
+	; without assuming COM startup or shared-runner scheduling takes under one second.
+	FileAppend "release", A_Args[2] ".release"
+	start := A_TickCount
 	while queue.Items.Length && A_TickCount - start < 10000 {
 		Sleep 10
 		queue.Pump()

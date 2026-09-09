@@ -82,7 +82,7 @@ try {
         if ((Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant() -ne $runtimeHashes[$bits]) {
             throw "Bundled AHK $bits-bit runtime differs from the reviewed 2.0.12 binary."
         }
-        Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'RunTests.ahk'), $fixturePort)
+        Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'RunTests.ahk'), $fixturePort, "$readyFile.$bits")
         Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'GeometryWindows.ahk'))
         $workerOutput = Join-Path $workerDirectory $bits
         Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'EmitWorkers.ahk'), $workerOutput)
@@ -103,5 +103,8 @@ try {
 } finally {
     if (-not $fixture.HasExited) { $fixture.Kill($true); $fixture.WaitForExit() }
     Remove-Item $readyFile -ErrorAction SilentlyContinue
+    foreach ($bits in @('32', '64')) {
+        Remove-Item "$readyFile.$bits.received", "$readyFile.$bits.release" -ErrorAction SilentlyContinue
+    }
     Remove-Item $workerDirectory -Recurse -Force -ErrorAction SilentlyContinue
 }

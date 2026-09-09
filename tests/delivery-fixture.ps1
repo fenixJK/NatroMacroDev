@@ -23,7 +23,14 @@ try {
                 if ($body -notmatch 'name="files\[0\]"; filename="ss.png"\r\nContent-Type: image/png\r\n\r\n.PNG') { throw 'Missing PNG part' }
             } else {
                 $null = ConvertFrom-Json -InputObject $body -ErrorAction Stop
-                Start-Sleep -Milliseconds 1500
+                $gate = $context.Request.QueryString['gate']
+                if ($context.Request.Url.AbsolutePath -ne '/gated' -or $gate -notmatch '^(32|64)$') { throw 'Unknown response gate' }
+                [IO.File]::WriteAllText("$ReadyFile.$gate.received", 'received')
+                $deadline = [DateTime]::UtcNow.AddSeconds(15)
+                while (-not (Test-Path "$ReadyFile.$gate.release")) {
+                    if ([DateTime]::UtcNow -ge $deadline) { throw 'Client failed to release response gate' }
+                    Start-Sleep -Milliseconds 10
+                }
             }
             $context.Response.StatusCode = 200
         } catch {
