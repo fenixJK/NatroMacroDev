@@ -5,6 +5,31 @@ $runtimeHashes = @{
     '32' = '05fcaf6f09b9fe4b85887f75183310d34166a0b854ca0907b497808be7b8f87d'
     '64' = '37ff15a23a98f0a658298e21f1873ca896a05208810bf796f90ca212ee07c7b1'
 }
+Add-Type @'
+using System;
+using System.Text;
+using System.Runtime.InteropServices;
+public static class NatroDialogDiagnostics {
+    public delegate bool EnumCallback(IntPtr hwnd, IntPtr data);
+    [DllImport("user32.dll")] static extern bool EnumChildWindows(IntPtr hwnd, EnumCallback callback, IntPtr data);
+    [DllImport("user32.dll", CharSet=CharSet.Unicode)] static extern int GetWindowText(IntPtr hwnd, StringBuilder text, int size);
+    [DllImport("user32.dll", CharSet=CharSet.Unicode)] static extern int GetClassName(IntPtr hwnd, StringBuilder text, int size);
+    public static string Read(IntPtr hwnd) {
+        var output = new StringBuilder();
+        EnumChildWindows(hwnd, (child, data) => {
+            var kind = new StringBuilder(64);
+            GetClassName(child, kind, kind.Capacity);
+            if (kind.ToString() == "Static") {
+                var text = new StringBuilder(8192);
+                GetWindowText(child, text, text.Capacity);
+                output.AppendLine(text.ToString());
+            }
+            return true;
+        }, IntPtr.Zero);
+        return output.ToString();
+    }
+}
+'@
 
 function Invoke-AhkChecked([string]$Executable, [string[]]$AhkArguments) {
     $start = [System.Diagnostics.ProcessStartInfo]::new()
@@ -19,6 +44,7 @@ function Invoke-AhkChecked([string]$Executable, [string[]]$AhkArguments) {
     $stderr = $process.StandardError.ReadToEndAsync()
     if (-not $process.WaitForExit(60000)) {
         Write-Host "Timed-out AHK window: $($process.MainWindowTitle)"
+        Write-Host ([NatroDialogDiagnostics]::Read($process.MainWindowHandle))
         $process.Kill($true)
         $process.WaitForExit()
         Write-Host $stdout.GetAwaiter().GetResult()
