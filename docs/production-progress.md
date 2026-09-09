@@ -284,3 +284,38 @@ response was lost. Ordinary status screenshots are not persisted; pending hourly
 PNGs are not automatically resent after restart. The complete recovery plan remains
 active, including quests, geometry, state/resource handling, optimization and the
 previously listed feature/live-verification gates.
+
+## Window geometry and inventory search checkpoint
+
+Code checkpoint: `491894406071c60b36cf382e3478b25baac855ae`.
+[Windows run 34417131864](https://github.com/fenixJK/NatroMacroDev/actions/runs/34417131864)
+passed **26 AHK regression groups per architecture**, the separate **native Windows
+geometry integration fixture on both architectures**, all six script validations,
+and **35 updater scenarios per PowerShell version**, without AHK warnings.
+
+`lib/WindowGeometry.ahk` supplies coherent client snapshots including handle/root,
+process, origin, size, DPI, monitor and styles. The offset cache expires and is
+invalidated when its snapshot changes. Missing/minimized/hidden clients no longer
+publish usable geometry, and missing HWND offset detection reports failure rather
+than a cached successful zero. Activation targets the explicit window/root.
+
+Inventory search now re-reads its visible boundary, owns/releases each capture,
+checks window/focus stability through observation and scrolling, and includes the
+top-bar offset in returned client coordinates. It stops after bounded unknown
+observations and does not scroll after its last search. An optional outcome exposes
+unknown versus missing; unknown results no longer add auto planters to the lost list.
+
+Real GDI fixtures cover anchors, item coordinates and locked-bitmap errors. Native
+Windows checks cover client origin/size, move/resize, explicit activation,
+minimize/restore, hidden windows, cleared globals and missing-HWND offset failure.
+CI also identified an unreachable-class warning from including the new inventory
+classes after the main script's return. Moving the include into initialization
+resolved it. The runner now captures timed-out validator dialog/output diagnostics.
+
+[Geometry verification requirements](geometry-verification.md) preserve F22's open
+gates: downstream drag/click ownership, callers ignoring failure flags, custom
+capture/input paths, actual Roblox anchors, physical monitor/DPI transitions and
+performance measurement. No live gameplay or complete coordinate-layer migration
+is claimed. Quests, reporting recovery, other action/state/resource defects,
+refactoring, optimizations, proposed features and the full live-verification plan
+remain active.

@@ -23,8 +23,8 @@
 #Include "%A_ScriptDir%\..\lib\InventorySearchEngine.ahk"
 #Include "%A_ScriptDir%\GeometryTests.ahk"
 
-; No Roblox, network, real GUI, or keyboard input is used by these tests.
-; AFB's observation/travel functions below throw if unexpectedly reached.
+; No Roblox or external service is used. HTTP tests contact a loopback fixture.
+; Unexpected game observation/input throws; native GUI checks run separately.
 TestNow := 10000
 webhook := "https://discord.invalid/test", bottoken := "fixture-token", discordMode := 0
 MainChannelCheck := 0, MainChannelID := "", commandPrefix := "!", command_buffer := []

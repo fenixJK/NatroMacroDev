@@ -12,7 +12,7 @@ architectures. It enforces a 60-second timeout per process and propagates failur
 
 The suite executes the production policy functions and AFB limit/cancellation
 handlers. Configuration writes use a disposable temporary directory. Game
-observation/travel stubs throw if reached; no Roblox session or Discord access is
+observation/travel dependencies use fixtures and throw on unexpected calls; no Roblox session or Discord access is
 needed. Tests cover invalid priorities, repeated private-server failure, backup
 gaps, exhausted and changed limits, immediate GUI-to-runtime updates, cancellation,
 the exact hour boundary, paused/disabled AFB, authorization, wait units, and local
@@ -81,3 +81,10 @@ pending PNG retention and acknowledgement cleanup. The runner starts a loopback-
 PowerShell HTTP fixture for real WinHTTP delayed-response and multipart tests; no
 Discord request or real credential is used. See `docs/reporting-verification.md`
 for the remaining command, durable-outbox, live-service and statistics-rendering gates.
+
+Geometry tests exercise cache identity/expiry, fresh inventory boundaries, offset
+coordinates, unknown-versus-missing outcomes and interrupted scrolling. Real GDI
+fixtures cover item/anchor matches and image-search errors. `GeometryWindows.ahk`
+uses a temporary native window to verify move/resize, minimize/restore, visibility,
+explicit activation and cleared geometry for an absent target. These checks do not
+verify current Roblox assets or downstream drags; see `docs/geometry-verification.md`.
