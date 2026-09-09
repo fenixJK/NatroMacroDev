@@ -218,3 +218,34 @@ an abrupt OS kill can lose unflushed time, and multiple INI writes are not a sin
 transaction. Live pause/stop callback behavior, backpack reading accuracy and
 balloon completion signals remain verification gates. F14/F15 are implemented for
 these accounting defects; game acceptance and broader state persistence remain open.
+
+## Failed collection visits and gather interruptions
+
+Code checkpoint: `7beb78904833272da2512adbbec3ab4a819b3c8c`.
+[Windows run 34414440079](https://github.com/fenixJK/NatroMacroDev/actions/runs/34414440079)
+passed **19 AHK regression groups per architecture**, parsed all six submacros,
+and passed **35 updater scenarios per PowerShell version**. AHK fixtures emitted
+no warnings. The workflow still reports a checkout action Node 20 deprecation;
+upgrading that pinned action remains maintenance work.
+
+Eighteen collection entry points now separate a failed visit from the legacy
+interaction cooldown: Wealth Clock, seven dispensers, nine seasonal devices and
+Memory Match. Missing prompts after both attempts preserve the previous timestamp
+and defer for five minutes. Recovery metadata is persisted before travel and renewed
+after reported failure. Seasonal/Memory Match gather interrupts, including the
+Night Memory Match condition, honor the delay so a failed visit does not prevent
+gathering throughout the backoff.
+
+Five actual dispenser failure paths are exercised with controlled missing prompts;
+tests also cover interrupted observation, disabled/excluded routes, persistence,
+retry boundaries and actual seasonal/Memory Match interrupt functions.
+[Collection verification requirements](collection-verification.md) distinguish
+these checks from unverified post-input reward acceptance. The interaction path
+still uses the existing E-prompt/input assumption. F13 remains partially open:
+positive completion evidence, the separate booster failure path and remaining
+collection families need follow-up. No live game behavior is marked passed.
+
+The next correctness work includes quest uncertainty (F20), Discord delivery (F23),
+geometry invalidation (F22) and the remaining action/state/resource defects in the
+audit. The complete refactoring, optimization, feature and live-verification scope
+remains active; this checkpoint is not a production-ready release.

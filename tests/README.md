@@ -67,3 +67,10 @@ on returns/exceptions, disconnect recovery exclusion, and the actual timeout and
 AFB interruption paths. These fixtures use a controlled monotonic clock and reject
 unexpected game observation; they do not verify live backpack/balloon images or
 survival of an abrupt process kill.
+
+Collection tests run the five simple dispenser routines with missing-prompt
+observations, ensuring two failed attempts preserve cooldowns and retry after
+backoff. They exercise persistent attempt/interaction metadata, interruption and
+the seasonal/Memory Match gather interrupt policies. No successful keyboard input,
+reward grant or actual Memory Match entry is simulated. Remaining acceptance gates
+are listed in `docs/collection-verification.md`.
