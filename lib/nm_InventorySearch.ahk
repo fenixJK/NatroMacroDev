@@ -1,8 +1,11 @@
 #Include "%A_ScriptDir%\..\lib\InventorySearchEngine.ahk"
 
 ; Coordinates remain client-relative for existing callers.
-nm_InventorySearch(item, direction := "down", prescroll := 0, prescrolldir := "", scrolltoend := 1, max := 70) {
-	return nm_InventorySearchEngine(nm_InventorySurface()).Search(item, direction, prescroll, prescrolldir, scrolltoend, max)
+nm_InventorySearch(item, direction := "down", prescroll := 0, prescrolldir := "", scrolltoend := 1, max := 70, &outcome?) {
+	engine := nm_InventorySearchEngine(nm_InventorySurface())
+	point := engine.Search(item, direction, prescroll, prescrolldir, scrolltoend, max)
+	outcome := engine.Outcome
+	return point
 }
 
 class nm_InventorySurface {

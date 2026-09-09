@@ -20593,13 +20593,15 @@ ba_placePlanter(fieldName, planter, planterNum, atField:=0){
 		nm_gotoPlanter(fieldName, 0)
 	}
 
-	planterPos := nm_InventorySearch(planterName, "up", 4)
+	planterPos := nm_InventorySearch(planterName, "up", 4, , , , &inventoryOutcome)
 
-	if (planterPos = 0) ; planter not in inventory
+	if (planterPos = 0)
 	{
-		nm_setStatus("Missing", planterName)
-		LostPlanters.=planterName
-		ba_saveConfig_()
+		nm_setStatus(inventoryOutcome = "missing" ? "Missing" : "Unconfirmed", planterName)
+		if inventoryOutcome = "missing" {
+			LostPlanters .= planterName
+			ba_saveConfig_()
+		}
 		return 0
 	}
 	else
@@ -21102,11 +21104,11 @@ mp_PlantPlanter(PlanterIndex) {
 	ActivateRoblox()
 	GetRobloxClientPos()
 
-	planterPos := nm_InventorySearch(MPlanterName, "up", 4) ;~ new function
+	planterPos := nm_InventorySearch(MPlanterName, "up", 4, , , , &inventoryOutcome)
 
-	if (planterPos = 0) ; planter not in inventory
+	if (planterPos = 0)
 	{
-		nm_setStatus("Missing", MPlanterName)
+		nm_setStatus(inventoryOutcome = "missing" ? "Missing" : "Unconfirmed", MPlanterName)
 		return 0
 	}
 	else

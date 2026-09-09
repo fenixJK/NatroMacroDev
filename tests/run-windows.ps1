@@ -18,7 +18,11 @@ function Invoke-AhkChecked([string]$Executable, [string[]]$AhkArguments) {
     $stdout = $process.StandardOutput.ReadToEndAsync()
     $stderr = $process.StandardError.ReadToEndAsync()
     if (-not $process.WaitForExit(60000)) {
+        Write-Host "Timed-out AHK window: $($process.MainWindowTitle)"
         $process.Kill($true)
+        $process.WaitForExit()
+        Write-Host $stdout.GetAwaiter().GetResult()
+        Write-Host $stderr.GetAwaiter().GetResult()
         throw "AHK timed out: $($AhkArguments -join ' ')"
     }
     $output = $stdout.GetAwaiter().GetResult()

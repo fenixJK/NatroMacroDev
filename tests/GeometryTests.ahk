@@ -47,18 +47,23 @@ TestInventoryEngine() {
 	point := engine.Search("glitter")
 	AssertEqual(point[1], 30, "Client-relative inventory x coordinate")
 	AssertEqual(point[2], 276, "Inventory position includes detected top-bar offset")
+	AssertEqual(engine.Outcome, "found", "Successful observation is explicit")
 	surface.Height := 100, surface.Client.height := 450, surface.observations.Push({state: "found", y: 20})
 	AssertEqual(engine.Search("glitter")[2], 246, "New search uses current client geometry")
 	AssertEqual(surface.BottomReads, 2, "Inventory boundary is re-read even for a reused engine")
 
 	surface := TestInventorySurface([{state: "found", y: 50}]), surface.ChangeOnRead := true
-	AssertEqual(nm_InventorySearchEngine(surface).Search("glitter"), 0, "Geometry/focus change after capture rejects coordinates")
+	engine := nm_InventorySearchEngine(surface)
+	AssertEqual(engine.Search("glitter"), 0, "Geometry/focus change after capture rejects coordinates")
+	AssertEqual(engine.Outcome, "unknown", "Invalid geometry is not evidence that an item is missing")
 	surface := TestInventorySurface([{state: "missing"}, {state: "found", y: 20}]), surface.StopAfterScrolls := 2
 	AssertEqual(nm_InventorySearchEngine(surface).Search("glitter"), 0, "Change during full inventory scroll aborts")
 	AssertEqual(surface.Scrolls.Length, 2, "No additional scrolling after invalidation")
 
 	surface := TestInventorySurface([{state: "missing"}, {state: "missing"}])
-	AssertEqual(nm_InventorySearchEngine(surface).Search("absent", "up", 0, "", 0, 2), 0, "Missing item remains missing")
+	engine := nm_InventorySearchEngine(surface)
+	AssertEqual(engine.Search("absent", "up", 0, "", 0, 2), 0, "Missing item remains missing")
+	AssertEqual(engine.Outcome, "missing", "Exhausted readable search distinguished from unavailable observation")
 	AssertEqual(surface.Scrolls.Length, 1, "No scroll after final permitted search")
 	AssertEqual(surface.Scrolls[1], "Up", "Configured search direction preserved")
 	surface := TestInventorySurface([{state: "unknown"}, {state: "unknown"}, {state: "found", y: 5}]), surface.BottomMisses := 2

@@ -2,6 +2,7 @@
 class nm_InventorySearchEngine {
 	__New(surface) => this.Surface := surface
 	Search(item, direction := "down", prescroll := 0, prescrolldir := "", scrolltoend := 1, max := 70) {
+		this.Outcome := "unknown"
 		if max < 1 || !this.Surface.Open(item) || !(snapshot := this.Surface.Snapshot())
 			return 0
 		if snapshot.width < 306 || snapshot.height - snapshot.offset < 230
@@ -33,10 +34,13 @@ class nm_InventorySearchEngine {
 				y := observation.y + snapshot.offset + 190
 				if y < 0 || y >= snapshot.height
 					return 0
+				this.Outcome := "found"
 				return [30, y] ; client-relative, including the observed top-bar offset
 			}
-			if attempt >= max
+			if attempt >= max {
+				this.Outcome := "missing"
 				return 0 ; no unobserved scroll after the final search
+			}
 			if attempt = prescroll + 1 && scrolltoend {
 				Loop 100
 					if !this.Surface.Scroll(snapshot, direction = "down" ? "Up" : "Down")
