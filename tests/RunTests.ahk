@@ -221,31 +221,31 @@ TestPlanterRecovery() {
 	IniWrite "PaperPlanter", "settings\nm_config.ini", "Planters", "PlanterName1"
 	IniWrite "Sunflower", "settings\nm_config.ini", "Planters", "PlanterField1"
 	IniWrite 3, "settings\nm_config.ini", "Planters", "MaxAllowedPlanters"
-	state := {calls: 0, result: 0}
-	action := (slot) => (state.calls++, state.result)
+	planterState := {calls: 0, result: 0}
+	action := (slot) => (planterState.calls++, planterState.result)
 	AssertEqual(nm_PlanterRecovery.Harvest(1, "PaperPlanter", "Sunflower", action), 0, "Failed harvest stays unconfirmed")
-	AssertEqual(state.calls, 5, "Harvest retry count bounded")
+	AssertEqual(planterState.calls, 5, "Harvest retry count bounded")
 	AssertEqual(IniRead("settings\nm_config.ini", "Planters", "PlanterName1"), "PaperPlanter", "Failure retains identity")
 	AssertEqual(IniRead("settings\nm_config.ini", "Planters", "PlanterField1"), "Sunflower", "Failure retains field")
 	AssertEqual(nm_PlanterRecovery.Harvest(1, "PaperPlanter", "Sunflower", action), 0, "Persistent delay applies")
-	AssertEqual(state.calls, 5, "Deferred action receives no input")
+	AssertEqual(planterState.calls, 5, "Deferred action receives no input")
 	Assert(!nm_PlanterRecovery.Ready("Harvest1", "PaperPlanter:Sunflower", 10299), "Delay holds until boundary")
 	Assert(nm_PlanterRecovery.Ready("Harvest1", "PaperPlanter:Sunflower", 10300), "Delay expires at boundary")
 	Assert(nm_PlanterRecovery.Ready("Harvest1", "PlasticPlanter:Sunflower", 10000), "Changed planter does not inherit delay")
-	TestNow := 10300, state.result := 1
+	TestNow := 10300, planterState.result := 1
 	AssertEqual(nm_PlanterRecovery.Harvest(1, "PaperPlanter", "Sunflower", action), 1, "Successful retry returns success")
-	AssertEqual(state.calls, 6, "Success stops retry loop")
+	AssertEqual(planterState.calls, 6, "Success stops retry loop")
 	AssertEqual(IniRead("settings\nm_config.ini", "PlanterRecovery", "Harvest1"), "", "Success clears recovery marker")
-	state.result := 2
+	planterState.result := 2
 	AssertEqual(nm_PlanterRecovery.Harvest(1, "PaperPlanter", "Sunflower", action), 2, "Not-ready/held result preserved")
 	AssertThrows(() => nm_PlanterRecovery.Harvest(2, "PlasticPlanter", "Rose", (slot) => ThrowPlanterInterruption()), "Interruption propagates")
 	Assert(!nm_PlanterRecovery.Ready("Harvest2", "PlasticPlanter:Rose", TestNow), "Interruption leaves reservation")
 	nm_PlanterRecovery.Clear("Placement")
-	place := () => (state.calls++, 3)
+	place := () => (planterState.calls++, 3)
 	AssertEqual(nm_PlanterRecovery.Placement(place), 3, "Capacity rejection retained")
-	calls := state.calls
+	calls := planterState.calls
 	AssertEqual(nm_PlanterRecovery.Placement(place), 3, "Placement delay stops caller")
-	AssertEqual(state.calls, calls, "Placement delay does not repeat input")
+	AssertEqual(planterState.calls, calls, "Placement delay does not repeat input")
 	nm_PlanterRecovery.PlacementFailed()
 	AssertEqual(IniRead("settings\nm_config.ini", "Planters", "MaxAllowedPlanters"), 3, "Failure must not lower configured capacity")
 	Assert(nm_PlanterRecovery.Ready("Placement", "Planters", TestNow - 1000), "Clock rollback does not strand placement")
@@ -474,6 +474,16 @@ TestTimeTracking() {
 	AssertEqual(TotalRuntime, 5, "Reset totals only include subsequent activity")
 	AssertEqual(SessionRuntime, 25, "Reset total scope preserves session activity")
 	AssertEqual(SessionGatherTime, 25, "Gathering session survives total-stat reset")
+	ResetTimeTest()
+	nm_TimeTracking.Begin("Runtime"), nm_TimeTracking.Begin("Convert")
+	TestTick += 20000
+	nm_TimeTracking.Flush()
+	SessionRuntime := SessionConvertTime := 0
+	TestTick += 5000
+	nm_TimeTracking.Stop()
+	AssertEqual(SessionRuntime, 5, "Reset session only includes subsequent activity")
+	AssertEqual(TotalRuntime, 25, "Session reset preserves total runtime")
+	AssertEqual(TotalConvertTime, 25, "Session reset preserves total conversion")
 
 	ResetTimeTest()
 	nm_TimeTracking.Begin("Runtime")
@@ -505,7 +515,7 @@ TestAFBInterruptedConversion() {
 	return nm_ConvertAtHive(0, 0)
 }
 TestConversionCleanup() {
-	global TestTick, TotalConvertTime, ConvertStartTime, LastTestStatus, AutoFieldBoostActive, AFBuseGlitter
+	global TestTick, TotalRuntime, TotalConvertTime, ConvertStartTime, LastTestStatus, AutoFieldBoostActive, AFBuseGlitter
 	global HiveConfirmed := 1, EnzymesKey := "none", LastEnzymes := 0, BackpackPercent := 50, BackpackPercentFiltered := 50
 		, PFieldBoosted := 0, GatherFieldBoosted := 0, GatherFieldBoostedStart := 0, LastGlitter := 0, GlitterKey := "none"
 		, GameFrozenCounter := 0, LastConvertBalloon := 0, ConvertBalloon := "Never", ConvertMins := 0, HiveBees := 1, ConvertGatherFlag := 0
@@ -520,6 +530,14 @@ TestConversionCleanup() {
 	AssertEqual(ConvertStartTime, 0, "Exception closes interval")
 	nm_TimeTracking.Stop()
 	AssertEqual(TotalConvertTime, 8, "Stop after exception cannot charge twice")
+	ResetTimeTest()
+	nm_TimeTracking.Begin("Runtime")
+	nm_TimeTracking.Run("Convert", TestConversionDisconnect)
+	AssertEqual(TotalConvertTime, 10, "Reconnect wait is excluded from conversion")
+	AssertEqual(nm_TimeTracking.Elapsed("Convert"), 10, "Ended action does not accrue during recovery")
+	nm_TimeTracking.Stop()
+	AssertEqual(TotalRuntime, 130, "Reconnect wait remains runtime")
+	AssertEqual(TotalConvertTime, 10, "Finally after reconnect cannot re-credit the ended interval")
 	ResetTimeTest()
 	nm_TimeTracking.Begin("Runtime")
 	nm_TimeTracking.Run("Convert", TestTimedOutConversion)
@@ -549,3 +567,11 @@ nm_MondoInterrupt() => UnexpectedObservation()
 disconnectcheck() => UnexpectedObservation()
 nm_activeHoney() => UnexpectedObservation()
 PostSubmacroMessage(*) => UnexpectedObservation()
+
+TestConversionDisconnect() {
+	global TestTick
+	TestTick += 10000
+	nm_TimeTracking.InterruptActions() ; same boundary used when DisconnectCheck detects a disconnect
+	TestTick += 120000
+	return 0
+}

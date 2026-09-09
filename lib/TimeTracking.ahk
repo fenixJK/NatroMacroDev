@@ -38,6 +38,10 @@ class nm_ActivityClock {
 				phase.last := tick, phase.running := true
 		}
 	}
+	InterruptActions(tick) {
+		this.End("Gather", tick)
+		this.End("Convert", tick)
+	}
 	Stop(tick) {
 		for name in this.Phases
 			this.End(name, tick)
@@ -93,6 +97,7 @@ class nm_TimeTracking {
 	static Pause() => this.Transition("Pause")
 	static Resume() => this.Transition("Resume")
 	static Stop() => this.Transition("Stop")
+	static InterruptActions() => this.Transition("InterruptActions")
 
 	static Transition(operation, name := "") {
 		global MacroStartTime, GatherStartTime, ConvertStartTime

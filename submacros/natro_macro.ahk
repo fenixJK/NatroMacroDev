@@ -16987,6 +16987,8 @@ DisconnectCheck(testCheck := 0)
 		Gdip_DisposeImage(pBMScreen)
 	}
 
+	; Reconnection is runtime, but is not gathering or conversion.
+	nm_TimeTracking.InterruptActions()
 	; end any residual movement and set reconnect start time
 	Click "Up"
 	nm_endWalk()
