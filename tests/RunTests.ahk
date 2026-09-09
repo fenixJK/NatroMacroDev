@@ -3,6 +3,8 @@
 #Warn All, StdOut
 #Include "%A_ScriptDir%\..\lib\RuntimePolicy.ahk"
 #Include "%A_ScriptDir%\..\lib\PlanterRecovery.ahk"
+#Include "%A_ScriptDir%\..\lib\JSON.ahk"
+#Include "%A_ScriptDir%\..\lib\BlenderAccounting.ahk"
 #Include "%A_ScriptDir%\..\lib\PlanterObservation.ahk"
 #Include "%A_ScriptDir%\..\lib\FailureLog.ahk"
 #Include "%A_ScriptDir%\..\lib\Gdip_All.ahk"
@@ -36,7 +38,7 @@ SetWorkingDir testDirectory
 passed := failed := 0
 try {
 	for test in [TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
-		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation] {
+		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting] {
 		try {
 			test.Call()
 			passed++
@@ -299,4 +301,85 @@ DrawPlanterTestBar(screen, filled, remaining) {
 		Gdip_DeleteBrush(green), Gdip_DeleteBrush(dark)
 		Gdip_DeleteGraphics(graphics)
 	}
+}
+
+ResetBlenderTest() {
+	global BlenderRot := 1, LastBlenderRot := 1, TimerInterval := 0, BlenderCheck := 1, BlenderEnd := 0
+		, BlenderIndex1 := 1, BlenderIndex2 := 1, BlenderIndex3 := 0
+		, BlenderItem1 := "Glue", BlenderItem2 := "Oil", BlenderItem3 := "None"
+		, BlenderAmount1 := 2, BlenderAmount2 := 1, BlenderAmount3 := 0
+		, BlenderTime1 := 0, BlenderTime2 := 0, BlenderTime3 := 0
+		, BlenderCount1 := 2, BlenderCount2 := 3, BlenderCount3 := 0, MainGui
+	Loop 3
+		MainGui["BlenderData" A_Index] := {Text: ""}
+	IniWrite "", "settings\nm_config.ini", "Blender", "PendingCommit"
+}
+TestBlenderWriter(state, key, value) {
+	state.calls++
+	if state.calls = 4
+		throw ValueError("Injected interruption during Blender persistence")
+	nm_BlenderWriteSetting(key, value)
+}
+TestBlenderAccounting() {
+	global BlenderRot, LastBlenderRot, BlenderIndex1, BlenderIndex2, BlenderAmount1, BlenderCheck
+		, BlenderTime1, BlenderTime2, BlenderTime3
+	ResetBlenderTest()
+	recipes := nm_BlenderReadRecipes()
+	plan := nm_BlenderPlanCraft(recipes, 1, 10000)
+	AssertEqual(plan["BlenderIndex1"], 0, "Charge executed finite slot")
+	Assert(!plan.Has("BlenderIndex2"), "Next recipe must not be charged")
+	AssertEqual(plan["BlenderRot"], 2, "Advance after charging current slot")
+	AssertEqual(plan["LastBlenderRot"], 1, "Keep executed slot separately")
+	AssertEqual(plan["BlenderTime1"], 10600, "Actual batch completion estimate")
+	AssertEqual(plan["BlenderTime2"], 10900, "Queue estimate follows actual batch")
+	AssertEqual(plan["BlenderTime3"], 0, "Empty recipe has no fabricated timer")
+	AssertEqual(recipes[1].remaining, 1, "Planner does not mutate input")
+	recipes[2].remaining := "Infinite"
+	plan := nm_BlenderPlanCraft(recipes, 2, 10000)
+	AssertEqual(plan["BlenderIndex2"], "Infinite", "Infinite executed recipe is unchanged")
+	AssertEqual(plan["BlenderRot"], 1, "Wrap to finite recipe")
+	recipes[1].remaining := 0
+	plan := nm_BlenderPlanCraft(recipes, 2, 10000)
+	AssertEqual(plan["BlenderRot"], 2, "Single infinite recipe repeats")
+	AssertThrows(() => nm_BlenderPlanCraft(recipes, 1, 10000), "Exhausted slot cannot start")
+	recipes[2].amount := 0
+	AssertThrows(() => nm_BlenderPlanCraft(recipes, 2, 10000), "Zero quantity cannot start")
+
+	expected := nm_BlenderReadRecipes()[1]
+	for observation in [0, -1] {
+		AssertEqual(nm_BlenderCommitAccepted(1, expected, observation, 10000), 0, "Unconfirmed craft not committed")
+		AssertEqual(BlenderIndex1, 1, "Rejection preserves current count")
+		AssertEqual(BlenderTime1, 0, "Rejection preserves timer")
+	}
+	BlenderAmount1 := 3
+	AssertEqual(nm_BlenderCommitAccepted(1, expected, 1, 10000), 0, "Live recipe edit rejects stale charge")
+	ResetBlenderTest()
+	expected := nm_BlenderReadRecipes()[1]
+	AssertEqual(nm_BlenderCommitAccepted(1, expected, 1, 10000), 1, "Confirmed craft committed")
+	AssertEqual(BlenderIndex1, 0, "Runtime current count updated")
+	AssertEqual(BlenderIndex2, 1, "Runtime next count retained")
+	AssertEqual(LastBlenderRot, 1, "Runtime last slot updated alongside INI")
+	AssertEqual(BlenderRot, 2, "Runtime next slot selected")
+	AssertEqual(IniRead("settings\nm_config.ini", "Blender", "BlenderIndex1"), 0, "Charged count persisted")
+	AssertEqual(IniRead("settings\nm_config.ini", "Blender", "PendingCommit"), "", "Completed commit clears journal")
+
+	ResetBlenderTest()
+	expected := nm_BlenderReadRecipes()[1], fault := {calls: 0}
+	AssertThrows(() => nm_BlenderCommitAccepted(1, expected, 1, 10000, TestBlenderWriter.Bind(fault)), "Write interruption propagated")
+	Assert(IniRead("settings\nm_config.ini", "Blender", "PendingCommit") != "", "Interrupted commit retains journal")
+	nm_BlenderRecoverCommit()
+	AssertEqual(BlenderIndex1, 0, "Recovery completes the recorded decrement")
+	AssertEqual(BlenderIndex2, 1, "Recovery leaves next slot intact")
+	nm_BlenderRecoverCommit()
+	AssertEqual(BlenderIndex1, 0, "Repeated recovery does not double charge")
+
+	ResetBlenderTest()
+	BlenderIndex2 := 0
+	expected := nm_BlenderReadRecipes()[1]
+	nm_BlenderCommitAccepted(1, expected, 1, 10000)
+	AssertEqual(nm_BlenderRotation(), 0, "No next recipe after final finite batch")
+	AssertEqual(BlenderCheck, 1, "Final batch must remain scheduled for collection")
+	BlenderTime1 := 0
+	AssertEqual(nm_BlenderRotation(), 0, "Empty queue has no next slot")
+	AssertEqual(BlenderCheck, 0, "Stop scheduling after final batch collected")
 }
