@@ -185,3 +185,12 @@ needs follow-up. No release or merge has been made.
 Next independent correctness work: conversion/pause interval accounting, collection
 success timestamps, quest uncertainty and reporting delivery. Preserve the full
 remaining audit, refactoring, optimization, feature and verification scope.
+
+Final Blender code checkpoint:
+`43551c7365f81c60ca31ca97e9655f4febcd5da4`.
+[Windows run 34412768292](https://github.com/fenixJK/NatroMacroDev/actions/runs/34412768292)
+passed **14 AHK regression groups per architecture** and **35 updater scenarios per
+PowerShell version**. This includes the final pre-input configuration checks:
+the recipe snapshot is captured when its image is selected, rather than after a
+possible configuration edit, and checked again before quantity/Confirm input.
+The game acceptance and reconciliation limitations above remain open.
