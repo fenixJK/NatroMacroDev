@@ -1920,7 +1920,7 @@ nm_command(command)
 			k := StrReplace(Trim(SubStr(command.content, InStr(command.content, name)+StrLen(name))), " ")
 			if RegExMatch(k, "i)(token|webhook|privserver|fallbackserver|password|secret)") {
 				discord.SendEmbed("This setting is private and cannot be returned by remote commands.", 16711731,,,,id)
-				break
+				return command_buffer.RemoveAt(1)
 			}
 			str := ""
 			try ini := FileOpen("settings\nm_config.ini", "r"), str := ini.Read(), ini.Close()
