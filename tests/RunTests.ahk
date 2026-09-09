@@ -24,10 +24,14 @@
 #Include "%A_ScriptDir%\..\lib\InventoryDrag.ahk"
 #Include "%A_ScriptDir%\GeometryTests.ahk"
 #Include "%A_ScriptDir%\InventoryDragTests.ahk"
+#Include "%A_ScriptDir%\..\lib\QuestObservation.ahk"
+#Include "%A_ScriptDir%\..\lib\QuestActions.ahk"
+#Include "%A_ScriptDir%\QuestTests.ahk"
 
 ; No Roblox or external service is used. HTTP tests contact a loopback fixture.
 ; Unexpected game observation/input throws; native GUI checks run separately.
 TestNow := 10000
+TestQuestMode := false
 webhook := "https://discord.invalid/test", bottoken := "fixture-token", discordMode := 0
 MainChannelCheck := 0, MainChannelID := "", commandPrefix := "!", command_buffer := []
 TestCollectionMode := false, TestCollectionReads := 0, TestCollectionThrow := false
@@ -65,7 +69,7 @@ SetWorkingDir testDirectory
 passed := failed := 0
 try {
 	for test in [TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
-		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures, TestCollectionInterrupts, TestDiscordPayload, TestDeliveryQueue, TestHourlyReportDelivery, TestLocalHttpDelivery, TestGeometryCache, TestInventoryEngine, TestInventoryReader, TestPointerLease, TestInventoryDrag] {
+		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures, TestCollectionInterrupts, TestDiscordPayload, TestDeliveryQueue, TestHourlyReportDelivery, TestLocalHttpDelivery, TestGeometryCache, TestInventoryEngine, TestInventoryReader, TestPointerLease, TestInventoryDrag, TestQuestObservation, TestQuestFrames, TestQuestActions] {
 		try {
 			test.Call()
 			passed++
@@ -222,7 +226,7 @@ GetRobloxHWND() => TestCollectionMode ? 1 : UnexpectedObservation()
 GetRobloxClientPos(*) => TestCollectionMode ? 0 : UnexpectedObservation()
 GetYOffset(*) => TestCollectionMode ? 0 : UnexpectedObservation()
 nm_Reset(*) => TestCollectionMode ? 0 : UnexpectedObservation()
-nm_updateAction(*) => TestCollectionMode ? 0 : UnexpectedObservation()
+nm_updateAction(*) => (TestCollectionMode || TestQuestMode) ? 0 : UnexpectedObservation()
 nm_gotoCollect(*) => TestCollectionMode ? 0 : UnexpectedObservation()
 nm_imgSearch(*) {
 	global TestCollectionReads
@@ -254,6 +258,7 @@ TestUpdateAssets() {
 TestPlanterRecovery() {
 	global TestNow
 	TestNow := 10000
+TestQuestMode := false
 	IniWrite "PaperPlanter", "settings\nm_config.ini", "Planters", "PlanterName1"
 	IniWrite "Sunflower", "settings\nm_config.ini", "Planters", "PlanterField1"
 	IniWrite 3, "settings\nm_config.ini", "Planters", "MaxAllowedPlanters"
@@ -453,6 +458,7 @@ TestBlenderAccounting() {
 
 ResetTimeTest() {
 	global TestTick := 1000000, TestNow := 10000
+TestQuestMode := false
 		, TotalRuntime := 0, SessionRuntime := 0, TotalGatherTime := 0, SessionGatherTime := 0
 		, TotalConvertTime := 0, SessionConvertTime := 0
 		, MacroStartTime := 0, GatherStartTime := 0, ConvertStartTime := 0
@@ -598,11 +604,11 @@ TestConversionCleanup() {
 	nm_TimeTracking.Stop()
 	nm_TimeTracking.TickSource := 0
 }
-nm_NightInterrupt() => UnexpectedObservation()
+nm_NightInterrupt() => TestQuestMode ? true : UnexpectedObservation()
 nm_MondoInterrupt() => UnexpectedObservation()
 disconnectcheck() => UnexpectedObservation()
 nm_activeHoney() => UnexpectedObservation()
-PostSubmacroMessage(*) => UnexpectedObservation()
+PostSubmacroMessage(*) => TestQuestMode ? 0 : UnexpectedObservation()
 
 TestConversionDisconnect() {
 	global TestTick
@@ -613,7 +619,8 @@ TestConversionDisconnect() {
 }
 
 TestCollectionRecovery() {
-	global TestNow := 100000
+	global TestNow := 10000
+TestQuestMode := false0
 	key := "LastTestDispenser"
 	IniWrite 123, "settings\nm_config.ini", "Collect", key
 	Assert(nm_CollectionRecovery.Begin(key), "First failed visit eligible")
@@ -643,7 +650,8 @@ TestCollectionRecovery() {
 }
 
 TestDispenserFailures() {
-	global TestNow := 1000000, TestCollectionMode := true, TestCollectionReads := 0, TestCollectionThrow := false
+	global TestNow := 10000
+TestQuestMode := false00, TestCollectionMode := true, TestCollectionReads := 0, TestCollectionThrow := false
 	global HoneyDisCheck := 1, TreatDisCheck := 1, BlueberryDisCheck := 1, StrawberryDisCheck := 1, CoconutDisCheck := 1
 	global LastHoneyDis := 123, LastTreatDis := 123, LastBlueberryDis := 123, LastStrawberryDis := 123, LastCoconutDis := 123
 	global CoconutBoosterCheck := 0, BoostChaserCheck := 0
