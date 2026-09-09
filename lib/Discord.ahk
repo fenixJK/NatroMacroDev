@@ -139,7 +139,7 @@ class discord
 		this.CreateFormData(&postdata, &contentType, params)
 		this.SendMessageAPI(postdata, contentType)
 
-		; delete any temp filename created
+		; delete any temp file created
 		if (SubStr(filepath, 1, StrLen(A_Temp)) = A_Temp)
 			try FileDelete filepath
 	}
@@ -379,9 +379,9 @@ class discord
 	static FormName(value) => StrReplace(StrReplace(StrReplace(value, "`r"), "`n"), Chr(34), "_")
 
 	static WriteFormText(stream, value) {
-		buffer := Buffer(StrPut(value, "UTF-8"))
-		StrPut(value, buffer, "UTF-8")
-		if DllCall("shlwapi\IStream_Write", "Ptr", stream, "Ptr", buffer, "UInt", buffer.Size - 1, "Int") != 0
+		encodedText := Buffer(StrPut(value, "UTF-8"))
+		StrPut(value, encodedText, "UTF-8")
+		if DllCall("shlwapi\IStream_Write", "Ptr", stream, "Ptr", encodedText, "UInt", encodedText.Size - 1, "Int") != 0
 			throw Error("Could not encode report text")
 	}
 }

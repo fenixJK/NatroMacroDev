@@ -33,26 +33,26 @@ $fixtureScript = Join-Path $PSScriptRoot 'delivery-fixture.ps1'
 $fixture = Start-Process -FilePath (Get-Process -Id $PID).Path -ArgumentList @('-NoProfile', '-File', ('"{0}"' -f $fixtureScript), '-ReadyFile', ('"{0}"' -f $readyFile)) -PassThru -WindowStyle Hidden
 try {
     $deadline = [DateTime]::UtcNow.AddSeconds(15)
-    while (-not (Test-Path $readyFile)) {
+    $fixturePort = ''
+    while ($fixturePort -notmatch '^\d+$') {
         if ($fixture.HasExited -or [DateTime]::UtcNow -ge $deadline) { throw 'Local HTTP fixture did not start' }
-        Start-Sleep -Milliseconds 100
+        if (Test-Path $readyFile) { $fixturePort = [IO.File]::ReadAllText($readyFile) }
+        if ($fixturePort -notmatch '^\d+$') { Start-Sleep -Milliseconds 100 }
     }
-    $fixturePort = [IO.File]::ReadAllText($readyFile)
-    if ($fixturePort -notmatch '^\d+$') { throw 'Invalid local HTTP fixture port' }
-$architectures = if ($Architecture -eq 'both') { @('32', '64') } else { @($Architecture) }
-foreach ($bits in $architectures) {
-    $exe = Join-Path $repoRoot "submacros/AutoHotkey$bits.exe"
-    if ((Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant() -ne $runtimeHashes[$bits]) {
-        throw "Bundled AHK $bits-bit runtime differs from the reviewed 2.0.12 binary."
+    $architectures = if ($Architecture -eq 'both') { @('32', '64') } else { @($Architecture) }
+    foreach ($bits in $architectures) {
+        $exe = Join-Path $repoRoot "submacros/AutoHotkey$bits.exe"
+        if ((Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant() -ne $runtimeHashes[$bits]) {
+            throw "Bundled AHK $bits-bit runtime differs from the reviewed 2.0.12 binary."
+        }
+        # /Validate exists in 2.0.12. It does not run auto-execute code or close an
+        # existing instance. Runtime behavior is covered separately by RunTests.
+        foreach ($script in Get-ChildItem (Join-Path $repoRoot 'submacros') -Filter '*.ahk') {
+            Write-Host "Validate $($script.Name) ($bits-bit)"
+            Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', '/Validate', $script.FullName)
+        }
+        Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'RunTests.ahk'), $fixturePort)
     }
-    # /Validate exists in 2.0.12. It does not run auto-execute code or close an
-    # existing instance. Runtime behavior is covered separately by RunTests.
-    foreach ($script in Get-ChildItem (Join-Path $repoRoot 'submacros') -Filter '*.ahk') {
-        Write-Host "Validate $($script.Name) ($bits-bit)"
-        Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', '/Validate', $script.FullName)
-    }
-    Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'RunTests.ahk'), $fixturePort)
-}
 
 } finally {
     if (-not $fixture.HasExited) { $fixture.Kill($true); $fixture.WaitForExit() }
