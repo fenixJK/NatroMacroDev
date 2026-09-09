@@ -36,6 +36,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "PlanterObservation.ahk"
 #Include "BlenderAccounting.ahk"
 #Include "TimeTracking.ahk"
+#Include "CollectionRecovery.ahk"
 
 #Warn VarUnset, Off
 
@@ -11673,6 +11674,9 @@ nm_Collect(){
 nm_Clock(){
 	global ClockCheck, LastClock
 	if (ClockCheck && (nowUnix()-LastClock)>3600) { ;1 hour
+		if !nm_CollectionRecovery.Begin("LastClock")
+			return
+		collected := false
 		hwnd := GetRobloxHWND()
 		offsetY := GetYOffset(hwnd)
 		GetRobloxClientPos(hwnd)
@@ -11690,13 +11694,15 @@ nm_Clock(){
 				Sleep 100
 				sendinput "{" SC_E " up}"
 				Sleep 500
+				LastClock := nm_CollectionRecovery.Interacted("LastClock")
+				collected := true
 				nm_setStatus("Collected", "Wealth Clock")
 				break
 			}
 		}
 
-		LastClock:=nowUnix()
-		IniWrite LastClock, "settings\nm_config.ini", "Collect", "LastClock"
+		if !collected
+			nm_CollectionRecovery.Failed("LastClock")
 		if beesmasActive
 			nm_Stockings(1)
 	}
@@ -11894,149 +11900,13 @@ nm_RoboPass(){
 		IniWrite LastRoboPass, "settings\nm_config.ini", "Collect", "LastRoboPass"
 	}
 }
-nm_HoneyDis(){
-	global HoneyDisCheck, LastHoneyDis
-	if (HoneyDisCheck && (nowUnix()-LastHoneyDis)>3600) { ;1 hour
-		Loop 2 {
-			hwnd := GetRobloxHWND()
-			offsetY := GetYOffset(hwnd)
-			GetRobloxClientPos(hwnd)
-			nm_updateAction("Collect")
-
-			nm_Reset()
-			nm_setStatus("Traveling", "Honey Dispenser" ((A_Index > 1) ? " (Attempt 2)" : ""))
-
-			nm_gotoCollect("honeydis")
-
-			searchRet := nm_imgSearch("e_button.png",30,"high")
-			If (searchRet[1] = 0) {
-				sendinput "{" SC_E " down}"
-				Sleep 100
-				sendinput "{" SC_E " up}"
-				Sleep 500
-				nm_setStatus("Collected", "Honey Dispenser")
-				break
-			}
-		}
-		LastHoneyDis:=nowUnix()
-		IniWrite LastHoneyDis, "settings\nm_config.ini", "Collect", "LastHoneyDis"
-	}
-}
-nm_TreatDis(){
-	global TreatDisCheck, LastTreatDis
-	if (TreatDisCheck && (nowUnix()-LastTreatDis)>3600) { ;1 hour
-		Loop 2 {
-			hwnd := GetRobloxHWND()
-			offsetY := GetYOffset(hwnd)
-			GetRobloxClientPos(hwnd)
-			nm_updateAction("Collect")
-
-			nm_Reset()
-			nm_setStatus("Traveling", "Treat Dispenser" ((A_Index > 1) ? " (Attempt 2)" : ""))
-
-			nm_gotoCollect("treatdis")
-
-			searchRet := nm_imgSearch("e_button.png",30,"high")
-			If (searchRet[1] = 0) {
-				sendinput "{" SC_E " down}"
-				Sleep 100
-				sendinput "{" SC_E " up}"
-				Sleep 500
-				nm_setStatus("Collected", "Treat Dispenser")
-				break
-			}
-		}
-		LastTreatDis:=nowUnix()
-		IniWrite LastTreatDis, "settings\nm_config.ini", "Collect", "LastTreatDis"
-	}
-}
-nm_BlueberryDis(){
-	global BlueberryDisCheck, LastBlueberryDis
-	if (BlueberryDisCheck && (nowUnix()-LastBlueberryDis)>14400) { ;4 hours
-		Loop 2 {
-			hwnd := GetRobloxHWND()
-			offsetY := GetYOffset(hwnd)
-			GetRobloxClientPos(hwnd)
-			nm_updateAction("Collect")
-
-			nm_Reset()
-			nm_setStatus("Traveling", "Blueberry Dispenser" ((A_Index > 1) ? " (Attempt 2)" : ""))
-
-			nm_gotoCollect("blueberrydis")
-
-			searchRet := nm_imgSearch("e_button.png",30,"high")
-			If (searchRet[1] = 0) {
-				sendinput "{" SC_E " down}"
-				Sleep 100
-				sendinput "{" SC_E " up}"
-				sleep 500
-				nm_setStatus("Collected", "Blueberry Dispenser")
-				break
-			}
-		}
-		LastBlueberryDis:=nowUnix()
-		IniWrite LastBlueberryDis, "settings\nm_config.ini", "Collect", "LastBlueberryDis"
-	}
-}
-nm_StrawberryDis(){
-	global StrawberryDisCheck, LastStrawberryDis
-	if (StrawberryDisCheck && (nowUnix()-LastStrawberryDis)>14400) { ;4 hours
-		Loop 2 {
-			hwnd := GetRobloxHWND()
-			offsetY := GetYOffset(hwnd)
-			GetRobloxClientPos(hwnd)
-			nm_updateAction("Collect")
-
-			nm_Reset()
-			nm_setStatus("Traveling", "Strawberry Dispenser" ((A_Index > 1) ? " (Attempt 2)" : ""))
-
-			nm_gotoCollect("strawberrydis")
-
-			searchRet := nm_imgSearch("e_button.png",30,"high")
-			If (searchRet[1] = 0) {
-				sendinput "{" SC_E " down}"
-				Sleep 100
-				sendinput "{" SC_E " up}"
-				sleep 500
-				nm_setStatus("Collected", "Strawberry Dispenser")
-				break
-			}
-		}
-		LastStrawberryDis:=nowUnix()
-		IniWrite LastStrawberryDis, "settings\nm_config.ini", "Collect", "LastStrawberryDis"
-	}
-}
-nm_CoconutDis(){
-	global CoconutDisCheck, LastCoconutDis, CoconutBoosterCheck, BoostChaserCheck
-	if (CoconutDisCheck && (nowUnix()-LastCoconutDis)>14400 && !(CoconutBoosterCheck && BoostChaserCheck)) { ;4 hours
-		Loop 2 {
-			hwnd := GetRobloxHWND()
-			offsetY := GetYOffset(hwnd)
-			GetRobloxClientPos(hwnd)
-			nm_updateAction("Collect")
-
-			nm_Reset()
-			nm_setStatus("Traveling", "Coconut Dispenser" ((A_Index > 1) ? " (Attempt 2)" : ""))
-
-			nm_gotoCollect("coconutdis")
-
-			searchRet := nm_imgSearch("e_button.png",30,"high")
-			If (searchRet[1] = 0) {
-				sendinput "{" SC_E " down}"
-				Sleep 100
-				sendinput "{" SC_E " up}"
-				sleep 500
-				nm_setStatus("Collected", "Coconut Dispenser")
-				break
-			}
-		}
-		LastCoconutDis:=nowUnix()
-		IniWrite LastCoconutDis, "settings\nm_config.ini", "Collect", "LastCoconutDis"
-	}
-}
+#Include "%A_ScriptDir%\..\lib\DispenserCollection.ahk"
 nm_GlueDis(){
 	global GlueDisCheck, LastGlueDis
 	if (GlueDisCheck && (nowUnix()-LastGlueDis)>(79200)) { ;22 hours
+		if !nm_CollectionRecovery.Begin("LastGlueDis")
+			return
+		collected := false
 		Loop 2 {
 			hwnd := GetRobloxHWND()
 			offsetY := GetYOffset(hwnd)
@@ -12076,17 +11946,22 @@ nm_GlueDis(){
 				Sleep 100
 				sendinput "{" SC_E " up}"
 				Sleep 1000
+				LastGlueDis := nm_CollectionRecovery.Interacted("LastGlueDis")
+				collected := true
 				nm_setStatus("Collected", "Glue Dispenser")
 				break
 			}
 		}
-		LastGlueDis:=nowUnix()
-		IniWrite LastGlueDis, "settings\nm_config.ini", "Collect", "LastGlueDis"
+		if !collected
+			nm_CollectionRecovery.Failed("LastGlueDis")
 	}
 }
 nm_RoyalJellyDis(){
 	global RoyalJellyDisCheck, LastRoyalJellyDis
 	if (RoyalJellyDisCheck && (nowUnix()-LastRoyalJellyDis)>(79200) && (MoveMethod != "Walk")) { ;22 hours
+		if !nm_CollectionRecovery.Begin("LastRoyalJellyDis")
+			return
+		collected := false
 		Loop 2 {
 			hwnd := GetRobloxHWND()
 			offsetY := GetYOffset(hwnd)
@@ -12104,13 +11979,15 @@ nm_RoyalJellyDis(){
 				Sleep 100
 				sendinput "{" SC_E " up}"
 				Sleep 500
+				LastRoyalJellyDis := nm_CollectionRecovery.Interacted("LastRoyalJellyDis")
+				collected := true
 				nm_setStatus("Collected", "Royal Jelly Dispenser")
 				sleep 10000
 				break
 			}
 		}
-		LastRoyalJellyDis:=nowUnix()
-		IniWrite LastRoyalJellyDis, "settings\nm_config.ini", "Collect", "LastRoyalJellyDis"
+		if !collected
+			nm_CollectionRecovery.Failed("LastRoyalJellyDis")
 	}
 }
 nm_Wreath(){
@@ -12169,6 +12046,9 @@ nm_Wreath(){
 nm_Stockings(fromClock:=0){
 	global StockingsCheck, LastStockings
 	if (StockingsCheck && (nowUnix()-LastStockings)>(fromClock ? 3580 : 3600)) { ;1 hour
+		if !nm_CollectionRecovery.Begin("LastStockings")
+			return
+		collected := false
 		Loop 2 {
 			hwnd := GetRobloxHWND()
 			offsetY := GetYOffset(hwnd)
@@ -12237,17 +12117,22 @@ nm_Stockings(fromClock:=0){
 				KeyWait "F14", "T60 L"
 				nm_endWalk()
 
+				LastStockings := nm_CollectionRecovery.Interacted("LastStockings")
+				collected := true
 				nm_setStatus("Collected", "Stockings")
 				break
 			}
 		}
-		LastStockings:=nowUnix()
-		IniWrite LastStockings, "settings\nm_config.ini", "Collect", "LastStockings"
+		if !collected
+			nm_CollectionRecovery.Failed("LastStockings")
 	}
 }
 nm_Feast(){ ; Beesmas Feast
 	global FeastCheck, LastFeast
 	if (FeastCheck && (nowUnix()-LastFeast)>5400) { ;1.5 hours
+		if !nm_CollectionRecovery.Begin("LastFeast")
+			return
+		collected := false
 		Loop 2 {
 			hwnd := GetRobloxHWND()
 			offsetY := GetYOffset(hwnd)
@@ -12284,17 +12169,22 @@ nm_Feast(){ ; Beesmas Feast
 				KeyWait "F14", "T60 L"
 				nm_endWalk()
 
+				LastFeast := nm_CollectionRecovery.Interacted("LastFeast")
+				collected := true
 				nm_setStatus("Collected", "Beesmas Feast")
 				break
 			}
 		}
-		LastFeast:=nowUnix()
-		IniWrite LastFeast, "settings\nm_config.ini", "Collect", "LastFeast"
+		if !collected
+			nm_CollectionRecovery.Failed("LastFeast")
 	}
 }
 nm_GingerbreadHouse(){
 	global GingerbreadCheck, LastGingerbread
 	if (GingerbreadCheck && (nowUnix()-LastGingerbread)>7200) { ;2 hours
+		if !nm_CollectionRecovery.Begin("LastGingerbread")
+			return
+		collected := false
 		Loop 2 {
 			hwnd := GetRobloxHWND()
 			offsetY := GetYOffset(hwnd)
@@ -12312,17 +12202,21 @@ nm_GingerbreadHouse(){
 				Sleep 100
 				sendinput "{" SC_E " up}"
 				Sleep 3000
+				LastGingerbread := nm_CollectionRecovery.Interacted("LastGingerbread")
+				collected := true
 				nm_setStatus("Collected", "Gingerbread House")
 				break
 			}
 		}
-		LastGingerbread:=nowUnix()
-		IniWrite LastGingerbread, "settings\nm_config.ini", "Collect", "LastGingerbread"
+		if !collected
+			nm_CollectionRecovery.Failed("LastGingerbread")
 	}
 }
 nm_SnowMachine(){
 	global SnowMachineCheck, LastSnowMachine
 	if (SnowMachineCheck && (nowUnix()-LastSnowMachine)>7200) { ;2 hours
+		if !nm_CollectionRecovery.Begin("LastSnowMachine")
+			return
 		Loop 2 {
 			hwnd := GetRobloxHWND()
 			offsetY := GetYOffset(hwnd)
@@ -12345,16 +12239,18 @@ nm_SnowMachine(){
 				return
 			}
 		}
-		updateConfig()
+		nm_CollectionRecovery.Failed("LastSnowMachine")
 	}
 	updateConfig() {
-		LastSnowMachine:=nowUnix()
-		IniWrite LastSnowMachine, "settings\nm_config.ini", "Collect", "LastSnowMachine"
+		LastSnowMachine := nm_CollectionRecovery.Interacted("LastSnowMachine")
 	}
 }
 nm_Candles(){
 	global CandlesCheck, LastCandles
 	if (CandlesCheck && (nowUnix()-LastCandles)>14400) { ;4 hours
+		if !nm_CollectionRecovery.Begin("LastCandles")
+			return
+		collected := false
 		Loop 2 {
 			hwnd := GetRobloxHWND()
 			offsetY := GetYOffset(hwnd)
@@ -12384,17 +12280,22 @@ nm_Candles(){
 				KeyWait "F14", "T60 L"
 				nm_endWalk()
 
+				LastCandles := nm_CollectionRecovery.Interacted("LastCandles")
+				collected := true
 				nm_setStatus("Collected", "Candles")
 				break
 			}
 		}
-		LastCandles:=nowUnix()
-		IniWrite LastCandles, "settings\nm_config.ini", "Collect", "LastCandles"
+		if !collected
+			nm_CollectionRecovery.Failed("LastCandles")
 	}
 }
 nm_Samovar(){
 	global SamovarCheck, LastSamovar
 	if (SamovarCheck && (nowUnix()-LastSamovar)>21600) { ;6 hours
+		if !nm_CollectionRecovery.Begin("LastSamovar")
+			return
+		collected := false
 		Loop 2 {
 			hwnd := GetRobloxHWND()
 			offsetY := GetYOffset(hwnd)
@@ -12430,17 +12331,22 @@ nm_Samovar(){
 				KeyWait "F14", "T60 L"
 				nm_endWalk()
 
+				LastSamovar := nm_CollectionRecovery.Interacted("LastSamovar")
+				collected := true
 				nm_setStatus("Collected", "Samovar")
 				break
 			}
 		}
-		LastSamovar:=nowUnix()
-		IniWrite LastSamovar, "settings\nm_config.ini", "Collect", "LastSamovar"
+		if !collected
+			nm_CollectionRecovery.Failed("LastSamovar")
 	}
 }
 nm_LidArt(){
 	global LidArtCheck, LastLidArt
 	if (LidArtCheck && (nowUnix()-LastLidArt)>28800) { ;8 hours
+		if !nm_CollectionRecovery.Begin("LastLidArt")
+			return
+		collected := false
 		Loop 2 {
 			hwnd := GetRobloxHWND()
 			offsetY := GetYOffset(hwnd)
@@ -12475,17 +12381,22 @@ nm_LidArt(){
 				KeyWait "F14", "T60 L"
 				nm_endWalk()
 
+				LastLidArt := nm_CollectionRecovery.Interacted("LastLidArt")
+				collected := true
 				nm_setStatus("Collected", "Lid Art")
 				break
 			}
 		}
-		LastLidArt:=nowUnix()
-		IniWrite LastLidArt, "settings\nm_config.ini", "Collect", "LastLidArt"
+		if !collected
+			nm_CollectionRecovery.Failed("LastLidArt")
 	}
 }
 nm_GummyBeacon(){
 	global GummyBeaconCheck, LastGummyBeacon
 	if (GummyBeaconCheck && (nowUnix()-LastGummyBeacon)>28800 && (MoveMethod != "Walk")) { ;8 hours
+		if !nm_CollectionRecovery.Begin("LastGummyBeacon")
+			return
+		collected := false
 		Loop 2 {
 			hwnd := GetRobloxHWND()
 			offsetY := GetYOffset(hwnd)
@@ -12503,17 +12414,22 @@ nm_GummyBeacon(){
 				Sleep 100
 				sendinput "{" SC_E " up}"
 				Sleep 500
+				LastGummyBeacon := nm_CollectionRecovery.Interacted("LastGummyBeacon")
+				collected := true
 				nm_setStatus("Collected", "Gummy Beacon")
 				break
 			}
 		}
-		LastGummyBeacon:=nowUnix()
-		IniWrite LastGummyBeacon, "settings\nm_config.ini", "Collect", "LastGummyBeacon"
+		if !collected
+			nm_CollectionRecovery.Failed("LastGummyBeacon")
 	}
 }
 nm_RBPDelevel(){ ;Robo Bear Party De-level
 	global RBPDelevelCheck, LastRBPDelevel
 	if (RBPDelevelCheck && (nowUnix()-LastRBPDelevel)>10800 && (MoveMethod != "Walk")) { ;3 hours
+		if !nm_CollectionRecovery.Begin("LastRBPDelevel")
+			return
+		collected := false
 		Loop 2 {
 			hwnd := GetRobloxHWND()
 			offsetY := GetYOffset(hwnd)
@@ -12531,12 +12447,14 @@ nm_RBPDelevel(){ ;Robo Bear Party De-level
 				Sleep 100
 				sendinput "{" SC_E " up}"
 				Sleep 500
+				LastRBPDelevel := nm_CollectionRecovery.Interacted("LastRBPDelevel")
+				collected := true
 				nm_setStatus("Collected", "RBP De-Level")
 				break
 			}
 		}
-		LastRBPDelevel:=nowUnix()
-		IniWrite LastRBPDelevel, "settings\nm_config.ini", "Collect", "LastRBPDelevel"
+		if !collected
+			nm_CollectionRecovery.Failed("LastRBPDelevel")
 	}
 }
 ; Memory Match code written by OfficerAC
@@ -12546,6 +12464,9 @@ nm_MemoryMatch(MemoryMatchGame) {
 		, LastNormalMemoryMatch, LastMegaMemoryMatch, LastExtremeMemoryMatch, LastNightMemoryMatch, LastWinterMemoryMatch
 
 	if !(%MemoryMatchGame%MemoryMatchCheck && (nowUnix()-Last%MemoryMatchGame%MemoryMatch)>MemoryMatchGames[MemoryMatchGame].cooldown) || nm_AmuletPrompt()
+		return
+
+	if !nm_CollectionRecovery.Begin("Last" MemoryMatchGame "MemoryMatch")
 		return
 
 	success := deaths := 0
@@ -12569,7 +12490,7 @@ nm_MemoryMatch(MemoryMatchGame) {
 			sleep 1500
 			Break
 		} else if (A_Index = 2) {
-			(MemoryMatchGame != "Night") && UpdateConfig()
+			nm_CollectionRecovery.Failed("Last" MemoryMatchGame "MemoryMatch")
 			return
 		}
 	} ;  close Try twice to find MM
@@ -12577,7 +12498,7 @@ nm_MemoryMatch(MemoryMatchGame) {
 	nm_SolveMemoryMatch(MemoryMatchGame)
 
 	UpdateConfig() {
-		IniWrite Last%MemoryMatchGame%MemoryMatch:=nowUnix(), "settings\nm_config.ini", "Collect", "Last" MemoryMatchGame "MemoryMatch"
+		Last%MemoryMatchGame%MemoryMatch := nm_CollectionRecovery.Interacted("Last" MemoryMatchGame "MemoryMatch")
 	}
 }
 nm_SolveMemoryMatch(MemoryMatchGame:="") {

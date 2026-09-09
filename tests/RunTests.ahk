@@ -6,6 +6,8 @@
 #Include "%A_ScriptDir%\..\lib\JSON.ahk"
 #Include "%A_ScriptDir%\..\lib\BlenderAccounting.ahk"
 #Include "%A_ScriptDir%\..\lib\TimeTracking.ahk"
+#Include "%A_ScriptDir%\..\lib\CollectionRecovery.ahk"
+#Include "%A_ScriptDir%\..\lib\DispenserCollection.ahk"
 #Include "%A_ScriptDir%\..\lib\Conversion.ahk"
 #Include "%A_ScriptDir%\..\lib\DurationFromSeconds.ahk"
 #Include "%A_ScriptDir%\..\lib\PlanterObservation.ahk"
@@ -17,6 +19,10 @@
 ; No Roblox, network, real GUI, or keyboard input is used by these tests.
 ; AFB's observation/travel functions below throw if unexpectedly reached.
 TestNow := 10000
+TestCollectionMode := false, TestCollectionReads := 0, TestCollectionThrow := false
+HoneyDisCheck := TreatDisCheck := BlueberryDisCheck := StrawberryDisCheck := CoconutDisCheck := 0
+LastHoneyDis := LastTreatDis := LastBlueberryDis := LastStrawberryDis := LastCoconutDis := 0
+CoconutBoosterCheck := BoostChaserCheck := 0
 HideErrors := 1, AutoFieldBoostRefresh := 10, FieldBooster := Map()
 windowX := windowY := windowWidth := 0, bitmaps := Map(), CurrentField := ""
 LastBlueBoost := LastRedBoost := LastMountainBoost := 0
@@ -41,7 +47,7 @@ SetWorkingDir testDirectory
 passed := failed := 0
 try {
 	for test in [TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
-		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup] {
+		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures] {
 		try {
 			test.Call()
 			passed++
@@ -194,9 +200,21 @@ nowUnix() => TestNow
 nm_setStatus(state, objective) {
 	global LastTestStatus := state ": " objective
 }
-GetRobloxHWND() => UnexpectedObservation()
-GetRobloxClientPos(*) => UnexpectedObservation()
-GetYOffset(*) => UnexpectedObservation()
+GetRobloxHWND() => TestCollectionMode ? 1 : UnexpectedObservation()
+GetRobloxClientPos(*) => TestCollectionMode ? 0 : UnexpectedObservation()
+GetYOffset(*) => TestCollectionMode ? 0 : UnexpectedObservation()
+nm_Reset(*) => TestCollectionMode ? 0 : UnexpectedObservation()
+nm_updateAction(*) => TestCollectionMode ? 0 : UnexpectedObservation()
+nm_gotoCollect(*) => TestCollectionMode ? 0 : UnexpectedObservation()
+nm_imgSearch(*) {
+	global TestCollectionReads
+	if !TestCollectionMode
+		return UnexpectedObservation()
+	TestCollectionReads++
+	if TestCollectionThrow
+		throw Error("Interrupted collection observation")
+	return [1] ; Prompt absent: production routines must never reach SendInput.
+}
 ActivateRoblox() => UnexpectedObservation()
 nm_toBooster(*) => UnexpectedObservation()
 UnexpectedObservation() {
@@ -574,4 +592,75 @@ TestConversionDisconnect() {
 	nm_TimeTracking.InterruptActions() ; same boundary used when DisconnectCheck detects a disconnect
 	TestTick += 120000
 	return 0
+}
+
+TestCollectionRecovery() {
+	global TestNow := 100000
+	key := "LastTestDispenser"
+	IniWrite 123, "settings\nm_config.ini", "Collect", key
+	Assert(nm_CollectionRecovery.Begin(key), "First failed visit eligible")
+	TestNow += 400 ; Failure after long travel renews the delay from its end.
+	nm_CollectionRecovery.Failed(key)
+	AssertEqual(IniRead("settings\nm_config.ini", "Collect", key), 123, "Failed visit preserves cooldown")
+	Assert(!nm_CollectionRecovery.Begin(key), "Failure backs off even after long travel")
+	TestNow += 300
+	Assert(nm_CollectionRecovery.Begin(key), "Second visit eligible at retry boundary")
+	nm_CollectionRecovery.Failed(key)
+	AssertEqual(IniRead("settings\nm_config.ini", "Collect", key), 123, "Second failure still preserves cooldown")
+	TestNow += 300
+	Assert(nm_CollectionRecovery.Begin(key), "Later interaction eligible")
+	AssertEqual(nm_CollectionRecovery.Interacted(key), TestNow, "Interaction returns persisted timestamp")
+	AssertEqual(IniRead("settings\nm_config.ini", "Collect", key), TestNow, "Only interaction updates cooldown")
+	values := nm_CollectionRecovery.Read(key)
+	AssertEqual(values[2], 0, "Interaction clears recovery delay")
+	AssertEqual(values[3], TestNow, "Last interaction recorded separately from attempts")
+	TestNow += 4000
+	Assert(nm_CollectionRecovery.Begin(key), "New visit reserves delay")
+	Assert(!nm_CollectionRecovery.Begin(key), "Persisted reservation survives abandoned call")
+	AssertEqual(nm_CollectionRecovery.Read(key)[3], values[3], "New attempt preserves interaction history")
+	TestNow -= 3600
+	Assert(nm_CollectionRecovery.Begin(key), "Backward wall clock cannot strand recovery forever")
+	IniWrite "bad|data|here", "settings\nm_config.ini", "CollectionRecovery", key
+	Assert(nm_CollectionRecovery.Begin(key), "Malformed recovery metadata recovers")
+}
+
+TestDispenserFailures() {
+	global TestNow := 1000000, TestCollectionMode := true, TestCollectionReads := 0, TestCollectionThrow := false
+	global HoneyDisCheck := 1, TreatDisCheck := 1, BlueberryDisCheck := 1, StrawberryDisCheck := 1, CoconutDisCheck := 1
+	global LastHoneyDis := 123, LastTreatDis := 123, LastBlueberryDis := 123, LastStrawberryDis := 123, LastCoconutDis := 123
+	global CoconutBoosterCheck := 0, BoostChaserCheck := 0
+	try {
+		for entry in [[nm_HoneyDis, "HoneyDis"], [nm_TreatDis, "TreatDis"], [nm_BlueberryDis, "BlueberryDis"], [nm_StrawberryDis, "StrawberryDis"], [nm_CoconutDis, "CoconutDis"]] {
+			key := "Last" entry[2]
+			IniWrite 123, "settings\nm_config.ini", "Collect", key
+			before := TestCollectionReads
+			entry[1].Call()
+			AssertEqual(TestCollectionReads - before, 2, "Actual dispenser retries twice: " key)
+			AssertEqual(IniRead("settings\nm_config.ini", "Collect", key), 123, "Actual failure preserves persisted cooldown: " key)
+			entry[1].Call()
+			AssertEqual(TestCollectionReads - before, 2, "Immediate scheduler revisit performs no search: " key)
+			TestNow += 300
+			entry[1].Call()
+			AssertEqual(TestCollectionReads - before, 4, "Actual failure retries after five minutes: " key)
+		}
+		AssertEqual(LastHoneyDis + LastTreatDis + LastBlueberryDis + LastStrawberryDis + LastCoconutDis, 615, "All in-memory cooldowns preserved")
+		TestNow += 300, TestCollectionThrow := true
+		try nm_HoneyDis()
+		catch as observationError
+			AssertEqual(observationError.Message, "Interrupted collection observation", "Expected observation interruption")
+		Assert(!nm_CollectionRecovery.Begin("LastHoneyDis"), "Actual interrupted route retains reservation")
+		TestCollectionThrow := false
+		TestNow += 300, CoconutBoosterCheck := BoostChaserCheck := 1
+		before := TestCollectionReads
+		oldCoconutAttempt := nm_CollectionRecovery.Read("LastCoconutDis")[1]
+		oldHoneyAttempt := nm_CollectionRecovery.Read("LastHoneyDis")[1]
+		nm_CoconutDis()
+		HoneyDisCheck := 0
+		nm_HoneyDis()
+		AssertEqual(TestCollectionReads, before, "Disabled and boost-chaser exclusions preserved")
+		AssertEqual(nm_CollectionRecovery.Read("LastCoconutDis")[1], oldCoconutAttempt, "Excluded coconut route reserves no attempt")
+		AssertEqual(nm_CollectionRecovery.Read("LastHoneyDis")[1], oldHoneyAttempt, "Disabled route reserves no attempt")
+	} finally {
+		TestCollectionMode := false, TestCollectionThrow := false
+	}
 }
