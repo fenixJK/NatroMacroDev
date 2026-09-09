@@ -739,6 +739,10 @@ nm_status(status)
 		}
 
 		try queued := discord.QueueEmbed(message, color, content, pBM?, channel?)
+		catch as preparationError {
+			nm_Failures.Write(preparationError, "Status report preparation")
+			queued := false
+		}
 		finally {
 			if IsSet(pBM) && pBM > 0
 				Gdip_DisposeImage(pBM)

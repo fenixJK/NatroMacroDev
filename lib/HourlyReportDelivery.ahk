@@ -10,7 +10,8 @@ nm_QueueHourlyReport(pBitmap) {
 	}
 	if count >= 72 || bytes >= 256 * 1024 * 1024
 		throw Error("Pending hourly report storage is full; resolve files in settings\pending-reports")
-	path := directory "\" FormatTime(A_NowUTC, "yyyyMMdd-HHmmss") "-" DllCall("GetCurrentProcessId") "-" A_TickCount "-" ++sequence ".png"
+	sequence++
+	path := directory "\" FormatTime(A_NowUTC, "yyyyMMdd-HHmmss") "-" DllCall("GetCurrentProcessId") "-" A_TickCount "-" sequence ".png"
 	if (result := Gdip_SaveBitmapToFile(pBitmap, path)) != 0
 		throw Error("Could not preserve hourly report (GDI " result ")")
 	if bytes + FileGetSize(path) > 256 * 1024 * 1024 {

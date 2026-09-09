@@ -46,7 +46,7 @@ class discord
 				if !channel && MainChannelCheck
 					channel := MainChannelID
 				if !channel
-					return false
+					return true ; destination disabled: intentionally handled without sending
 				url := this.baseURL "channels/" channel "/messages", token := bottoken
 			}
 		} else
