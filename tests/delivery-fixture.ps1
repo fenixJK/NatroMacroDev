@@ -14,8 +14,17 @@ try {
         $reader = [IO.StreamReader]::new($context.Request.InputStream)
         try {
             $body = $reader.ReadToEnd()
-            $null = ConvertFrom-Json -InputObject $body -ErrorAction Stop
-            Start-Sleep -Milliseconds 1500
+            if ($context.Request.Url.AbsolutePath -eq '/multipart') {
+                if ($context.Request.ContentType -notmatch 'boundary=(.+)$') { throw 'Missing boundary' }
+                $boundary = $Matches[1]
+                if (-not $body.EndsWith("--$boundary--`r`n")) { throw 'Incorrect closing boundary' }
+                if ($body -notmatch '(?s)name="payload_json"\r\nContent-Type: application/json\r\n\r\n(.*?)\r\n--') { throw 'Missing JSON part or CRLF framing' }
+                $null = ConvertFrom-Json -InputObject $Matches[1] -ErrorAction Stop
+                if ($body -notmatch 'name="files\[0\]"; filename="ss.png"\r\nContent-Type: image/png\r\n\r\n.PNG') { throw 'Missing PNG part' }
+            } else {
+                $null = ConvertFrom-Json -InputObject $body -ErrorAction Stop
+                Start-Sleep -Milliseconds 1500
+            }
             $context.Response.StatusCode = 200
         } catch {
             $context.Response.StatusCode = 400

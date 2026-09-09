@@ -8,6 +8,7 @@ TestDiscordPayload() {
 	AssertEqual(StrLen(JSON.parse(nm_DiscordEmbedPayload(StrReplace(Format("{:4100}", "x"), " ", "x")))["embeds"][1]["description"]), 4096, "Embed description bounded")
 	bytes := ComObjArray(0x11, 4)
 	AssertEqual(nm_DeliveryPayloadSize(bytes), 4, "Encoded byte payload size")
+	AssertEqual(nm_DiscordTextLimit("abc🐝", 4), "abc", "Truncation preserves Unicode pairs")
 }
 
 class TestDeliveryFixture {
@@ -103,6 +104,8 @@ TestHourlyReportDelivery() {
 		fixture.queue.Limit := 0
 		Assert(!nm_QueueHourlyReport(bitmap), "Full queue rejects sample-window handoff")
 		AssertEqual(CountPendingPng(), 2, "Rejected report also remains on disk")
+		AssertDeliveryError(() => discord.CreateFormData(&data, &kind, [Map("name", "files[0]", "filename", "missing.png", "content-type", "image/png", "file", "missing.png")]), "Missing attachment must fail preparation")
+		AssertDeliveryError(() => discord.CreateFormData(&data, &kind, [Map("name", "files[0]", "filename", "bad.png", "content-type", "image/png", "pBitmap", 0)]), "Invalid bitmap must fail preparation")
 	} finally {
 		discord.Outbox := 0
 		Gdip_DisposeImage(bitmap), Gdip_Shutdown(pToken)
@@ -134,4 +137,25 @@ TestLocalHttpDelivery() {
 	AssertEqual(failures.Length, 0, "Real server accepted serialized JSON")
 	AssertEqual(delivered[1], true, "Real success callback confirmed")
 	AssertEqual(queue.Bytes, 0, "Real delivery releases payload")
+
+	pToken := Gdip_Startup(), bitmap := Gdip_CreateBitmap(8, 8)
+	try discord.CreateFormData(&data, &contentType, [Map("name", "payload_json", "content-type", "application/json", "content", nm_DiscordEmbedPayload("Image",,, "ss.png")),
+		Map("name", "files[0]", "filename", "ss.png", "content-type", "image/png", "pBitmap", bitmap)])
+	finally Gdip_DisposeImage(bitmap), Gdip_Shutdown(pToken)
+	queue.Enqueue(data, contentType, "http://127.0.0.1:" A_Args[1] "/multipart",,, (ok) => delivered.Push(ok))
+	start := A_TickCount
+	while queue.Items.Length && A_TickCount - start < 10000 {
+		queue.Pump()
+		Sleep 10
+	}
+	AssertEqual(failures.Length, 0, "Real server accepts attachment framing and JSON")
+	AssertEqual(delivered.Length, 2, "Both real requests complete")
+	AssertEqual(delivered[2], true, "Encoded image remains valid after source bitmap disposal")
+}
+
+AssertDeliveryError(action, message) {
+	try action.Call()
+	catch
+		return
+	throw Error(message)
 }

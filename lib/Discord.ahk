@@ -102,14 +102,14 @@ class discord
 
 		if (attr := FileExist(filepath))
 		{
-			SplitPath filepath := RTrim(filepath, "\/"), &file:=""
-			if (file && InStr(attr, "D"))
+			SplitPath filepath := RTrim(filepath, "\/"), &filename:=""
+			if (filename && InStr(attr, "D"))
 			{
 				; attempt to zip folder to temp
 				try
 				{
-					RunWait 'powershell.exe -WindowStyle Hidden -Command Compress-Archive -Path "' filepath '\*" -DestinationPath "$env:TEMP\' file '.zip" -CompressionLevel Fastest -Force', , "Hide"
-					if !FileExist(filepath := A_Temp "\" file ".zip")
+					RunWait 'powershell.exe -WindowStyle Hidden -Command Compress-Archive -Path "' filepath '\*" -DestinationPath "$env:TEMP\' filename '.zip" -CompressionLevel Fastest -Force', , "Hide"
+					if !FileExist(filepath := A_Temp "\" filename ".zip")
 						throw
 				}
 				catch
@@ -131,15 +131,15 @@ class discord
 			return -2
 		}
 
-		SplitPath filepath, &file, , &ext
+		SplitPath filepath, &filename, , &ext
 		ext := StrUpper(ext)
 		params := []
 		(replyID > 0) && params.Push(Map("name","payload_json","content-type","application/json","content",'{"allowed_mentions": {"parse": []}, "message_reference": {"message_id": "' replyID '", "fail_if_not_exists": false}}'))
-		params.Push(Map("name","files[0]","filename",file,"content-type",MimeTypes.Has(ext) ? MimeTypes[ext] : "application/octet-stream","file",filepath))
+		params.Push(Map("name","files[0]","filename",filename,"content-type",MimeTypes.Has(ext) ? MimeTypes[ext] : "application/octet-stream","file",filepath))
 		this.CreateFormData(&postdata, &contentType, params)
 		this.SendMessageAPI(postdata, contentType)
 
-		; delete any temp file created
+		; delete any temp filename created
 		if (SubStr(filepath, 1, StrLen(A_Temp)) = A_Temp)
 			try FileDelete filepath
 	}
@@ -323,73 +323,65 @@ class discord
 		return wr.ResponseText
 	}
 
-	static CreateFormData(&retData, &contentType, fields)
-	{
-		static chars := "0|1|2|3|4|5|6|7|8|9|a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z"
-
-		chars := Sort(chars, "D| Random")
-		boundary := SubStr(StrReplace(chars, "|"), 1, 12)
-		hData := DllCall("GlobalAlloc", "UInt", 0x2, "UPtr", 0, "Ptr")
-		DllCall("ole32\CreateStreamOnHGlobal", "Ptr", hData, "Int", 0, "PtrP", &pStream:=0, "UInt")
-
-		for field in fields
-		{
-			str :=
-			(
-			'
-
-			------------------------------' boundary '
-			Content-Disposition: form-data; name="' field["name"] '"' (field.Has("filename") ? ('; filename="' field["filename"] '"') : "") '
-			Content-Type: ' field["content-type"] '
-
-			' (field.Has("content") ? (field["content"] "`r`n") : "")
-			)
-
-			utf8 := Buffer(length := StrPut(str, "UTF-8") - 1), StrPut(str, utf8, length, "UTF-8")
-			DllCall("shlwapi\IStream_Write", "Ptr", pStream, "Ptr", utf8.Ptr, "UInt", length, "UInt")
-
-			if field.Has("pBitmap")
-			{
-				try
-				{
-					pFileStream := Gdip_SaveBitmapToStream(field["pBitmap"])
-					DllCall("shlwapi\IStream_Size", "Ptr", pFileStream, "UInt64P", &size:=0, "UInt")
-					DllCall("shlwapi\IStream_Reset", "Ptr", pFileStream, "UInt")
-					DllCall("shlwapi\IStream_Copy", "Ptr", pFileStream, "Ptr", pStream, "UInt", size, "UInt")
-					ObjRelease(pFileStream)
+	static CreateFormData(&retData, &contentType, fields) {
+		boundary := "natro-" DllCall("GetCurrentProcessId") "-" A_TickCount "-" Random(100000, 999999)
+		if DllCall("ole32\CreateStreamOnHGlobal", "Ptr", 0, "Int", true, "PtrP", &stream := 0, "Int") != 0
+			throw Error("Could not allocate attachment stream")
+		try {
+			for field in fields {
+				name := this.FormName(field["name"])
+				header := "--" boundary "`r`nContent-Disposition: form-data; name=" Chr(34) name Chr(34)
+				if field.Has("filename")
+					header .= "; filename=" Chr(34) this.FormName(field["filename"]) Chr(34)
+				header .= "`r`nContent-Type: " this.FormName(field["content-type"]) "`r`n`r`n"
+				this.WriteFormText(stream, header)
+				if field.Has("content")
+					this.WriteFormText(stream, field["content"])
+				if field.Has("pBitmap") || field.Has("file") {
+					input := 0
+					try {
+						if field.Has("pBitmap") {
+							if field["pBitmap"] <= 0 || (input := Gdip_SaveBitmapToStream(field["pBitmap"])) <= 0 {
+								input := 0
+								throw Error("Could not encode attachment image")
+							}
+						} else if DllCall("shlwapi\SHCreateStreamOnFileEx", "WStr", field["file"], "UInt", 0,
+							"UInt", 0x80, "Int", false, "Ptr", 0, "PtrP", &input, "Int") != 0
+							throw Error("Could not read attachment file")
+						if DllCall("shlwapi\IStream_Size", "Ptr", input, "UInt64P", &size := 0, "Int") != 0
+							throw Error("Could not measure attachment")
+						if field.Has("pBitmap") && size = 0
+							throw Error("Image encoding returned no data")
+						if size > 32 * 1024 * 1024
+							throw Error("Attachment exceeds queue byte limit")
+						if DllCall("shlwapi\IStream_Reset", "Ptr", input, "Int") != 0
+							|| DllCall("shlwapi\IStream_Copy", "Ptr", input, "Ptr", stream, "UInt", size, "Int") != 0
+							throw Error("Could not copy attachment")
+					} finally {
+						if input
+							ObjRelease(input)
+					}
 				}
+				this.WriteFormText(stream, "`r`n")
 			}
+			this.WriteFormText(stream, "--" boundary "--`r`n")
+			if DllCall("shlwapi\IStream_Size", "Ptr", stream, "UInt64P", &size := 0, "Int") != 0 || size > 32 * 1024 * 1024
+				throw Error("Encoded report exceeds queue byte limit")
+			retData := ComObjArray(0x11, size)
+			dataPointer := NumGet(ComObjValue(retData), 8 + A_PtrSize, "Ptr")
+			if DllCall("shlwapi\IStream_Reset", "Ptr", stream, "Int") != 0
+				|| DllCall("shlwapi\IStream_Read", "Ptr", stream, "Ptr", dataPointer, "UInt", size, "Int") != 0
+				throw Error("Could not prepare encoded report")
+			contentType := "multipart/form-data; boundary=" boundary
+		} finally ObjRelease(stream)
+	}
 
-			if field.Has("file")
-			{
-				DllCall("shlwapi\SHCreateStreamOnFileEx", "WStr", field["file"], "Int", 0, "UInt", 0x80, "Int", 0, "Ptr", 0, "PtrP", &pFileStream:=0)
-				DllCall("shlwapi\IStream_Size", "Ptr", pFileStream, "UInt64P", &size:=0, "UInt")
-				DllCall("shlwapi\IStream_Copy", "Ptr", pFileStream, "Ptr", pStream, "UInt", size, "UInt")
-				ObjRelease(pFileStream)
-			}
-		}
+	static FormName(value) => StrReplace(StrReplace(StrReplace(value, "`r"), "`n"), Chr(34), "_")
 
-		str :=
-		(
-		'
-
-		------------------------------' boundary '--
-		'
-		)
-
-		utf8 := Buffer(length := StrPut(str, "UTF-8") - 1), StrPut(str, utf8, length, "UTF-8")
-		DllCall("shlwapi\IStream_Write", "Ptr", pStream, "Ptr", utf8.Ptr, "UInt", length, "UInt")
-		ObjRelease(pStream)
-
-		pData := DllCall("GlobalLock", "Ptr", hData, "Ptr")
-		size := DllCall("GlobalSize", "Ptr", hData, "UPtr")
-
-		retData := ComObjArray(0x11, size)
-		pvData := NumGet(ComObjValue(retData), 8 + A_PtrSize, "Ptr")
-		DllCall("RtlMoveMemory", "Ptr", pvData, "Ptr", pData, "Ptr", size)
-
-		DllCall("GlobalUnlock", "Ptr", hData)
-		DllCall("GlobalFree", "Ptr", hData, "Ptr")
-		contentType := "multipart/form-data; boundary=----------------------------" boundary
+	static WriteFormText(stream, value) {
+		buffer := Buffer(StrPut(value, "UTF-8"))
+		StrPut(value, buffer, "UTF-8")
+		if DllCall("shlwapi\IStream_Write", "Ptr", stream, "Ptr", buffer, "UInt", buffer.Size - 1, "Int") != 0
+			throw Error("Could not encode report text")
 	}
 }
