@@ -31,9 +31,11 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "nowUnix.ahk"
 #Include "ErrorHandling.ahk"
 #Include "HashFile.ahk"
+#Include "RuntimePolicy.ahk"
 
 #Warn VarUnset, Off
 
+nm_Failures.OnFailure := nm_FailClosed
 SetWorkingDir A_ScriptDir "\.."
 CoordMode "Mouse", "Screen"
 CoordMode "Pixel", "Screen"
@@ -2058,9 +2060,7 @@ try Hotkey StopHotkey, stop, "On"
 pToken := Gdip_Startup()
 currentWalk := {pid:"", name:""} ; stores "pid" (script process ID) and "name" (pattern/movement name)
 
-priorityList:=[], defaultPriorityList:=["Night", "Mondo", "Planter", "Bugrun", "Collect", "QuestRotate", "Boost", "GoGather"]
-for x in StrSplit(priorityListNumeric)
-	priorityList.push(defaultPriorityList[x])
+priorityList := [], defaultPriorityList := nm_BuildPriorityList("12345678")
 
 CheckNight:=0
 LostPlanters:=""
@@ -2313,7 +2313,7 @@ nm_MsgBoxIncorrectRobloxSettings()
 	)
 
 	GuiClose(*){
-		if (IsSet(IncSettingsGui) && IsObject(AFBGIncSettingsGuiui))
+		if (IsSet(IncSettingsGui) && IsObject(IncSettingsGui))
 			IncSettingsGui.Destroy(), IncSettingsGui := ""
 	}
 	GuiClose()
@@ -5921,7 +5921,7 @@ nm_BoostChaserCheck(*){
 	IniWrite (BoostChaserCheck := MainGui["BoostChaserCheck"].Value), "settings\nm_config.ini", "Boost", "BoostChaserCheck"
 	;disable AutoFieldBoost (mutually exclusive features)
 	if (BoostChaserCheck = 1) {
-		(IsSet(AFBGui) && IsObject(AFBGui)) && (AFBGui["AutoFieldBoostActive"].Value := AutoFieldBoostActive := 0)
+		nm_CancelAFB()
 		IniWrite 0, "settings\nm_config.ini", "Boost", "AutoFieldBoostActive"
 		MainGui["AutoFieldBoostButton"].Text := "Auto Field Boost`n[OFF]"
 	}
@@ -6182,6 +6182,8 @@ nm_autoFieldBoostCheck(*){
 			MainGui["AutoFieldBoostButton"].Text := "Auto Field Boost`n[OFF]"
 		}
 	}
+	if !AutoFieldBoostActive
+		nm_CancelAFB()
 	IniWrite AutoFieldBoostActive, "settings\nm_config.ini", "Boost", "AutoFieldBoostActive"
 	MainGui["AutoFieldBoostButton"].Text := AutoFieldBoostActive ? "Auto Field Boost`n[ON]" : "Auto Field Boost`n[OFF]"
 }
@@ -6190,6 +6192,7 @@ nm_AFBDiceEnableCheck(*){
 	AFBDiceEnable := AFBGui["AFBDiceEnable"].Value
 	AFBDiceLimitEnableSel := AFBGui["AFBDiceLimitEnableSel"].Text
 	if(not AFBDiceEnable){
+		AFBrollingDice := 0
 		AFBGui["AFBDiceHotbar"].Enabled := 0
 		AFBGui["AFBDiceLimitEnableSel"].Enabled := 0
 		AFBGui["AFBDiceLimit"].Enabled := 0
@@ -6206,6 +6209,7 @@ nm_AFBGlitterEnableCheck(*){
 	AFBGlitterEnable := AFBGui["AFBGlitterEnable"].Value
 	AFBGlitterLimitEnableSel := AFBGui["AFBGlitterLimitEnableSel"].Text
 	if(not AFBGlitterEnable){
+		AFBuseGlitter := 0
 		AFBGui["AFBGlitterHotbar"].Enabled := 0
 		AFBGui["AFBGlitterLimitEnableSel"].Enabled := 0
 		AFBGui["AFBGlitterLimit"].Enabled := 0
@@ -6217,22 +6221,6 @@ nm_AFBGlitterEnableCheck(*){
 	}
 	IniWrite AFBGlitterEnable, "settings\nm_config.ini", "Boost", "AFBGlitterEnable"
 }
-nm_AFBDiceLimitEnable(*){
-	global
-	AFBDiceLimitEnableSel := AFBGui["AFBDiceLimitEnableSel"].Text
-	IniWrite (AFBGui["AFBDiceLimit"].Enabled := (AFBDiceLimitEnableSel="Limit")), "settings\nm_config.ini", "Boost", "AFBDiceLimitEnable"
-}
-nm_AFBGlitterLimitEnable(*){
-	global
-	AFBGlitterLimitEnableSel := AFBGui["AFBGlitterLimitEnableSel"].Text
-	IniWrite (AFBGui["AFBGlitterLimit"].Enabled := (AFBGlitterLimitEnableSel="Limit")), "settings\nm_config.ini", "Boost", "AFBGlitterLimitEnable"
-}
-nm_AFBHoursLimitEnable(*){
-	global
-	AFBHoursLimitEnableSel := AFBGui["AFBHoursLimitEnableSel"].Text
-	IniWrite (AFBGui["AFBHoursLimit"].Enabled := (AFBHoursLimitEnableSel="Limit")), "settings\nm_config.ini", "Boost", "AFBHoursLimitEnable"
-}
-
 ; QUESTS TAB
 ; ------------------------
 nm_BlackQuestCheck(*){
@@ -8060,8 +8048,8 @@ nm_PublicFallbackHelp(*){ ; public fallback information
 	MsgBox "
 	(
 	DESCRIPTION:
-	When this option is enabled, the macro will revert to attempting to join a Public Server if your Server Link failed three times.
-	Otherwise, it will keep trying the Server Link you entered above until it succeeds.
+	When this option is enabled, the macro will revert to attempting to join a Public Server after trying each configured private server.
+	Otherwise, it will keep trying your configured private servers until it succeeds.
 	)", "Public Server Fallback", 0x40000
 }
 nm_UpdateDetectedApplication(*){	; detected roblox link type
@@ -8712,7 +8700,7 @@ nm_AutoClickerButton(*)
 nm_ClickMode(*){
 	global
 	IniWrite (ClickMode := AutoClickerGui["ClickMode"].Value), "settings\nm_config.ini", "Settings", "ClickMode"
-	AutoClickerGui["ClickCount"].Enabled := AutoClickerGui["ClickCountEdit"].Enabled := ClickMode
+	AutoClickerGui["ClickCount"].Enabled := AutoClickerGui["ClickCountEdit"].Enabled := !ClickMode
 }
 nm_saveKeyDelay(*){
 	global
@@ -10392,7 +10380,7 @@ nm_copyDebugLog(param:="", *) {
 			return 
 			(
 			'%OS%'
-			point("Resolution", A_ScreenWidth 'x' A_ScreenHeight ' (' DisplayScale[A_ScreenDPI] '%)')
+			point("Resolution", A_ScreenWidth 'x' A_ScreenHeight ' (' Round(A_ScreenDPI * 100 / 96) '%)')
 			'%CPU% %RAM%'
 			)
 		}
@@ -10415,7 +10403,7 @@ nm_copyDebugLog(param:="", *) {
 		return
 		(
 		point("OS", os_version ' (' (A_Is64bitOS ? '64-bit' : '32-bit') ')')
-		point("Resolution", A_ScreenWidth 'x' A_ScreenHeight ' (' DisplayScale[A_ScreenDPI] '%)')
+		point("Resolution", A_ScreenWidth 'x' A_ScreenHeight ' (' Round(A_ScreenDPI * 100 / 96) '%)')
 		. (processorName ? point("CPU", processorName) : '')
 		. (RAMAmount ? point("RAM", RAMAmount ' GB') : '')
 		)
@@ -10456,7 +10444,7 @@ nm_copyDebugLog(param:="", *) {
 			checkProblem((InStr(EnvGet("SESSIONNAME"), "RDP") && remoteDesktopMinimize != 2), 'Minimizing remote desktop connection will cause Natro Macro to break')
 			checkProblem(((DllCall("GetSystemMetrics", "int", 94)) & 0x40 && DllCall("GetSystemMetrics", "int", 95) >= 2), 'Touchscreen is enabled')
 			checkProblem((robloxtype = RobloxTypes.UWP), 'Using UWP Roblox, it is currently unsupported for this Natro Macro version')
-			checkProblem((HideErrors = 0), 'Error hiding is disabled')
+			; Visible errors are a supported diagnostic setting.
 
 			(problems = 0 ? '`n<None>' : '`n`n> Total: ' problems)
 		)
@@ -10522,7 +10510,7 @@ robloxFPSGui(*) {
 		for robloxtype, xmlpath in Map(RobloxTypes.Web, webxml, RobloxTypes.UWP, uwpxml) {
 			if !xmlpath
 				continue
-			prefix := (robloxtype = RobloxTypes.Web) ? "Web" : "FPS"
+			prefix := (robloxtype = RobloxTypes.Web) ? "Web" : "UWP"
 			newfps := fpsUnlockerGui[prefix "FPSCount"].Value
 			newfpsxml := (newfps = 60) ? "-1" : newfps
 			oldfps := (robloxtype = RobloxTypes.Web) ? webfps : uwpfps
@@ -10556,7 +10544,7 @@ robloxFPSGui(*) {
 				continue
 			}
 			MsgBox(robloxtype " Roblox FPS limit has been set to " ((newfps = "-1") ? "60" : newfps) "", , 0x40040)
-			%prefix%fps = newfps
+			%prefix%fps := newfps
 		}
 	}
 }
@@ -11041,6 +11029,7 @@ PostSubmacroMessage(submacro, args*){
 	DetectHiddenWindows 0
 }
 nm_Reset(checkAll:=1, wait:=2000, convert:=1, force:=0){
+	resetStartedMs := DllCall("GetTickCount64", "UInt64")
 	global resetTime, youDied, KeyDelay, SC_E, SC_Esc, SC_R, SC_Enter, RotRight, RotLeft, RotUp, RotDown, ZoomOut, objective, AFBrollingDice, AFBuseGlitter, AFBuseBooster, currentField, HiveConfirmed, GameFrozenCounter, bitmaps
 	;check for game frozen conditions
 	if (GameFrozenCounter>=3) { ;3 strikes
@@ -11214,17 +11203,12 @@ nm_Reset(checkAll:=1, wait:=2000, convert:=1, force:=0){
 	}
 	;convert
 	(convert=1) && nm_convert()
-	;ensure minimum delay has been met
-	if((nowUnix()-resetTime)<wait) {
-		remaining:=floor((wait-(nowUnix()-resetTime))/1000) ;seconds
-		if(remaining>5){
-			Sleep 1000
-			nm_setStatus("Waiting", remaining . " Seconds")
-			Sleep (remaining-1)*1000
-		}
-		else {
-			Sleep (remaining*1000) ;miliseconds
-		}
+	; Operation durations use milliseconds; persisted cooldowns use UTC seconds.
+	remainingMs := nm_RemainingWaitMs(wait, resetStartedMs, DllCall("GetTickCount64", "UInt64"))
+	if (remainingMs > 0) {
+		if (remainingMs > 5000)
+			nm_setStatus("Waiting", Ceil(remainingMs / 1000) " Seconds")
+		Sleep remainingMs
 	}
 
 	atHive() {
@@ -13650,249 +13634,7 @@ nm_toBooster(location){
 }
 
 ;;;;;;;;; START AFB
-nm_AutoFieldBoost(fieldName){
-	global FieldBooster, AFBrollingDice, AFBuseGlitter, AFBuseBooster, serverStart, AutoFieldBoostActive
-		, FieldLastBoosted, FieldLastBoostedBy, FieldBoostStacks, AutoFieldBoostRefresh, AFBHoursLimitEnable
-		, AFBHoursLimit, AFBFieldEnable, AFBDiceEnable, AFBGlitterEnable, MainGui, AFBGui
-		, LastBlueBoost, LastRedBoost, LastMountainBoost
-
-	if(not AutoFieldBoostActive)
-		return
-	if(AFBHoursLimitEnable && (nowUnix()-serverStart)>(AFBHoursLimit*60*60)){
-		MainGui["AutoFieldBoostButton"].Text := "Auto Field Boost`n[OFF]"
-		try AFBGui["AutoFieldBoostActive"].Value := 0
-		IniWrite AutoFieldBoostActive := 0, "settings\nm_config.ini", "Boost", "AutoFieldBoostActive"
-		return
-	}
-
-	if(not AFBrollingDice && ((nowUnix()-FieldLastBoosted)>(AutoFieldBoostRefresh*60) || (nowUnix()-FieldLastBoosted)<0)){ ;refresh period exceeded
-		;check for field boost stack reset
-		if((nowUnix()-FieldLastBoosted)>=(15*60)){ ;longer than 15 mins since last boost buff
-			IniWrite FieldBoostStacks:=0, "settings\nm_config.ini", "Boost", "FieldBoostStacks"
-			IniWrite FieldLastBoostedBy:="None", "settings\nm_config.ini", "Boost", "FieldLastBoostedBy"
-		}
-		;free booster first
-		if(AFBFieldEnable){
-			;determine which booster applies
-			if((booster := FieldBooster[StrLower(fieldName)].booster)!="none") {
-				boosterTimer := Last%booster%Boost
-				if (nowUnix() - boosterTimer > 2700){
-					AFBuseBooster:=1
-				}
-			}
-		}
-		;dice next
-		if(AFBDiceEnable && not AFBrollingDice && (FieldLastBoostedBy="none" || FieldLastBoostedBy="glitter" || FieldLastBoostedBy="bbooster" || FieldLastBoostedBy="rbooster" || FieldLastBoostedBy="mbooster"
-			|| (FieldLastBoostedBy="dice" && not AFBGlitterEnable))) {
-			AFBrollingDice:=1
-			nm_setStatus(0, "Boosting Field: Dice")
-		}
-		;glitter next
-		if(AFBGlitterEnable && not AFBrollingDice && (FieldLastBoostedBy="none" || FieldLastBoostedBy="dice" || FieldLastBoostedBy="bbooster" || FieldLastBoostedBy="rbooster" || FieldLastBoostedBy="mbooster")) {
-			nm_setStatus(0, "Boosting Field: Glitter")
-			AFBuseGlitter:=1
-		}
-
-	} else { ;refresh period NOT exceeded
-		return
-	}
-}
-nm_fieldBoostCheck(fieldName, variant:=0){
-
-	GetRobloxClientPos(hwnd:=GetRobloxHWND())
-	pBMScreen:=Gdip_BitmapFromScreen(windowX "|" windowY + GetYOffset(hwnd) + 36 "|" windowWidth "|" 38)
-	loop Floor(windowWidth/38) ; flooring because you won't have half of an icon
-	{ 
-		ico:=(A_Index-1)*38
-		if (Gdip_ImageSearch(pBMScreen, bitmaps["boost"][StrReplace(fieldName, " ") variant],,ico,,ico+38,,(variant=1 || variant=0) ? 35 : 50)) ; testing tighter variation
-		{ ; check with original 30 not 35
-			p:=PixelGetColor(ico+windowX, windowY+GetYOffset(hwnd)+73)
-			if ((p & 0xFF0000 >= 0xa60000) && (p & 0xFF0000 <= 0xcf0000)) ; a6b2b8-blackBG|cfdbe1-whiteBG
-			&& ((p & 0x00FF00 >= 0x00b200) && (p & 0x00FF00 <= 0x00db00))
-			&& ((p & 0x0000FF >= 0x0000b8) && (p & 0x0000FF <= 0x0000e1))
-				continue ; winds: keep searching, winds and booster may both have boosted the field
-			else if ((p & 0xFF0000 >= 0xb80000) && (p & 0xFF0000 <= 0xe10000)) ; b8a43a-blackBG|e1cd63-whiteBG
-				&& ((p & 0x00FF00 >= 0x00a400) && (p & 0x00FF00 <= 0x00cd00))
-				&& ((p & 0x0000FF >= 0x00003a) && (p & 0x0000FF <= 0x000063)) 
-				{
-					Gdip_DisposeImage(pBMScreen)
-					return 1 ; booster
-				}	
-		}
-	}
-	Gdip_DisposeImage(pBMScreen)
-	return 0
-
-}
-nm_fieldBoostBooster(){
-	global CurrentField, FieldBooster, AFBuseBooster, FieldLastBoosted, FieldBoostStacks, FieldLastBoostedBy, FieldNextBoostedBy, AFBFieldEnable, AFBDiceEnable, AFBGlitterEnable, FieldBoostStacks
-	if (!AFBuseBooster)
-		return
-	AFBuseBooster:=0
-	nm_setStatus(0, "Boosting Field: Booster")
-	booster := FieldBooster[StrLower(CurrentField)].booster
-	if(booster="blue") {
-		boosterName:="bbooster"
-		nm_toBooster("blue")
-	}
-	else if(booster="red") {
-		boosterName:="rbooster"
-		nm_toBooster("red")
-	}
-	else if(booster="mountain") {
-		boosterName:="mbooster"
-		nm_toBooster("mountain")
-	}
-	Sleep 5000
-	;check if gathering field was boosted
-	if(nm_fieldBoostCheck(CurrentField)) {
-		nm_setStatus(0, "Field was Boosted: Booster")
-		FieldLastBoosted:=nowUnix()
-		FieldLastBoostedBy:=boosterName
-		IniWrite FieldLastBoosted, "settings\nm_config.ini", "Boost", "FieldLastBoosted"
-		IniWrite FieldLastBoostedBy, "settings\nm_config.ini", "Boost", "FieldLastBoostedBy"
-		FieldBoostStacks:=FieldBoostStacks+FieldBooster[StrLower(CurrentField)].stacks
-		IniWrite FieldBoostStacks, "settings\nm_config.ini", "Boost", "FieldBoostStacks"
-		if(FieldBoostStacks>4)
-			return
-	}
-	;determine next boost item
-	;is it dice?
-	if(AFBDiceEnable && (FieldLastBoostedBy="bbooster" || FieldLastBoostedBy="rbooster" || FieldLastBoostedBy="mbooster"|| FieldLastBoostedBy="glitter" || (FieldLastBoostedBy="dice" && not AFBGlitterEnable))) {
-		FieldNextBoostedBy:="dice"
-		IniWrite FieldNextBoostedBy, "settings\nm_config.ini", "Boost", "FieldNextBoostedBy"
-	}
-	;is it glitter?
-	else if(AFBGlitterEnable && (FieldLastBoostedBy="dice" || ((FieldLastBoostedBy="bbooster" || FieldLastBoostedBy="rbooster" || FieldLastBoostedBy="mbooster")|| not AFBDiceEnable) || (FieldLastBoostedBy="glitter" && not AFBDiceEnable))) {
-		FieldNextBoostedBy:="glitter"
-		IniWrite FieldNextBoostedBy, "settings\nm_config.ini", "Boost", "FieldNextBoostedBy"
-	}
-	;is it booster?
-	else if(AFBFieldEnable && not AFBDiceEnable && not AFBGlitterEnable) {
-		FieldNextBoostedBy:=boosterName
-		IniWrite FieldNextBoostedBy, "settings\nm_config.ini", "Boost", "FieldNextBoostedBy"
-	}
-}
-nm_fieldBoostDice(){
-	global AFBrollingDice, AFBdiceUsed, AFBDiceLimit, AFBDiceLimitEnable, CurrentField, FieldBooster, boostTimer
-		, FieldLastBoosted, FieldLastBoostedBy, FieldNextBoostedBy, FieldBoostStacks, AutoFieldBoostRefresh
-		, AFBFieldEnable, AFBDiceEnable, AFBGlitterEnable, AFBDiceHotbar, MainGui, AFBGui
-	if(not nm_fieldBoostCheck(CurrentField)) {
-		send "{sc00" AFBDiceHotbar+1 "}"
-		AFBdiceUsed:=AFBdiceUsed+1
-		IniWrite AFBdiceUsed, "settings\nm_config.ini", "Boost", "AFBdiceUsed"
-		if(AFBDiceLimitEnable && AFBdiceUsed >= AFBDiceLimit) {
-			AFBrollingDice:=0
-			try AFBGui["AFBDiceEnable"].Value := 0
-			IniWrite AFBDiceEnable := 0, "settings\nm_config.ini", "Boost", "AFBDiceEnable"
-		}
-		if(not AFBGlitterEnable and not AFBDiceEnable){
-			try AFBGui["AutoFieldBoostActive"].Value := 0
-			MainGui["AutoFieldBoostButton"].Text := "Auto Field Boost`n[OFF]"
-			IniWrite AutoFieldBoostActive := 0, "settings\nm_config.ini", "Boost", "AutoFieldBoostActive"
-		}
-	} else {
-		AFBrollingDice:=0
-		nm_setStatus(0, "Field was Boosted: Dice")
-		if(FieldLastBoostedBy!="dice" || FieldBoostStacks=0) {
-			FieldBoostStacks:=FieldBoostStacks+1
-			FieldLastBoostedBy:="dice"
-			IniWrite FieldLastBoostedBy, "settings\nm_config.ini", "Boost", "FieldLastBoostedBy"
-			IniWrite FieldBoostStacks, "settings\nm_config.ini", "Boost", "FieldBoostStacks"
-		}
-		FieldLastBoosted:=nowUnix()
-		IniWrite FieldLastBoosted, "settings\nm_config.ini", "Boost", "FieldLastBoosted"
-		;determine next boost item
-		;is it booster?
-		booster := FieldBooster[StrLower(CurrentField)].booster
-		if(booster="blue") {
-			boosterName:="bbooster"
-			boostTimer := LastBlueBoost
-		}
-		else if(booster="red") {
-			boosterName:="rbooster"
-			boostTimer := LastRedBoost
-		}
-		else if(booster="mountain") {
-			boosterName:="mbooster"
-			boostTimer := LastMountainBoost
-		}
-		if(AFBFieldEnable && (nowUnix()-boostTimer)>(3600-AutoFieldBoostRefresh*60)) {
-			FieldNextBoostedBy:=boosterName
-			IniWrite FieldNextBoostedBy, "settings\nm_config.ini", "Boost", "FieldNextBoostedBy"
-		}
-		;is it glitter?
-		else if(AFBGlitterEnable) {
-			FieldNextBoostedBy:="glitter"
-			IniWrite FieldNextBoostedBy, "settings\nm_config.ini", "Boost", "FieldNextBoostedBy"
-		}
-		;is it dice?
-		else if(not AFBGlitterEnable) {
-			FieldNextBoostedBy:="dice"
-			IniWrite FieldNextBoostedBy, "settings\nm_config.ini", "Boost", "FieldNextBoostedBy"
-		}
-	}
-}
-nm_fieldBoostGlitter(){
-	global AFBuseGlitter, AFBglitterUsed, CurrentField, FieldBooster, boostTimer, FieldLastBoosted, FieldLastBoostedBy, FieldNextBoostedBy, FieldBoostStacks
-		, AutoFieldBoostRefresh, AFBFieldEnable, AFBDiceEnable, AFBGlitterEnable, AFBdiceHotbar, AFBGlitterHotbar, AFBGlitterLimit, AFBGlitterLimitEnable
-	if(not AFBuseGlitter)
-		return
-	send "{sc00" AFBGlitterHotbar+1 "}"
-	Sleep 2000
-	;check if gathering field was boosted
-	if(nm_fieldBoostCheck(CurrentField)) {
-		nm_setStatus(0, "Field was Boosted: Glitter")
-		AFBglitterUsed:=AFBglitterUsed+1
-		IniWrite AFBglitterUsed, "settings\nm_config.ini", "Boost", "AFBglitterUsed"
-		if(AFBGlitterLimitEnable && AFBglitterUsed >= AFBglitterLimit) {
-			try AFBGui["AFBGlitterEnable"].Value := 0
-			IniWrite AFBGlitterEnable := 0, "settings\nm_config.ini", "Boost", "AFBGlitterEnable"
-		}
-		if(not AFBGlitterEnable and not AFBDiceEnable){
-			try AFBGui["AutoFieldBoostActive"].Value := 0
-			MainGui["AutoFieldBoostButton"].Text := "Auto Field Boost`n[OFF]"
-			IniWrite AutoFieldBoostActive := 0, "settings\nm_config.ini", "Boost", "AutoFieldBoostActive"
-		}
-		AFBuseGlitter:=0
-		FieldLastBoosted:=nowUnix()
-		FieldLastBoostedBy:="glitter"
-		IniWrite FieldLastBoosted, "settings\nm_config.ini", "Boost", "FieldLastBoosted"
-		IniWrite FieldLastBoostedBy, "settings\nm_config.ini", "Boost", "FieldLastBoostedBy"
-		FieldBoostStacks:=FieldBoostStacks+1
-		IniWrite FieldBoostStacks, "settings\nm_config.ini", "Boost", "FieldBoostStacks"
-		;determine next boost item
-		;is it booster?
-		booster := FieldBooster[StrLower(CurrentField)].booster
-		if(booster="blue") {
-			boosterName:="bbooster"
-			boostTimer := LastBlueBoost
-		}
-		else if(booster="red") {
-			boosterName:="rbooster"
-			boostTimer := LastRedBoost
-		}
-		else if(booster="mountain") {
-			boosterName:="mbooster"
-			boostTimer := LastMountainBoost
-		}
-		if(AFBFieldEnable && (nowUnix()-boostTimer)>(3600-AutoFieldBoostRefresh*60)) {
-			FieldNextBoostedBy:=boosterName
-			IniWrite FieldNextBoostedBy, "settings\nm_config.ini", "Boost", "FieldNextBoostedBy"
-		}
-		;is it dice?
-		else if(AFBDiceEnable) {
-			FieldNextBoostedBy:="dice"
-			IniWrite FieldNextBoostedBy, "settings\nm_config.ini", "Boost", "FieldNextBoostedBy"
-		}
-		;is it glitter?
-		else if(not AFBDiceEnable) {
-			FieldNextBoostedBy:="glitter"
-			IniWrite FieldNextBoostedBy, "settings\nm_config.ini", "Boost", "FieldNextBoostedBy"
-		}
-
-	}
-}
+#Include "%A_ScriptDir%\..\lib\AutoFieldBoost.ahk"
 ;;;;;;;;; END AFB
 
 ;//todo: pending rewrite! health detection bugs, generally inefficient
@@ -15177,7 +14919,6 @@ nm_Bugrun(){
 				wait:=min(20000, (50-HiveBees)*1000)
 				nm_Reset(1, wait)
 				nm_setStatus("Traveling", "Tunnel Bear")
-				nm_gotoRamp()
 				if (MoveMethod = "walk") {
 					nm_gotoramp()
 	
@@ -17652,35 +17393,30 @@ DisconnectCheck(testCheck := 0)
 		nm_setStatus("Disconnected", "Reconnecting")
 	}
 
-	; obtain link codes from Private Server and Fallback Server links
-	PossibleServers := Map()
-	for index,server in ["PrivServer", "FallbackServer1", "FallbackServer2", "FallbackServer3"] {
-		if (%server% && (StrLen(%server%) > 0)) {
-			(PossibleServers[index] := Map()).CaseSense := 0, PossibleServers[index]["link"] := %server% ;httplink used for browser reconnect
-			if RegexMatch(%server%, "i)(?<=privateServerLinkCode=)(.{32})", &linkCode)
-				PossibleServers[index]["code"] := linkCode[0], PossibleServers[index]["type"] := "LinkCode"
-			else if RegexMatch(%server%, "i)(?<=share\?code=)(.{32})(?=&type=Server)", &ShareCode)
-				PossibleServers[index]["code"] :=  ShareCode[0], PossibleServers[index]["type"] := "ShareCode"
-			else
-				nm_setStatus("Error", ServerLabels[index] " Invalid")
-		}
+	; Parse before adding candidates: malformed entries must never be selected.
+	PossibleServers := Map(0, Map("type", "None", "code", ""))
+	privateSlots := [], hasPrivateLink := false
+	for index, server in ["PrivServer", "FallbackServer1", "FallbackServer2", "FallbackServer3"] {
+		if !Trim(%server%)
+			continue
+		hasPrivateLink := true
+		if (candidate := nm_ParsePrivateServer(%server%)) {
+			PossibleServers[index] := candidate
+			privateSlots.Push(index)
+		} else
+			nm_setStatus("Error", ServerLabels[index] " link is invalid")
 	}
-	; public server
-	PossibleServers[0] := Map("type", "None", "code", "")
+	; An empty configuration means public-server use, not a failed private join.
+	allowPublic := PublicFallback || !hasPrivateLink
+	if (!privateSlots.Length && !allowPublic)
+		throw Error("No valid private server is configured and public fallback is disabled.")
 
-	; main reconnect loop
-	usingBrowser := false
+	; Each server gets five attempts; an unavailable slot does not force public.
 	Loop {
-		;Decide Server
-		server := ((A_Index <= 20) && PossibleServers.Has(n := (A_Index-1)//5 + 1)) ? n : ((PublicFallback = 0) && (n := ObjMinIndex(PossibleServers))) ? n : 0
-		;tooltip(reconnect_debug := "server: " server "(" ServerLabels[server] " : " PossibleServers[server]["type"] "): [" A_Index "]`n" PossibleServers[server]["code"])
+		server := nm_SelectReconnectServer(privateSlots, A_Index, allowPublic)
 		;Wait For Success
 		i := A_Index, success := 0
 		Loop 5 {
-			;Close browser tabs if browser was used
-			if usingBrowser
-				CloseBrowserTabs()
-			usingBrowser := false
 			;START
 			switch (ReconnectMethod = "Browser") ? 0 : Mod(i, 5) {
 				case 1,2:
@@ -17702,7 +17438,6 @@ DisconnectCheck(testCheck := 0)
 					;Run Server Link (legacy method w/ browser)
 					nm_setStatus("Attempting", ServerLabels[server] " (Browser)")
 					RunBrowser(PossibleServers[server]["link"])
-					usingBrowser := true
 				} else {
 					;Close Roblox
 					(i = 1) && CloseRoblox()
@@ -17785,8 +17520,7 @@ DisconnectCheck(testCheck := 0)
 		;Successful Reconnect
 		if (success = 1)
 		{
-			if usingBrowser
-				CloseBrowserTabs(), Sleep(1000) ;addition sleep, prevent not tabbing back to roblox
+			; Browser tabs belong to the user; never close an untracked tab/window.
 			ActivateRoblox()
 			GetRobloxClientPos()
 			MouseMove windowX + windowWidth//2, windowY + windowHeight//2
@@ -17850,30 +17584,6 @@ DisconnectCheck(testCheck := 0)
 			}
 		}
 
-		CloseBrowserTabs(){
-			for hwnd in WinGetList(,, "Program Manager")
-			{
-				p := WinGetProcessName("ahk_id " hwnd)
-				if (InStr(p, "Roblox") || InStr(p, "AutoHotkey"))
-					continue ; skip roblox and AHK windows
-				title := WinGetTitle("ahk_id " hwnd)
-				if (title = "")
-					continue ; skip empty title windows
-				s := WinGetStyle("ahk_id " hwnd)
-				if ((s & 0x8000000) || !(s & 0x10000000))
-					continue ; skip NoActivate and invisible windows
-				s := WinGetExStyle("ahk_id " hwnd)
-				if ((s & 0x80) || (s & 0x40000) || (s & 0x8))
-					continue ; skip ToolWindow and AlwaysOnTop windows
-				try
-				{
-					WinActivate "ahk_id " hwnd
-					Sleep 500
-					Send "^{w}"
-				}
-				break
-			}
-		}
 	}
 }
 /*
@@ -18273,13 +17983,13 @@ nm_ViciousBee(){
  * @returns {x = 1} if success
  */
 nm_locateVB(){ 
-	global VBfieldStart, VBStart := nowUnix(), fieldsChecked := 0, attackingVB := 0
+	global VBfieldStart, VBStart := nowUnix(), fieldsChecked := 0, attackingVB := 0, VBInactiveHoney := 0
 	; don't run if disabled or only daily bonus
 	if (StingerCheck=0) || (StingerDailyBonusCheck=1 && (VBStart-VBLastKilled)<79200) {
 		return -1 
 	}
 
-	static VBData := [
+	VBData := [
 		{ field: "Pepper", enabled: StingerPepperCheck
 		, bees: 35
 		, reps: 1
@@ -18342,11 +18052,11 @@ nm_locateVB(){
 
 	for data in VBData
 	{
-		if !data.enabled || data.bees >= HiveBees
+		if !data.enabled || data.bees > HiveBees
 			continue
 		; This is built into the game
 		if (nowUnix() - VBStart) > 300
-			return VBEnd('Timeout - 5 minute limit')
+			return VBEnd({result: VBResults.failed, reason: VBReasons.timeout})
 
 		fieldsChecked++
 		global VBfieldStart := nowUnix()
@@ -18455,8 +18165,10 @@ WalkwithVBCheck(movement, search:=true){
  *  @returns {{result: success | failed | retry , reason?: killed | timeout}} VB found
  */
 SearchforVB(movement, field){
-	static inactiveHoney := 0
+	global VBInactiveHoney
 	vic := WalkwithVBCheck(movement)
+	if (vic.result != VBResults.retry || vic.reason != VBReasons.inactivehoney)
+		VBInactiveHoney := 0
 	switch vic.result {
 		case VBResults.found: ; VB found bitmap found
 			return nm_killVB(field)
@@ -18465,8 +18177,7 @@ SearchforVB(movement, field){
 			vic.reason := VBReasons.otherPlayer
 		case VBResults.retry: ; retry field: inactive honey/died
 			if (vic.reason = VBReasons.inactivehoney) {
-				if (++inactiveHoney < 5) {
-					inactiveHoney := 0
+				if (++VBInactiveHoney < 5) {
 					nm_setStatus("Warning", "Vicious Bee — Inactive Honey — Retrying")
 				} else {
 					; don't retry yet: not enough inactive honey triggers
@@ -18531,13 +18242,13 @@ nm_VBCheck() {
 	pBMScreen := Gdip_BitmapFromScreen(windowX + windowWidth - 8 - (windowWidth>=1195 ? 475 : windowWidth/2.5) "|" windowY+offsetY+40 "|" (windowWidth>=1195 ? 475 : windowWidth/2.5) "|" (windowHeight>=1156 ? 334 : windowHeight/3.464))
     
 	for , bitmap in bitmaps["viciousbee"]["dead"] {
-        if Gdip_ImageSearch(pBMScreen, bitmap,,,,,, 5) {
+        if (Gdip_ImageSearch(pBMScreen, bitmap,,,,,, 5) = 1) {
             Gdip_DisposeImage(pBMScreen)
             return { result: VBResults.dead }
         }
     }
     for , bitmap in bitmaps["viciousbee"]["found"] {
-        if Gdip_ImageSearch(pBMScreen, bitmap,,,,,, 5) {
+        if (Gdip_ImageSearch(pBMScreen, bitmap,,,,,, 5) = 1) {
             Gdip_DisposeImage(pBMScreen)
             return { result: VBResults.found }
         }
@@ -20982,7 +20693,7 @@ ba_planter(){
 		}
 	}
 	;sort list and re-extract nectars in low to high percent order
-	sortstring := Sort(sortstring, "D;")
+	sortstring := Sort(sortstring, "N D;")
 	tempArray := StrSplit(sortstring , ";")
 	for i, val in tempArray {
 		tempstring:=tempArray[A_Index]
@@ -21829,7 +21540,7 @@ nm_planterSS(){
 	Loop 3 {
 		If (PlanterSS%A_Index%) {
 			nm_setShiftLock(0)
-			nm_Reset(nm_Reset(1, ((PlanterField%A_Index% = "Rose") || (PlanterField%A_Index% = "Pine Tree") || (PlanterField%A_Index% = "Pumpkin") || (PlanterField%A_Index% = "Cactus") || (PlanterField%A_Index% = "Spider")) ? min(20000, (60-HiveBees)*1000) : 0))
+			nm_Reset(1, ((PlanterField%A_Index% = "Rose") || (PlanterField%A_Index% = "Pine Tree") || (PlanterField%A_Index% = "Pumpkin") || (PlanterField%A_Index% = "Cactus") || (PlanterField%A_Index% = "Spider")) ? min(20000, (60-HiveBees)*1000) : 0)
 			nm_setStatus("Traveling", PlanterName%A_Index% " (" PlanterField%A_Index% ")")
 			nm_gotoPlanter(PlanterField%A_Index%, 1)
 
@@ -22134,7 +21845,7 @@ mp_HarvestPlanter(PlanterIndex) {
 	MFieldName := PlanterField%PlanterIndex%
 
 	nm_setShiftLock(0)
-	nm_Reset(nm_Reset(1, ((MFieldName = "Rose") || (MFieldName = "Pine Tree") || (MFieldName = "Pumpkin") || (MFieldName = "Cactus") || (MFieldName = "Spider")) ? min(20000, (60-HiveBees)*1000) : 0))
+	nm_Reset(1, ((MFieldName = "Rose") || (MFieldName = "Pine Tree") || (MFieldName = "Pumpkin") || (MFieldName = "Cactus") || (MFieldName = "Spider")) ? min(20000, (60-HiveBees)*1000) : 0)
 
 	nm_setStatus("Traveling", MPlanterName . " (" . MFieldName . ")")
 	nm_gotoPlanter(MFieldName)
@@ -22326,6 +22037,24 @@ mp_HarvestPlanter(PlanterIndex) {
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; TIMER FUNCTIONS
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+nm_FailClosed(err) {
+	global MacroState, AFBrollingDice, AFBuseGlitter, AFBuseBooster, AutoFieldBoostActive
+	Critical
+	SetTimer Background, 0
+	AFBrollingDice := AFBuseGlitter := AFBuseBooster := AutoFieldBoostActive := 0
+	try nm_endWalk()
+	try SendInput "{" FwdKey " up}{" BackKey " up}{" LeftKey " up}{" RightKey " up}{" SC_Space " up}"
+	try Click "Up"
+	MacroState := 0
+	for helper in ["Heartbeat", "background", "Status"]
+		try PostSubmacroMessage(helper, 0x5552, 23, 0)
+	try nm_LockTabs(0)
+	try MainGui["StartButton"].Enabled := 0
+	try Hotkey StartHotkey, "Off"
+	try nm_setStatus("Error", "Macro stopped after an unexpected error. See settings/errors before restarting.")
+	ExitApp 1
+}
+
 getout(*){
 	global
 	nm_saveGUIPos()
@@ -22339,7 +22068,7 @@ getout(*){
 
 Background(){
 	;auto field boost
-	if (AFBrollingDice && state!="Disconnected")
+	if (AFBrollingDice && nm_AFBReady() && state!="Disconnected")
 		nm_fieldBoostDice()
 	;use/check hotbar boosts
 	if PFieldBoosted {
@@ -22374,8 +22103,12 @@ start(*){
 
 	;//todo: make startup errors an array
 	
-	for i in StrSplit(priorityListNumeric)
-		priorityList.push(defaultPriorityList[i])
+	try priorityList := nm_BuildPriorityList(priorityListNumeric)
+	catch as err {
+		UnlockStartButton()
+		nm_setStatus("Error", err.Message)
+		return
+	}
 	
 	if !ForceStart {
 		robloxtype := nm_DetectRobloxType()
@@ -22395,7 +22128,7 @@ start(*){
 
 		if !RemoteStart && !ForceStart {
 			if nm_MsgBoxIncorrectRobloxSettings()
-				(MainGui["StartButton"].Enabled := 1, Hotkey(StartHotkey, "On"), nm_LockTabs(0))
+				return UnlockStartButton()
 		}
 
 		;Touchscreen WARNING @ start

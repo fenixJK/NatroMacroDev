@@ -299,7 +299,7 @@ Loop {
 	ReconnectInterval := IniRead("settings\nm_config.ini", "Settings", "ReconnectInterval")
 	if (ReconnectHour != "" && ReconnectMin != "" && ReconnectInterval != "")
 	{
-		UTCHour := Number(FormatTime(A_NowUTC, "hh"))
+		UTCHour := Number(FormatTime(A_NowUTC, "HH"))
 		UTCMin := Number(FormatTime(A_NowUTC, "mm"))
 		pservertimers := []
 		Loop 24 // ReconnectInterval

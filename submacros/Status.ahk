@@ -24,6 +24,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "DurationFromSeconds.ahk"
 #Include "Roblox.ahk"
 #Include "ErrorHandling.ahk"
+#Include "RuntimePolicy.ahk"
 
 SetWorkingDir A_ScriptDir "\.."
 CoordMode "Mouse", "Client"
@@ -725,8 +726,13 @@ nm_status(status)
 			|| ((state = "Gathering") && !InStr(objective, "Ended") && (HoneyUpdateSSCheck) && (pBM := CreateHoneyBitmap(1, 0)))
 			|| ((state = "Converting") && (objective = "Backpack") && (HoneyUpdateSSCheck) && (pBM := CreateHoneyBitmap()))))
 		{
-			if !IsSet(pBM)
-				hwnd := GetRobloxHWND(), GetRobloxClientPos(hwnd), pBM := Gdip_BitmapFromScreen((windowWidth > 0) ? (windowX "|" windowY "|" windowWidth "|" windowHeight) : 0)
+			if !IsSet(pBM) {
+				hwnd := GetRobloxHWND()
+				if (hwnd && GetRobloxClientPos(hwnd) && windowWidth > 0 && windowHeight > 0)
+					pBM := Gdip_BitmapFromScreen(windowX "|" windowY "|" windowWidth "|" windowHeight)
+				else
+					message .= "\nGame screenshot unavailable: Roblox window not found."
+			}
 		}
 
 		status_buffer.RemoveAt(1)
@@ -816,29 +822,22 @@ nm_command(command)
 	id := command.id, params := [], user_id := command.user_id
 
 	if !UserHasPermission() {
-		discord.SendEmbed("Only <@" discordUIDCommands "> can use commands", 16711731,,,,id)
+		discord.SendEmbed("Remote command denied. Configure an authorized user or role in Natro before using commands.", 16711731,,,,id)
 		return command_buffer.RemoveAt(1)
 	}
 
 
-	UserHasPermission(){
-		; no whitelist enabled
-		if !discordUIDCommands
-			return 1
-
-		; whitelisted is user, user = msg author
-		if (!discordUIDCommands_is_role && discordUIDCommands = user_id) 
-			return 1
-		
-		; Allowed is role
-		if (discordUIDCommands_is_role) {
-			roles := getUserRoles(user_id)
-			if (ObjHasValue(roles, SubStr(discordUIDCommands, 2)))
-				return 1
+	UserHasPermission() {
+		roles := 0
+		if discordUIDCommands_is_role {
+			try roles := getUserRoles(user_id)
+			catch as err {
+				nm_Failures.Write(err, "Command role lookup failed")
+				return false
+			}
 		}
-		return 0
+		return nm_CommandAuthorized(discordUIDCommands, user_id, roles)
 	}
-
 
 	Loop Parse SubStr(command.content, StrLen(commandPrefix)+1), A_Space
 		if (A_LoopField != "")
@@ -1919,6 +1918,10 @@ nm_command(command)
 
 			default:
 			k := StrReplace(Trim(SubStr(command.content, InStr(command.content, name)+StrLen(name))), " ")
+			if RegExMatch(k, "i)(token|webhook|privserver|fallbackserver|password|secret)") {
+				discord.SendEmbed("This setting is private and cannot be returned by remote commands.", 16711731,,,,id)
+				break
+			}
 			str := ""
 			try ini := FileOpen("settings\nm_config.ini", "r"), str := ini.Read(), ini.Close()
 			Loop Parse str, "`n", "`r" A_Space A_Tab

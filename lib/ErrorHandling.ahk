@@ -1,3 +1,3 @@
-HideErrors := IniRead("..\settings\nm_config.ini", "Settings", "HideErrors", 1)
-if HideErrors
-    OnError (e, mode) => (mode = "Return") ? -1 : 0
+#Include "FailureLog.ahk"
+HideErrors := IniRead((FileExist(A_ScriptDir "\submacros\natro_macro.ahk") ? A_ScriptDir : A_ScriptDir "\..") "\settings\nm_config.ini", "Settings", "HideErrors", 1)
+OnError ObjBindMethod(nm_Failures, "Handle")
