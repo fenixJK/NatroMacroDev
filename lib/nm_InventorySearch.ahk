@@ -29,7 +29,7 @@ class nm_InventoryPointer {
 	Begin() {
 		previous := A_IsCritical
 		Critical "On"
-		try return !GetKeyState("LButton", "P") && (this.Token := nm_InventoryPointer.Gate.Begin())
+		try return !GetKeyState("LButton") && !GetKeyState("LButton", "P") && (this.Token := nm_InventoryPointer.Gate.Begin())
 		finally Critical previous
 	}
 	Current(snapshot) => nm_InventoryPointer.Gate.Owns(this.Token) && !GetKeyState("LButton", "P") && this.Surface.Current(snapshot)

@@ -53,6 +53,9 @@ TestNativePointer(fixture) {
 		Require(pointer.Current(snapshot) && pointer.Move(snapshot, 80, 60), "Owned press permits target movement")
 		pointer.Up()
 		Require(!GetKeyState("LButton"), "Native release clears held button")
+		SendEvent "{LButton down}"
+		try Require(!pointer.Begin(), "Existing unowned synthetic press cannot be taken over")
+		finally SendEvent "{LButton up}"
 		Require(pointer.Begin() && pointer.Down(snapshot), "Next operation can acquire pointer")
 		SetTimer (*) => nm_InventoryPointer.Cancel(), -25
 		pointer.Wait(100)
