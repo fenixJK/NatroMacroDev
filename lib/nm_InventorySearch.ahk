@@ -22,7 +22,7 @@ class nm_InventoryPointer {
 		this.Surface := surface, this.Token := 0
 		if !registered {
 			InstallMouseHook()
-			OnExit(nm_InventoryPointer.Cancel, -1)
+			OnExit((*) => nm_InventoryPointer.Cancel(), -1)
 			registered := true
 		}
 	}

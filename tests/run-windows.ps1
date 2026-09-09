@@ -61,6 +61,7 @@ function Invoke-AhkChecked([string]$Executable, [string[]]$AhkArguments, [string
     if ($output) { Write-Host $output }
     if ($errors) { Write-Host $errors }
     if ($process.ExitCode -ne 0) { throw "AHK exited $($process.ExitCode): $($AhkArguments -join ' ')" }
+    if (($output + $errors) -match '==> Warning:') { throw "AHK emitted a validation warning: $($AhkArguments -join ' ')" }
 }
 
 $readyFile = Join-Path ([IO.Path]::GetTempPath()) ("natro-http-" + [guid]::NewGuid() + ".txt")

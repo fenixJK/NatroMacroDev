@@ -65,17 +65,17 @@ TestInventoryDrag() {
 	AssertEqual(f.surface.Reads, 2, "Item is re-observed immediately before drag")
 	AssertEqual(f.pointer.Events.Length, 4, "One source move, down, target move and up")
 	Assert(!f.pointer.Gate.Active && !f.pointer.Gate.Held, "Successful drag releases its lease and button")
-	for state in ["missing", "unknown", "moved", "boundary", "geometry", "physical"] {
+	for scenario in ["missing", "unknown", "moved", "boundary", "geometry", "physical"] {
 		f := TestDragFixture()
-		switch state {
-			case "missing", "unknown": f.surface.observations[1] := {state: state}
+		switch scenario {
+			case "missing", "unknown": f.surface.observations[1] := {state: scenario}
 			case "moved": f.surface.observations[1].y++
 			case "boundary": f.surface.Height++
 			case "geometry": f.surface.Valid := false
 			case "physical": f.pointer.UserHolding := true
 		}
-		Assert(!nm_InventoryDrag.Run(f.surface, f.pointer, f.point, 400, 300), state " rejects stale/unavailable input")
-		AssertEqual(f.pointer.Events.Length, 0, state " does not move or press")
+		Assert(!nm_InventoryDrag.Run(f.surface, f.pointer, f.point, 400, 300), scenario " rejects stale/unavailable input")
+		AssertEqual(f.pointer.Events.Length, 0, scenario " does not move or press")
 	}
 	for property in ["hwnd", "root", "pid", "x", "y", "width", "height", "dpi", "monitor", "style", "exstyle"] {
 		f := TestDragFixture(), destination := f.point.Context.snapshot.Clone(), destination.%property%++

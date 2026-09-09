@@ -25,7 +25,7 @@ try {
 	fixture.Hide()
 	Require(!nm_ClientSnapshot(fixture.Hwnd), "Hidden client is unusable")
 	Require(!GetRobloxClientPos(0) && !windowX && !windowY && !windowWidth && !windowHeight, "Missing HWND clears geometry rather than using last-found window")
-	Require(GetYOffset(0, &failed) = 0 && failed = 1, "Missing HWND never reports successful zero offset")
+	Require(GetYOffset(0, &offsetFailed) = 0 && offsetFailed = 1, "Missing HWND never reports successful zero offset")
 	FileAppend "PASS Windows geometry integration (" A_PtrSize * 8 "-bit)`n", "*"
 } catch as err {
 	FileAppend "FAIL Windows geometry integration: " err.Message "`n" err.Stack "`n", "*"
@@ -54,7 +54,7 @@ TestNativePointer(fixture) {
 		pointer.Up()
 		Require(!GetKeyState("LButton"), "Native release clears held button")
 		Require(pointer.Begin() && pointer.Down(snapshot), "Next operation can acquire pointer")
-		SetTimer nm_InventoryPointer.Cancel, -25
+		SetTimer (*) => nm_InventoryPointer.Cancel(), -25
 		pointer.Wait(100)
 		Require(!pointer.Move(snapshot, 90, 70) && !GetKeyState("LButton"), "Timer cancellation releases input and prevents suspended movement")
 		pointer.Up()
