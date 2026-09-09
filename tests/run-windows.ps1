@@ -28,6 +28,17 @@ function Invoke-AhkChecked([string]$Executable, [string[]]$AhkArguments) {
     if ($process.ExitCode -ne 0) { throw "AHK exited $($process.ExitCode): $($AhkArguments -join ' ')" }
 }
 
+$readyFile = Join-Path ([IO.Path]::GetTempPath()) ("natro-http-" + [guid]::NewGuid() + ".txt")
+$fixtureScript = Join-Path $PSScriptRoot 'delivery-fixture.ps1'
+$fixture = Start-Process -FilePath (Get-Process -Id $PID).Path -ArgumentList @('-NoProfile', '-File', ('"{0}"' -f $fixtureScript), '-ReadyFile', ('"{0}"' -f $readyFile)) -PassThru -WindowStyle Hidden
+try {
+    $deadline = [DateTime]::UtcNow.AddSeconds(15)
+    while (-not (Test-Path $readyFile)) {
+        if ($fixture.HasExited -or [DateTime]::UtcNow -ge $deadline) { throw 'Local HTTP fixture did not start' }
+        Start-Sleep -Milliseconds 100
+    }
+    $fixturePort = [IO.File]::ReadAllText($readyFile)
+    if ($fixturePort -notmatch '^\d+$') { throw 'Invalid local HTTP fixture port' }
 $architectures = if ($Architecture -eq 'both') { @('32', '64') } else { @($Architecture) }
 foreach ($bits in $architectures) {
     $exe = Join-Path $repoRoot "submacros/AutoHotkey$bits.exe"
@@ -40,5 +51,10 @@ foreach ($bits in $architectures) {
         Write-Host "Validate $($script.Name) ($bits-bit)"
         Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', '/Validate', $script.FullName)
     }
-    Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'RunTests.ahk'))
+    Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'RunTests.ahk'), $fixturePort)
+}
+
+} finally {
+    if (-not $fixture.HasExited) { $fixture.Kill($true); $fixture.WaitForExit() }
+    Remove-Item $readyFile -ErrorAction SilentlyContinue
 }

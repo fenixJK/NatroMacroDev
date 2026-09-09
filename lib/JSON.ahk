@@ -146,7 +146,10 @@ class JSON {
 					S := StrReplace(S, "`n", "\n")
 					S := StrReplace(S, "`b", "\b")
 					S := StrReplace(S, "`f", "\f")
-					S := StrReplace(S, "`v", "\v")
+					S := StrReplace(S, "`v", "\u000b")
+					Loop 31
+						if !(A_Index >= 8 && A_Index <= 13)
+							S := StrReplace(S, Chr(A_Index), Format("\u{:04x}", A_Index))
 					S := StrReplace(S, '"', '\"')
 					return '"' S '"'
 				default:

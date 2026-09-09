@@ -16,10 +16,15 @@
 #Include "%A_ScriptDir%\..\lib\Gdip_All.ahk"
 #Include "%A_ScriptDir%\..\lib\Gdip_ImageSearch.ahk"
 #Include "%A_ScriptDir%\..\lib\AutoFieldBoost.ahk"
+#Include "%A_ScriptDir%\..\lib\Discord.ahk"
+#Include "%A_ScriptDir%\..\lib\HourlyReportDelivery.ahk"
+#Include "%A_ScriptDir%\DeliveryTests.ahk"
 
 ; No Roblox, network, real GUI, or keyboard input is used by these tests.
 ; AFB's observation/travel functions below throw if unexpectedly reached.
 TestNow := 10000
+webhook := "https://discord.invalid/test", bottoken := "fixture-token", discordMode := 0
+MainChannelCheck := 0, MainChannelID := "", commandPrefix := "!", command_buffer := []
 TestCollectionMode := false, TestCollectionReads := 0, TestCollectionThrow := false
 HoneyDisCheck := TreatDisCheck := BlueberryDisCheck := StrawberryDisCheck := CoconutDisCheck := 0
 LastHoneyDis := LastTreatDis := LastBlueberryDis := LastStrawberryDis := LastCoconutDis := 0
@@ -55,7 +60,7 @@ SetWorkingDir testDirectory
 passed := failed := 0
 try {
 	for test in [TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
-		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures, TestCollectionInterrupts] {
+		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures, TestCollectionInterrupts, TestDiscordPayload, TestDeliveryQueue, TestHourlyReportDelivery, TestLocalHttpDelivery] {
 		try {
 			test.Call()
 			passed++

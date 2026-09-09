@@ -667,6 +667,9 @@ Loop
 
 nm_status(status)
 {
+	static retryAt := 0
+	if DllCall("GetTickCount64", "UInt64") < retryAt
+		return
 	stateString := SubStr(status, InStr(status, "] ")+2)
 	state := SubStr(stateString, 1, InStr(stateString, ": ")-1), objective := SubStr(stateString, InStr(stateString, ": ")+2)
 
@@ -709,7 +712,7 @@ nm_status(status)
 			? ("<@" discordUID ">") : ""
 
 		; status update (embed)
-		message := StrReplace(StrReplace(StrReplace(StrReplace(SubStr(status, InStr(status, "]")+1), "\", "\\"), "`n", "\n"), Chr(9), "  "), "`r")
+		message := SubStr(status, InStr(status, "]")+1)
 
 		; screenshot
 		if ((ssCheck = 1)
@@ -731,12 +734,21 @@ nm_status(status)
 				if (hwnd && GetRobloxClientPos(hwnd) && windowWidth > 0 && windowHeight > 0)
 					pBM := Gdip_BitmapFromScreen(windowX "|" windowY "|" windowWidth "|" windowHeight)
 				else
-					message .= "\nGame screenshot unavailable: Roblox window not found."
+					message .= "`nGame screenshot unavailable: Roblox window not found."
 			}
 		}
 
+		try queued := discord.QueueEmbed(message, color, content, pBM?, channel?)
+		finally {
+			if IsSet(pBM) && pBM > 0
+				Gdip_DisposeImage(pBM)
+		}
+		; Only remove the input after the encoded report is owned by the outbox.
+		if !queued {
+			retryAt := DllCall("GetTickCount64", "UInt64") + 5000
+			return
+		}
 		status_buffer.RemoveAt(1)
-		discord.SendEmbed(message, color, content, pBM?, channel?), IsSet(pBM) && pBM > 0 && Gdip_DisposeImage(pBM)
 
 		; extra: honey update
 		if (ssCheck = 1)
@@ -754,27 +766,14 @@ nm_status(status)
 	; extra: night detection announcement
 	if ((NightAnnouncementCheck = 1) && (PublicJoined = 0) && (stateString = "Detected: Night") && (StrLen(NightAnnouncementWebhook) > 0))
 	{
-		payload_json :=
-		(
-		'
-		{
-			' (NightAnnouncementPingID ? ('"content": "<@' NightAnnouncementPingID '>",') : '') '
-			"embeds": [{
-				"author": {
-					"name": "Night Detected in ' (NightAnnouncementName ? (NightAnnouncementName "'s ") : "") 'Server",
-					"url": "' PrivServer '",
-					"icon_url": "attachment://moon.png"
-				},
-				"description": "A Vicious Bee **may** be found in [this server](' PrivServer ')!",
-				"color": "0",
-				"timestamp": "' FormatTime(A_NowUTC, "yyyy-MM-ddTHH:mm:ssZ") '"
-			}]
-		}
-		'
-		)
+		payload_json := JSON.stringify(Map("content", NightAnnouncementPingID ? "<@" NightAnnouncementPingID ">" : "",
+			"embeds", [Map("author", Map("name", "Night Detected in " (NightAnnouncementName ? NightAnnouncementName "'s " : "") "Server",
+				"url", PrivServer, "icon_url", "attachment://moon.png"),
+				"description", "A Vicious Bee **may** be found in [this server](" PrivServer ")!",
+				"color", 0, "timestamp", FormatTime(A_NowUTC, "yyyy-MM-ddTHH:mm:ssZ"))]), 0)
 
 		discord.CreateFormData(&postdata, &contentType, [Map("name","payload_json", "content-type","application/json", "content",payload_json), Map("name","files[0]","filename","moon.png","content-type","image/png","pBitmap",bitmaps["moon"])])
-		discord.SendMessageAPI(postdata, contentType, , NightAnnouncementWebhook)
+		discord.QueueMessage(postdata, contentType, , NightAnnouncementWebhook, "Night announcement")
 	}
 }
 
@@ -2539,6 +2538,10 @@ nm_TrimLog(size)
 
 nm_setStatus(wParam, lParam, *)
 {
+	if status_buffer.Length >= 1000 {
+		nm_Failures.Write(Error(StrGet(lParam)), "Status input queue full; retained locally")
+		return 0
+	}
 	return status_buffer.Push(StrGet(lParam))
 }
 
@@ -2546,7 +2549,7 @@ nm_sendPostData(wParam, lParam, *) ; currently only ReportChannelID
 {
 	Critical
 	global ReportChannelID, MainChannelID
-	discord.SendMessageAPI(StrGet(NumGet(lParam + 2*A_PtrSize, "UPtr")), "application/json", (StrLen(ReportChannelID) > 16) ? ReportChannelID : MainChannelID)
+	discord.QueueMessage(StrGet(NumGet(lParam + 2*A_PtrSize, "UPtr")), "application/json", (StrLen(ReportChannelID) > 16) ? ReportChannelID : MainChannelID)
 	return 0
 }
 
@@ -2650,7 +2653,12 @@ ExitFunc(*)
 	arr := []
 	for k,v in status_buffer
 		arr.Push(v)
-	for k,v in arr
-		nm_status(v)
+	for k,v in arr {
+		if status_buffer.Length && status_buffer[1] = v
+			nm_status(v)
+	}
+	for pending in status_buffer
+		nm_Failures.Write(Error(pending), "Status helper stopped before queue handoff")
+	discord.CloseDelivery()
 	ExitApp
 }

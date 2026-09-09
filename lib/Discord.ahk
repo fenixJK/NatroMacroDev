@@ -4,9 +4,65 @@
 *********************************************/
 
 
+#Include "%A_ScriptDir%\..\lib\DeliveryQueue.ahk"
+#Include "%A_ScriptDir%\..\lib\DiscordPayload.ahk"
+#Include "%A_ScriptDir%\..\lib\FailureLog.ahk"
+
 class discord
 {
 	static baseURL := "https://discord.com/api/v10/"
+	static Outbox := 0
+
+	static DeliveryQueue() {
+		if !this.Outbox {
+			this.Outbox := nm_DeliveryQueue(,, ObjBindMethod(this, "DeliveryFailed"))
+			SetTimer ObjBindMethod(this.Outbox, "Pump"), 100
+			OnExit ObjBindMethod(this, "CloseDelivery")
+		}
+		return this.Outbox
+	}
+
+	static CloseDelivery(*) {
+		if this.Outbox
+			this.Outbox.Close()
+	}
+
+	static DeliveryFailed(job, reason) {
+		; Payload/label only: never persist the endpoint or Authorization header.
+		; Existing logger redacts known credentials and bounds local history.
+		detail := reason "`n" job.label
+		if Type(job.data) = "String"
+			detail .= "`n" job.data
+		nm_Failures.Write(Error(detail), "Discord delivery", A_WorkingDir "\settings\errors")
+	}
+
+	static QueueMessage(postdata, contentType := "application/json", channel := "", url := "", label := "Report", completed := unset) {
+		global webhook, bottoken, discordMode, MainChannelCheck, MainChannelID
+		token := ""
+		if !url {
+			if discordMode = 0
+				url := webhook (InStr(webhook, "?") ? "&" : "?") "wait=true"
+			else {
+				if !channel && MainChannelCheck
+					channel := MainChannelID
+				if !channel
+					return false
+				url := this.baseURL "channels/" channel "/messages", token := bottoken
+			}
+		} else
+			url .= (InStr(url, "?") ? "&" : "?") "wait=true"
+		return this.DeliveryQueue().Enqueue(postdata, contentType, url, token, label, completed?)
+	}
+
+	static QueueEmbed(message, color := 3223350, content := "", pBitmap := 0, channel := "") {
+		payload := nm_DiscordEmbedPayload(message, color, content, pBitmap > 0 ? "ss.png" : "")
+		if pBitmap > 0
+			this.CreateFormData(&data, &contentType, [Map("name", "payload_json", "content-type", "application/json", "content", payload),
+				Map("name", "files[0]", "filename", "ss.png", "content-type", "image/png", "pBitmap", pBitmap)])
+		else
+			data := payload, contentType := "application/json"
+		return this.QueueMessage(data, contentType, channel, , message)
+	}
 
 	static SendEmbed(message, color:=3223350, content:="", pBitmap:=0, channel:="", replyID:=0)
 	{
@@ -116,6 +172,7 @@ class discord
 		{
 			wr := ComObject("WinHttp.WinHttpRequest.5.1")
 			wr.Option[9] := 2720
+			wr.SetTimeouts(5000, 5000, 10000, 10000)
 			wr.Open("POST", url, 1)
 			if (discordMode = 1)
 			{
@@ -123,10 +180,9 @@ class discord
 				wr.SetRequestHeader("Authorization", "Bot " bottoken)
 			}
 			wr.SetRequestHeader("Content-Type", contentType)
-			wr.SetTimeouts(0, 60000, 120000, 30000)
+			wr.SetTimeouts(5000, 5000, 10000, 10000)
 			wr.Send(postdata)
-			wr.WaitForResponse()
-			return wr.ResponseText
+			return this.AwaitResponse(wr)
 		}
 	}
 
@@ -152,12 +208,12 @@ class discord
 
 		wr := ComObject("WinHttp.WinHttpRequest.5.1")
 		wr.Option[9] := 2720
-		wr.Open("GET", Discord.baseURL . "channels/" channelid)
+			wr.SetTimeouts(5000, 5000, 10000, 10000)
+		wr.Open("GET", Discord.baseURL . "channels/" channelid, true)
 		wr.SetRequestHeader("User-Agent", "DiscordBot (AHK, " A_AhkVersion ")")
 		wr.SetRequestHeader("Authorization", "Bot " . bottoken)
 		wr.Send()
-		wr.WaitForResponse()
-		return wr.ResponseText
+		return this.AwaitResponse(wr)
 	}
 
 	static GetMember(guild_id, user_id)
@@ -168,12 +224,12 @@ class discord
 
 		wr := ComObject("WinHttp.WinHttpRequest.5.1")
 		wr.Option[9] := 2720
-		wr.Open("GET", Discord.baseURL . "guilds/" . guild_id . "/members/" . user_id)
+			wr.SetTimeouts(5000, 5000, 10000, 10000)
+		wr.Open("GET", Discord.baseURL . "guilds/" . guild_id . "/members/" . user_id, true)
 		wr.SetRequestHeader("User-Agent", "DiscordBot (AHK, " A_AhkVersion ")")
 		wr.SetRequestHeader("Authorization", "Bot " . bottoken)
 		wr.Send()
-		wr.WaitForResponse()
-		return wr.ResponseText
+		return this.AwaitResponse(wr)
 	}
 
 
@@ -215,13 +271,13 @@ class discord
 		{
 			wr := ComObject("WinHttp.WinHttpRequest.5.1")
 			wr.Option[9] := 2720
+			wr.SetTimeouts(5000, 5000, 10000, 10000)
 			wr.Open("GET", this.BaseURL "/channels/" channel "/messages" params, 1)
 			wr.SetRequestHeader("User-Agent", "DiscordBot (AHK, " A_AhkVersion ")")
 			wr.SetRequestHeader("Authorization", "Bot " bottoken)
 			wr.SetRequestHeader("Content-Type", "application/json")
 			wr.Send()
-			wr.WaitForResponse()
-			return wr.ResponseText
+			return this.AwaitResponse(wr)
 		}
 	}
 
@@ -241,6 +297,7 @@ class discord
 		{
 			wr := ComObject("WinHttp.WinHttpRequest.5.1")
 			wr.Option[9] := 2720
+			wr.SetTimeouts(5000, 5000, 10000, 10000)
 			wr.Open("PATCH", url, 1)
 			if (discordMode = 1)
 			{
@@ -248,11 +305,22 @@ class discord
 				wr.SetRequestHeader("Authorization", "Bot " bottoken)
 			}
 			wr.SetRequestHeader("Content-Type", contentType)
-			wr.SetTimeouts(0, 60000, 120000, 30000)
+			wr.SetTimeouts(5000, 5000, 10000, 10000)
 			wr.Send(postdata)
-			wr.WaitForResponse()
-			return wr.ResponseText
+			return this.AwaitResponse(wr)
 		}
+	}
+
+	static AwaitResponse(wr) {
+		if !wr.WaitForResponse(20) {
+			wr.Abort()
+			return ""
+		}
+		if wr.Status < 200 || wr.Status >= 300 {
+			nm_Failures.Write(Error("HTTP " wr.Status), "Discord synchronous request")
+			return ""
+		}
+		return wr.ResponseText
 	}
 
 	static CreateFormData(&retData, &contentType, fields)
@@ -314,7 +382,7 @@ class discord
 		ObjRelease(pStream)
 
 		pData := DllCall("GlobalLock", "Ptr", hData, "Ptr")
-		size := DllCall("GlobalSize", "Ptr", pData, "UPtr")
+		size := DllCall("GlobalSize", "Ptr", hData, "UPtr")
 
 		retData := ComObjArray(0x11, size)
 		pvData := NumGet(ComObjValue(retData), 8 + A_PtrSize, "Ptr")

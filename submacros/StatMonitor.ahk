@@ -20,6 +20,9 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "Roblox.ahk"
 #Include "DurationFromSeconds.ahk"
 #Include "nowUnix.ahk"
+#Include "JSON.ahk"
+#Include "Discord.ahk"
+#Include "HourlyReportDelivery.ahk"
 
 #Warn VarUnset, Off
 
@@ -1428,115 +1431,13 @@ SendHourlyReport()
 
 	Gdip_DeleteGraphics(G)
 
-	webhook := IniRead("settings\nm_config.ini", "Status", "webhook")
-	bottoken := IniRead("settings\nm_config.ini", "Status", "bottoken")
-	discordMode := IniRead("settings\nm_config.ini", "Status", "discordMode")
-	ReportChannelID := IniRead("settings\nm_config.ini", "Status", "ReportChannelID")
-	if (StrLen(ReportChannelID) < 17)
-		ReportChannelID := IniRead("settings\nm_config.ini", "Status", "MainChannelID")
-
-	try
-	{
-		chars := "0|1|2|3|4|5|6|7|8|9|a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z"
-		chars := Sort(chars, "D| Random")
-		boundary := SubStr(StrReplace(chars, "|"), 1, 12)
-		hData := DllCall("GlobalAlloc", "UInt", 0x2, "UPtr", 0, "Ptr")
-		DllCall("ole32\CreateStreamOnHGlobal", "Ptr", hData, "Int", 0, "PtrP", &pStream:=0, "UInt")
-
-		str :=
-		(
-		'
-		------------------------------' boundary '
-		Content-Disposition: form-data; name="payload_json"
-		Content-Type: application/json
-
-		{
-			"embeds": [{
-				"title": "**[' A_Hour ':' A_Min ':00] Hourly Report**",
-				"color": "14052794",
-				"image": {"url": "attachment://file.png"}
-			}]
-		}
-		------------------------------' boundary '
-		Content-Disposition: form-data; name="files[0]"; filename="file.png"
-		Content-Type: image/png
-
-		'
-		)
-
-		utf8 := Buffer(length := StrPut(str, "UTF-8") - 1), StrPut(str, utf8, length, "UTF-8")
-		DllCall("shlwapi\IStream_Write", "Ptr", pStream, "Ptr", utf8.Ptr, "UInt", length, "UInt")
-
-		pFileStream := Gdip_SaveBitmapToStream(pBMReport)
-		DllCall("shlwapi\IStream_Size", "Ptr", pFileStream, "UInt64P", &size:=0, "UInt")
-		DllCall("shlwapi\IStream_Reset", "Ptr", pFileStream, "UInt")
-		DllCall("shlwapi\IStream_Copy", "Ptr", pFileStream, "Ptr", pStream, "UInt", size, "UInt")
-		ObjRelease(pFileStream)
-
-		str :=
-		(
-		'
-
-		------------------------------' boundary '--
-		'
-		)
-
-		utf8 := Buffer(length := StrPut(str, "UTF-8") - 1), StrPut(str, utf8, length, "UTF-8")
-		DllCall("shlwapi\IStream_Write", "Ptr", pStream, "Ptr", utf8.Ptr, "UInt", length, "UInt")
-		ObjRelease(pStream)
-
-		pData := DllCall("GlobalLock", "Ptr", hData, "Ptr")
-		size := DllCall("GlobalSize", "Ptr", pData, "UPtr")
-
-		retData := ComObjArray(0x11, size)
-		pvData := NumGet(ComObjValue(retData), 8 + A_PtrSize, "Ptr")
-		DllCall("RtlMoveMemory", "Ptr", pvData, "Ptr", pData, "Ptr", size)
-
-		DllCall("GlobalUnlock", "Ptr", hData)
-		DllCall("GlobalFree", "Ptr", hData, "Ptr")
-		contentType := "multipart/form-data; boundary=----------------------------" boundary
-
-		wr := ComObject("WinHttp.WinHttpRequest.5.1")
-		wr.Option[9] := 2720
-		wr.Open("POST", (discordMode = 0) ? webhook : ("https://discord.com/api/v10/channels/" ReportChannelID "/messages"), 0)
-		if (discordMode = 1)
-		{
-			wr.SetRequestHeader("User-Agent", "DiscordBot (AHK, " A_AhkVersion ")")
-			wr.SetRequestHeader("Authorization", "Bot " bottoken)
-		}
-		wr.SetRequestHeader("Content-Type", contentType)
-		wr.SetTimeouts(0, 60000, 120000, 30000)
-		wr.Send(retData)
-	}
-	catch as e
-	{
-		message := "**[" A_Hour ":" A_Min ":" A_Sec "]**`n"
-		. "**Failed to send Hourly Report!**`n"
-		. "Gdip SaveBitmap Error: " result "`n`n"
-		. "Exception Properties:`n"
-		. ">>> What: " e.what "`n"
-		. "File: " e.file "`n"
-		. "Line: " e.line "`n"
-		. "Message: " e.message "`n"
-		. "Extra: " e.extra
-		message := StrReplace(StrReplace(message, "\", "\\"), "`n", "\n")
-
-		postdata :=
-		(
-		'
-		{
-			"embeds": [{
-				"description": "' message '",
-				"color": "15085139"
-			}]
-		}
-		'
-		)
-
-		Send_WM_COPYDATA(postdata, "Status.ahk ahk_class AutoHotkey")
-	}
-
-	Gdip_DisposeImage(pBMReport)
+	try {
+		if !nm_QueueHourlyReport(pBMReport)
+			return ; preserve this sample window when the outbox cannot accept it
+	} catch as reportError {
+		nm_Failures.Write(reportError, "Hourly report preparation")
+		return
+	} finally Gdip_DisposeImage(pBMReport)
 
 	; save old stats for comparison
 	for k,v in stats_old
