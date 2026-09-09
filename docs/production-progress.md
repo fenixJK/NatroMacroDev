@@ -142,3 +142,15 @@ real game image accuracy or establish that a missing bar means a harvested plant
 The user confirmed no Windows/Roblox machine is currently available and asked to
 continue code fixes and CI. Live verification remains a required, explicitly open
 gate; it does not block independent implementation and automated regression work.
+
+
+Verified planter containment/reader code checkpoint:
+`3feae47f16d9d9f91877cada3fed083c729f7b36`.
+[Windows run 34411278398](https://github.com/fenixJK/NatroMacroDev/actions/runs/34411278398)
+passed all **13 AHK regression groups on each architecture**, including real GDI
+synthetic-bar and locked-bitmap cases, and **35 updater scenarios on each PowerShell
+version**. [Planter live-verification requirements](planter-verification.md) record
+the missing game evidence and acceptance criteria. No live scenario is marked passed.
+Next independent feature work: Blender acceptance/accounting, conversion/pause
+intervals, and the remaining audit fixes while harvest confirmation evidence is
+unavailable. The full recovery/refactoring/verification scope remains active.
