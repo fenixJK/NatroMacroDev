@@ -249,3 +249,38 @@ The next correctness work includes quest uncertainty (F20), Discord delivery (F2
 geometry invalidation (F22) and the remaining action/state/resource defects in the
 audit. The complete refactoring, optimization, feature and live-verification scope
 remains active; this checkpoint is not a production-ready release.
+
+## Automated Discord reporting checkpoint
+
+Code checkpoint: `3430398e5e7e87701df4485d7c90804dd7a1ca09`.
+[Windows run 34415787546](https://github.com/fenixJK/NatroMacroDev/actions/runs/34415787546)
+passed **23 AHK regression groups per architecture**, parsed all six submacros,
+and passed **35 updater scenarios per PowerShell version**, without AHK warnings.
+
+Automated status/night/report sends use `lib/DeliveryQueue.ahk`: asynchronous
+WinHTTP, owned encoded attachments, HTTP acknowledgement, bounded requests/queue/
+attempts/age, rate-limit delay and network/server retries. Failed deliveries are
+recorded locally. Raw automated text uses JSON serialization; shared JSON escaping
+now covers vertical tab and other control characters. Hourly reports persist a PNG
+before advancing their sample window and remove it only on acknowledged delivery.
+Failed/unfinished hourly PNGs remain in `settings/pending-reports` for review.
+
+Multipart preparation now checks stream operations, uses explicit CRLF framing,
+fails on missing files/invalid images, and releases streams through `finally`.
+Existing synchronous Discord calls have bounded waits and reject HTTP errors as
+success. The live honey image path checks capture validity before encoding.
+
+The suite exercises controlled delivery outcomes plus a loopback-only PowerShell
+server through the real Windows HTTP client. It independently parses JSON, delays
+responses, and validates multipart framing/PNG data after source bitmap disposal.
+CI caught a filename concatenation parse error and a local variable shadowing the
+AHK `Buffer` class during implementation; both were corrected before this checkpoint.
+
+[Reporting verification requirements](reporting-verification.md) retain F23's open
+work: legacy command builders/live edits, rate-limit coordination across paths and
+helpers, destination-aware durable ordinary status queues, a recovery UI and live
+Discord/rollover/resource-soak checks. Retries can duplicate a message if its HTTP
+response was lost. Ordinary status screenshots are not persisted; pending hourly
+PNGs are not automatically resent after restart. The complete recovery plan remains
+active, including quests, geometry, state/resource handling, optimization and the
+previously listed feature/live-verification gates.

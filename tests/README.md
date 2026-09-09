@@ -74,3 +74,10 @@ backoff. They exercise persistent attempt/interaction metadata, interruption and
 the seasonal/Memory Match gather interrupt policies. No successful keyboard input,
 reward grant or actual Memory Match entry is simulated. Remaining acceptance gates
 are listed in `docs/collection-verification.md`.
+
+Reporting tests exercise the production asynchronous queue with controlled HTTP
+outcomes, retry deadlines, limits and shutdown. Real GDI report preparation verifies
+pending PNG retention and acknowledgement cleanup. The runner starts a loopback-only
+PowerShell HTTP fixture for real WinHTTP delayed-response and multipart tests; no
+Discord request or real credential is used. See `docs/reporting-verification.md`
+for the remaining command, durable-outbox, live-service and statistics-rendering gates.
