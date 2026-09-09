@@ -60,3 +60,10 @@ idempotent replay, delayed confirmation, final-batch scheduling and ingredient
 backoff. These tests inject observation results; the actual Blender images, accepted
 quantity and collection/cancellation transitions still need the live checks in
 `docs/blender-verification.md`.
+
+Time accounting tests cover pause/resume, repeated stop, total/session resets,
+fractional seconds and wall-clock changes. Conversion tests exercise scope cleanup
+on returns/exceptions, disconnect recovery exclusion, and the actual timeout and
+AFB interruption paths. These fixtures use a controlled monotonic clock and reject
+unexpected game observation; they do not verify live backpack/balloon images or
+survival of an abrupt process kill.

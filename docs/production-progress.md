@@ -194,3 +194,27 @@ PowerShell version**. This includes the final pre-input configuration checks:
 the recipe snapshot is captured when its image is selected, rather than after a
 possible configuration edit, and checked again before quantity/Confirm input.
 The game acceptance and reconciliation limitations above remain open.
+
+## Conversion and active-time accounting checkpoint
+
+Code checkpoint: `ddc18328d02962775e3008b8dd03cb56448932d0`.
+[Windows run 34413688123](https://github.com/fenixJK/NatroMacroDev/actions/runs/34413688123)
+passed **16 AHK regression groups per architecture**, parsed all six submacros,
+and passed **35 updater scenarios per PowerShell version**, without fixture warnings.
+
+`lib/TimeTracking.ahk` now owns runtime, gather and conversion intervals. A monotonic
+clock excludes pauses from action deadlines, drains each increment once into total
+and session statistics, and closes actions before blocking reconnect recovery.
+Pause, repeated stop, both statistics reset scopes, normal exit, early returns and
+exception cleanup use the same ledger. Reconnection remains part of runtime.
+`lib/Conversion.ahk` extracts the conversion routine and closes its interval in a
+`finally` scope. A timeout with a nonempty backpack reports interruption instead of
+"Backpack Emptied"; invalid readings also fail closed.
+
+Tests exercise the production ledger, interrupted scopes, repeated transitions,
+fractional intervals, wall-clock changes, and actual conversion timeout/AFB exit
+paths without game input. This is in-process accounting, not crash-atomic storage:
+an abrupt OS kill can lose unflushed time, and multiple INI writes are not a single
+transaction. Live pause/stop callback behavior, backpack reading accuracy and
+balloon completion signals remain verification gates. F14/F15 are implemented for
+these accounting defects; game acceptance and broader state persistence remain open.
