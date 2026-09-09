@@ -3,7 +3,7 @@
 * @author SP
 ***********************************************************/
 
-#Include "%A_ScriptDir%\..\lib\WindowGeometry.ahk"
+#Include "WindowGeometry.ahk"
 
 ; Updates global variables windowX, windowY, windowWidth, windowHeight
 ; Optionally takes a known window handle to skip GetRobloxHWND call

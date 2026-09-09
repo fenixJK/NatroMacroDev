@@ -1,4 +1,4 @@
-#Include "%A_ScriptDir%\..\lib\InventorySearchEngine.ahk"
+#Include "InventorySearchEngine.ahk"
 
 ; Coordinates remain client-relative for existing callers.
 nm_InventorySearch(item, direction := "down", prescroll := 0, prescrolldir := "", scrolltoend := 1, max := 70, &outcome?) {

@@ -31,17 +31,22 @@ public static class NatroDialogDiagnostics {
 }
 '@
 
-function Invoke-AhkChecked([string]$Executable, [string[]]$AhkArguments) {
+function Invoke-AhkChecked([string]$Executable, [string[]]$AhkArguments, [string]$Source = '') {
     $start = [System.Diagnostics.ProcessStartInfo]::new()
     $start.FileName = $Executable
     $start.WorkingDirectory = $repoRoot
     $start.UseShellExecute = $false
     $start.RedirectStandardOutput = $true
     $start.RedirectStandardError = $true
+    $start.RedirectStandardInput = $Source.Length -gt 0
     foreach ($argument in $AhkArguments) { $start.ArgumentList.Add($argument) }
     $process = [System.Diagnostics.Process]::Start($start)
     $stdout = $process.StandardOutput.ReadToEndAsync()
     $stderr = $process.StandardError.ReadToEndAsync()
+    if ($Source.Length -gt 0) {
+        $process.StandardInput.Write($Source)
+        $process.StandardInput.Close()
+    }
     if (-not $process.WaitForExit(60000)) {
         Write-Host "Timed-out AHK window: $($process.MainWindowTitle)"
         Write-Host ([NatroDialogDiagnostics]::Read($process.MainWindowHandle))
@@ -59,6 +64,7 @@ function Invoke-AhkChecked([string]$Executable, [string[]]$AhkArguments) {
 }
 
 $readyFile = Join-Path ([IO.Path]::GetTempPath()) ("natro-http-" + [guid]::NewGuid() + ".txt")
+$workerDirectory = Join-Path ([IO.Path]::GetTempPath()) ("natro-workers-" + [guid]::NewGuid())
 $fixtureScript = Join-Path $PSScriptRoot 'delivery-fixture.ps1'
 $fixture = Start-Process -FilePath (Get-Process -Id $PID).Path -ArgumentList @('-NoProfile', '-File', ('"{0}"' -f $fixtureScript), '-ReadyFile', ('"{0}"' -f $readyFile)) -PassThru -WindowStyle Hidden
 try {
@@ -77,6 +83,14 @@ try {
         }
         Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'RunTests.ahk'), $fixturePort)
         Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'GeometryWindows.ahk'))
+        $workerOutput = Join-Path $workerDirectory $bits
+        Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'EmitWorkers.ahk'), $workerOutput)
+        $workers = @(Get-ChildItem $workerOutput -Filter '*.ahk')
+        if ($workers.Count -ne 4) { throw 'Expected four generated production workers' }
+        foreach ($worker in $workers) {
+            Write-Host "Validate emitted $($worker.Name) via root stdin ($bits-bit)"
+            Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', '/script', '/Validate', '*') ([IO.File]::ReadAllText($worker.FullName))
+        }
         # /Validate exists in 2.0.12. It does not run auto-execute code or close an
         # existing instance. Runtime behavior is covered separately by RunTests.
         foreach ($script in Get-ChildItem (Join-Path $repoRoot 'submacros') -Filter '*.ahk') {
@@ -88,4 +102,5 @@ try {
 } finally {
     if (-not $fixture.HasExited) { $fixture.Kill($true); $fixture.WaitForExit() }
     Remove-Item $readyFile -ErrorAction SilentlyContinue
+    Remove-Item $workerDirectory -Recurse -Force -ErrorAction SilentlyContinue
 }
