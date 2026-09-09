@@ -14,16 +14,16 @@ public static class NatroDialogDiagnostics {
     [DllImport("user32.dll")] static extern bool EnumChildWindows(IntPtr hwnd, EnumCallback callback, IntPtr data);
     [DllImport("user32.dll", CharSet=CharSet.Unicode)] static extern int GetWindowText(IntPtr hwnd, StringBuilder text, int size);
     [DllImport("user32.dll", CharSet=CharSet.Unicode)] static extern int GetClassName(IntPtr hwnd, StringBuilder text, int size);
+    [DllImport("user32.dll", CharSet=CharSet.Unicode)] static extern IntPtr SendMessageTimeout(IntPtr hwnd, uint msg, IntPtr count, StringBuilder text, uint flags, uint timeout, out IntPtr result);
     public static string Read(IntPtr hwnd) {
         var output = new StringBuilder();
         EnumChildWindows(hwnd, (child, data) => {
             var kind = new StringBuilder(64);
             GetClassName(child, kind, kind.Capacity);
-            if (kind.ToString() == "Static") {
-                var text = new StringBuilder(8192);
-                GetWindowText(child, text, text.Capacity);
-                output.AppendLine(text.ToString());
-            }
+            var text = new StringBuilder(8192);
+            IntPtr result;
+            SendMessageTimeout(child, 0x000D, (IntPtr)text.Capacity, text, 2, 1000, out result);
+            output.AppendLine(kind.ToString() + ": " + text.ToString());
             return true;
         }, IntPtr.Zero);
         return output.ToString();
@@ -75,14 +75,14 @@ try {
         if ((Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant() -ne $runtimeHashes[$bits]) {
             throw "Bundled AHK $bits-bit runtime differs from the reviewed 2.0.12 binary."
         }
+        Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'RunTests.ahk'), $fixturePort)
+        Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'GeometryWindows.ahk'))
         # /Validate exists in 2.0.12. It does not run auto-execute code or close an
         # existing instance. Runtime behavior is covered separately by RunTests.
         foreach ($script in Get-ChildItem (Join-Path $repoRoot 'submacros') -Filter '*.ahk') {
             Write-Host "Validate $($script.Name) ($bits-bit)"
             Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', '/Validate', $script.FullName)
         }
-        Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'RunTests.ahk'), $fixturePort)
-        Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'GeometryWindows.ahk'))
     }
 
 } finally {
