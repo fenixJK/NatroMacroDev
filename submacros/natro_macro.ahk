@@ -37,6 +37,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "BlenderAccounting.ahk"
 #Include "TimeTracking.ahk"
 #Include "CollectionRecovery.ahk"
+#Include "nm_InventorySearch.ahk"
 
 #Warn VarUnset, Off
 
@@ -10563,7 +10564,6 @@ nm_Start(){
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 #Include "%A_ScriptDir%\..\lib"
 #Include "nm_OpenMenu.ahk"
-#Include "nm_InventorySearch.ahk"
 ;interrupts
 nm_MondoInterrupt() => (utc_min := FormatTime(A_NowUTC, "m"), now := nowUnix(),
 	((MondoBuffCheck = 1) && ((utc_min<14 && (now-LastMondoBuff)>960 && MondoAction="Kill")
