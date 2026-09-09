@@ -76,13 +76,14 @@ nm_BlenderApplyPlan(plan, writeSetting := 0) {
 	if !writeSetting
 		writeSetting := nm_BlenderWriteSetting
 	; Absolute values make replay idempotent, including the decremented counter.
-	writeSetting.Call("PendingCommit", JSON.stringify(plan))
+	writeSetting.Call("PendingCommit", JSON.stringify(plan, 0))
 	for key, value in plan
 		writeSetting.Call(key, value)
 	for key, value in plan
 		%key% := value
 	Loop 3
 		try MainGui["BlenderData" A_Index].Text := "(" BlenderAmount%A_Index% ") [" (BlenderIndex%A_Index% = "Infinite" ? "∞" : BlenderIndex%A_Index%) "]"
+	writeSetting.Call("PendingAttempt", "")
 	writeSetting.Call("PendingCommit", "")
 }
 
@@ -129,3 +130,38 @@ nm_BlenderRotation() {
 	return 0
 }
 
+
+nm_BlenderRememberAttempt(slot, expected, started) {
+	if !nm_BlenderEligible(expected) || slot < 1 || slot > 3
+		throw ValueError("Invalid Blender attempt")
+	attempt := Map("slot", slot, "item", expected.item, "amount", expected.amount,
+		"remaining", expected.remaining, "started", started, "pid", DllCall("GetCurrentProcessId"))
+	nm_BlenderWriteSetting("PendingAttempt", JSON.stringify(attempt, 0))
+	return attempt
+}
+
+nm_BlenderReadAttempt() {
+	record := IniRead("settings\nm_config.ini", "Blender", "PendingAttempt", "")
+	if !record
+		return 0
+	attempt := JSON.parse(record)
+	if !(attempt is Map) || attempt.Count != 6
+		throw ValueError("Invalid pending Blender attempt")
+	for key in ["slot", "item", "amount", "remaining", "started", "pid"]
+		if !attempt.Has(key)
+			throw ValueError("Incomplete pending Blender attempt")
+	if !IsInteger(attempt["slot"]) || attempt["slot"] < 1 || attempt["slot"] > 3 || !IsNumber(attempt["started"])
+		throw ValueError("Invalid pending Blender attempt values")
+	return attempt
+}
+
+nm_BlenderResolveAttempt(attempt, observedItem, running, finished, current) {
+	if !attempt || (running != 1 && finished != 1) || running < 0 || finished < 0
+		return 0
+	if observedItem != attempt["item"] || attempt["pid"] != DllCall("GetCurrentProcessId")
+		return 0
+	expected := {item: attempt["item"], amount: attempt["amount"], remaining: attempt["remaining"]}
+	if !nm_BlenderEligible(expected) || current < attempt["started"] || current - attempt["started"] > expected.amount * 300 + 3600
+		return 0
+	return nm_BlenderCommitAccepted(attempt["slot"], expected, 1, attempt["started"])
+}

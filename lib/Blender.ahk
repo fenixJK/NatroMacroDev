@@ -14,9 +14,10 @@ nm_Blender(){
 
 	if (BlenderCheck && (nowUnix() - TimeForBlender) > TimerInterval) {
 		retryAfter := IniRead("settings\nm_config.ini", "Blender", "RetryAfter", 0)
-		if IsNumber(retryAfter) && nowUnix() < retryAfter && retryAfter - nowUnix() <= 300
+		if !BlenderEnd && IsNumber(retryAfter) && nowUnix() < retryAfter && retryAfter - nowUnix() <= 300
 			return
 		IniWrite nowUnix() + 300, "settings\nm_config.ini", "Blender", "RetryAfter"
+		committed := false
 		Loop 2 {
 			hwnd := GetRobloxHWND()
 			offsetY := GetYOffset(hwnd)
@@ -44,6 +45,7 @@ nm_Blender(){
 
 				SearchX := windowX+windowWidth//2 - 275, SearchY := windowY+Floor(0.48*windowHeight) - 220, BlenderSS := Gdip_BitmapFromScreen(SearchX "|" SearchY "|550|400")
 
+				nm_BlenderObservePending(BlenderSS)
 				if (Gdip_ImageSearch(BlenderSS, bitmaps["CancelCraft"], , , , , , 2, , 7) > 0) {
 					nm_BlenderClick(context, windowX+windowWidth//2 + 230, windowY+Floor(0.48*windowHeight) + 130)
 				}
@@ -117,9 +119,12 @@ nm_Blender(){
 							Sleep 30
 						}
 						Sleep 200
+						attemptStarted := nowUnix()
+						nm_BlenderRememberAttempt(executedSlot, expectedRecipe, attemptStarted)
 						nm_BlenderClick(context, windowX+windowWidth//2 + 70, windowY+Floor(0.48*windowHeight) + 130)
 						confirmed := nm_BlenderWaitForCraft(hwnd, windowX, windowY, windowWidth, windowHeight)
-						if nm_BlenderCommitAccepted(executedSlot, expectedRecipe, confirmed, nowUnix()) {
+						if nm_BlenderCommitAccepted(executedSlot, expectedRecipe, confirmed, attemptStarted) {
+							committed := true
 							IniWrite 0, "settings\nm_config.ini", "Blender", "RetryAfter"
 							nm_setStatus("Crafting", "Blender: " expectedRecipe.item " (slot " executedSlot ")")
 						} else {
@@ -144,6 +149,8 @@ nm_Blender(){
 				}
 			}
 		}
+		if !committed
+			IniWrite nowUnix() + 300, "settings\nm_config.ini", "Blender", "RetryAfter"
 		IniWrite TimerInterval, "settings\nm_config.ini", "Blender", "TimerInterval"
 		IniWrite BlenderRot, "settings\nm_config.ini", "Blender", "BlenderRot"
 		IniWrite BlenderIndex%BlenderRot%, "settings\nm_config.ini", "Blender", "BlenderIndex" BlenderRot
@@ -208,4 +215,18 @@ nm_BlenderClick(context, x, y) {
 	if !nm_BlenderSameWindow(context.hwnd, context.x, context.y, context.width, context.height)
 		throw Error("Roblox focus or geometry changed during a Blender click")
 	Click
+}
+
+nm_BlenderObservePending(bitmap) {
+	global bitmaps
+	attempt := nm_BlenderReadAttempt()
+	if !attempt || !bitmap || !bitmaps.Has(attempt["item"] "B")
+		return 0
+	running := Gdip_ImageSearch(bitmap, bitmaps["EndCraftR"], , , , , , 3, , 6)
+	finished := Gdip_ImageSearch(bitmap, bitmaps["EndCraftG"], , , , , , 4, , 6)
+	if running < 0 || finished < 0 || (running != 1 && finished != 1)
+		return 0
+	if Gdip_ImageSearch(bitmap, bitmaps[attempt["item"] "B"], , , , , , 2, , 4) != 1
+		return 0
+	return nm_BlenderResolveAttempt(attempt, attempt["item"], running, finished, nowUnix())
 }

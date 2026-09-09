@@ -315,6 +315,7 @@ ResetBlenderTest() {
 		MainGui["BlenderData" A_Index] := {Text: ""}
 		IniWrite 0, "settings\nm_config.ini", "Blender", "Unavailable" A_Index
 	}
+	IniWrite "", "settings\nm_config.ini", "Blender", "PendingAttempt"
 	IniWrite "", "settings\nm_config.ini", "Blender", "PendingCommit"
 }
 TestBlenderWriter(state, key, value) {
@@ -392,4 +393,19 @@ TestBlenderAccounting() {
 	IniWrite nowUnix() + 300, "settings\nm_config.ini", "Blender", "Unavailable2"
 	AssertEqual(nm_BlenderRotation(), 0, "All unavailable recipes defer travel")
 	AssertEqual(BlenderCheck, 1, "Unavailable recipes remain configured for later retry")
+	ResetBlenderTest()
+	expected := nm_BlenderReadRecipes()[1]
+	nm_BlenderRememberAttempt(1, expected, 10000)
+	attempt := nm_BlenderReadAttempt()
+	AssertEqual(attempt["slot"], 1, "Pending input record survives INI round trip")
+	AssertEqual(nm_BlenderResolveAttempt(attempt, "Oil", 1, 0, 10300), 0, "Wrong visible recipe cannot resolve an attempt")
+	AssertEqual(nm_BlenderResolveAttempt(attempt, "Glue", -1, 1, 10300), 0, "Failed observation cannot resolve an attempt")
+	AssertEqual(nm_BlenderResolveAttempt(attempt, "Glue", 0, 1, 10600), 1, "Late completed-craft observation resolves original attempt")
+	AssertEqual(BlenderIndex1, 0, "Late confirmation charges original slot once")
+	AssertEqual(BlenderTime1, 10600, "Late confirmation retains original start time")
+	Assert(!nm_BlenderReadAttempt(), "Committed attempt is removed")
+	ResetBlenderTest()
+	attempt := nm_BlenderRememberAttempt(1, nm_BlenderReadRecipes()[1], 10000)
+	attempt["pid"] := 0
+	AssertEqual(nm_BlenderResolveAttempt(attempt, "Glue", 1, 0, 10300), 0, "A restarted process needs explicit reconciliation for unconfirmed input")
 }
