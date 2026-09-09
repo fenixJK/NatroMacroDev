@@ -53,6 +53,9 @@ nm_BuildBitterberryFeederScript() {
 		ExitApp
 	}
 
+	beeWindow := nm_ClientSnapshot(hwnd)
+	if !beeWindow
+		ExitApp
 	StatusBar := Gui("-Caption +E0x80000 +AlwaysOnTop +ToolWindow -DPIScale")
 	StatusBar.Show("NA")
 	hbm := CreateDIBSection(windowWidth, windowHeight), hdc := CreateCompatibleDC(), obm := SelectObject(hdc, hbm)
@@ -62,6 +65,11 @@ nm_BuildBitterberryFeederScript() {
 
 	KeyWait "LButton", "D" ; Wait for the left mouse button to be pressed down.
 	MouseGetPos &beeX, &beeY
+	if !nm_SameClient(beeWindow, nm_ClientSnapshot(hwnd)) || !KeyWait("LButton", "T5")
+		ExitApp
+	beeX -= beeWindow.x, beeY -= beeWindow.y
+	if beeX < 0 || beeY < 0 || beeX >= beeWindow.width || beeY >= beeWindow.height
+		ExitApp
 	Gdip_GraphicsClear(G), Gdip_FillRectangle(G, pBrush := Gdip_BrushCreateSolid(0xd0000000), -1, -1, windowWidth+1, 38), Gdip_DeleteBrush(pBrush)
 	Gdip_TextToGraphics(G, "Mutating... Right Click or Shift to Stop!", "x0 y0 cffff5f1f Bold Center vCenter s24", "Tahoma", windowWidth, 38)
 	UpdateLayeredWindow(StatusBar.Hwnd, hdc, windowX, windowY, windowWidth, 38)
@@ -78,17 +86,13 @@ nm_BuildBitterberryFeederScript() {
 	{
 		if ((pos := nm_InventorySearch("bitterberry", "down", , , , (A_Index = 1) ? 40 : 4)) = 0)
 		{
-			MsgBox "You ran out of Bitterberries!", "Bitterberry Auto-Feeder v0.2", 0x40010
+			MsgBox "Could not locate Bitterberries in the readable inventory. Stopping.", "Bitterberry Auto-Feeder v0.2", 0x40010
 			break
 		}
-		GetRobloxClientPos(hwnd)
-
-		SendEvent "{Click " windowX+pos[1] " " windowY+pos[2] " 0}"
-		Send "{Click Down}"
-		Sleep 100
-		SendEvent "{Click " beeX " " beeY " 0}"
-		Sleep 100
-		Send "{Click Up}"
+		if !nm_DragInventoryItem(pos, beeX, beeY, beeWindow) {
+			MsgBox "The selected slot or inventory item could not be verified. Stopping before another drag.", "Utility stopped", 0x40030
+			break
+		}
 		Loop 10
 		{
 			Sleep 100
@@ -131,6 +135,7 @@ nm_BuildBitterberryFeederScript() {
 
 	ExitFunc(*)
 	{
+		nm_InventoryPointer.Cancel()
 		try StatusBar.Destroy()
 		try Gdip_Shutdown(pToken)
 		ExitApp
@@ -184,6 +189,9 @@ nm_BuildBasicEggHatcherScript() {
 		MsgBox "Unable to detect in-game GUI offset!``nStopping Hatcher!``n``nThere are a few reasons why this can happen, including:``n - Incorrect graphics settings``n - Your `'Experience Language`' is not set to English``n - Something is covering the top of your Roblox window``n``nJoin our Discord server for support and our Knowledge Base post on this topic (Unable to detect in-game GUI offset)!", "WARNING!!", 0x40030
 		ExitApp
 	}
+	beeWindow := nm_ClientSnapshot(hwnd)
+	if !beeWindow
+		ExitApp
 	StatusBar := Gui("-Caption +E0x80000 +AlwaysOnTop +ToolWindow -DPIScale")
 	StatusBar.Show("NA")
 	hbm := CreateDIBSection(windowWidth, windowHeight), hdc := CreateCompatibleDC(), obm := SelectObject(hdc, hbm)
@@ -192,6 +200,11 @@ nm_BuildBasicEggHatcherScript() {
 	UpdateLayeredWindow(StatusBar.Hwnd, hdc, windowX, windowY, windowWidth, windowHeight)
 	KeyWait "LButton", "D" ; Wait for the left mouse button to be pressed down.
 	MouseGetPos &beeX, &beeY
+	if !nm_SameClient(beeWindow, nm_ClientSnapshot(hwnd)) || !KeyWait("LButton", "T5")
+		ExitApp
+	beeX -= beeWindow.x, beeY -= beeWindow.y
+	if beeX < 0 || beeY < 0 || beeX >= beeWindow.width || beeY >= beeWindow.height
+		ExitApp
 	Gdip_GraphicsClear(G), Gdip_FillRectangle(G, pBrush := Gdip_BrushCreateSolid(0xd0000000), -1, -1, windowWidth+1, 38), Gdip_DeleteBrush(pBrush)
 	Gdip_TextToGraphics(G, "Hatching... Right Click or Shift to Stop!", "x0 y0 cffff5f1f Bold Center vCenter s24", "Tahoma", windowWidth, 38)
 	UpdateLayeredWindow(StatusBar.Hwnd, hdc, windowX, windowY, windowWidth, 38)
@@ -211,16 +224,13 @@ nm_BuildBasicEggHatcherScript() {
 		}
 		if ((pos := (A_Index = 1) ? nm_InventorySearch("basicegg", "up", , , , 70) : (rj = 1) ? nm_InventorySearch("royaljelly", "down", , , 0, 7) : nm_InventorySearch("basicegg", "up", , , 0, 7)) = 0)
 		{
-			MsgBox "You ran out of " ((rj = 1) ? "Royal Jellies!" : "Basic Eggs!"), "Basic Bee Replacement Program", 0x40010
+			MsgBox "Could not locate " ((rj = 1) ? "Royal Jellies" : "Basic Eggs") ". Stopping.", "Basic Bee Replacement Program", 0x40010
 			break
 		}
-		GetRobloxClientPos(hwnd)
-		SendEvent "{Click " windowX+pos[1] " " windowY+pos[2] " 0}"
-		Send "{Click Down}"
-		Sleep 100
-		SendEvent "{Click " beeX " " beeY " 0}"
-		Sleep 100
-		Send "{Click Up}"
+		if !nm_DragInventoryItem(pos, beeX, beeY, beeWindow) {
+			MsgBox "The selected slot or inventory item could not be verified. Stopping before another drag.", "Utility stopped", 0x40030
+			break
+		}
 		Loop 10
 		{
 			Sleep 100
@@ -280,6 +290,7 @@ nm_BuildBasicEggHatcherScript() {
 
 	ExitFunc(*)
 	{
+		nm_InventoryPointer.Cancel()
 		try Gdip_DisposeImage(common), Gdip_DisposeImage(mythic)
 		try StatusBar.Destroy()
 		try Gdip_Shutdown(pToken)

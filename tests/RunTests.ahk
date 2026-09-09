@@ -21,7 +21,9 @@
 #Include "%A_ScriptDir%\DeliveryTests.ahk"
 #Include "%A_ScriptDir%\..\lib\WindowGeometry.ahk"
 #Include "%A_ScriptDir%\..\lib\InventorySearchEngine.ahk"
+#Include "%A_ScriptDir%\..\lib\InventoryDrag.ahk"
 #Include "%A_ScriptDir%\GeometryTests.ahk"
+#Include "%A_ScriptDir%\InventoryDragTests.ahk"
 
 ; No Roblox or external service is used. HTTP tests contact a loopback fixture.
 ; Unexpected game observation/input throws; native GUI checks run separately.
@@ -63,7 +65,7 @@ SetWorkingDir testDirectory
 passed := failed := 0
 try {
 	for test in [TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
-		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures, TestCollectionInterrupts, TestDiscordPayload, TestDeliveryQueue, TestHourlyReportDelivery, TestLocalHttpDelivery, TestGeometryCache, TestInventoryEngine, TestInventoryReader] {
+		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures, TestCollectionInterrupts, TestDiscordPayload, TestDeliveryQueue, TestHourlyReportDelivery, TestLocalHttpDelivery, TestGeometryCache, TestInventoryEngine, TestInventoryReader, TestPointerLease, TestInventoryDrag] {
 		try {
 			test.Call()
 			passed++

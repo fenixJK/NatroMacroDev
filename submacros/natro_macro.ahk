@@ -11618,16 +11618,18 @@ nm_GlueDis(){
 
 			nm_gotoCollect("gluedis", 0) ; do not wait for end
 
-			;locate gumdrops
-			if ((gumdropPos := nm_InventorySearch("gumdrops")) = 0) { ;~ new function
+			; Finish travel before observing the item that will be dragged.
+			travelFinished := KeyWait("F14", "T120 L")
+			nm_endWalk()
+			if !travelFinished || !(gumdropPos := nm_InventorySearch("gumdrops")) {
 				nm_OpenMenu()
 				continue
 			}
-			MouseMove windowX+gumdropPos[1], windowY+gumdropPos[2]
-			KeyWait "F14", "T120 L"
-			nm_endWalk()
-
-			MouseClickDrag "Left", windowX+gumdropPos[1], windowY+gumdropPos[2], windowX+(windowWidth//2), windowY+(windowHeight//2), 5
+			client := gumdropPos.Context.snapshot
+			if !nm_DragInventoryItem(gumdropPos, client.width // 2, client.height // 2) {
+				nm_OpenMenu()
+				continue
+			}
 			;close inventory
 			nm_OpenMenu()
 			Sleep 500
@@ -21155,6 +21157,7 @@ mp_HarvestPlanter(PlanterIndex) {
 nm_FailClosed(err) {
 	global MacroState, AFBrollingDice, AFBuseGlitter, AFBuseBooster, AutoFieldBoostActive
 	Critical
+	try nm_InventoryPointer.Cancel()
 	SetTimer Background, 0
 	AFBrollingDice := AFBuseGlitter := AFBuseBooster := AutoFieldBoostActive := 0
 	try nm_endWalk()
@@ -21172,6 +21175,7 @@ nm_FailClosed(err) {
 
 getout(*){
 	global
+	try nm_InventoryPointer.Cancel()
 	try nm_TimeTracking.Stop()
 	nm_saveGUIPos()
 	nm_endWalk()
@@ -21501,6 +21505,7 @@ start(*){
 ;STOP MACRO
 stop(*){
 	global
+	try nm_InventoryPointer.Cancel()
 	try {
 		Hotkey StopHotkey, "Off"
 		Hotkey PauseHotkey, "Off"
@@ -21553,6 +21558,7 @@ nm_Pause(*){
 		DetectHiddenWindows 0
 		nm_setStatus(PauseState, PauseObjective)
 	} else {
+		nm_InventoryPointer.Cancel()
 		if (ShowOnPause = 1)
 			WinActivate "ahk_id " MainGui.Hwnd
 		DetectHiddenWindows 1

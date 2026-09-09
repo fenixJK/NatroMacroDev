@@ -35,7 +35,9 @@ class nm_InventorySearchEngine {
 				if y < 0 || y >= snapshot.height
 					return 0
 				this.Outcome := "found"
-				return [30, y] ; client-relative, including the observed top-bar offset
+				point := [30, y] ; client-relative, including the observed top-bar offset
+				point.Context := {snapshot: snapshot.Clone(), height: height, item: item}
+				return point
 			}
 			if attempt >= max {
 				this.Outcome := "missing"
