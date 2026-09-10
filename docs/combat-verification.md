@@ -1,0 +1,43 @@
+# Combat observation verification
+
+`lib/HealthObservation.ahk` replaces the shared health-bar scanner used by bug runs
+and boss routines. Each bar has independent health/total-pixel counters. The
+percentage includes the final pixel, so a one-green/one-red bar reports 50%, and a
+healthy bar cannot inherit the preceding bar's damaged endpoint. Scans use actual
+bitmap dimensions, including the narrower King Beetle image.
+
+The reader masks detected bars in its own bitmap copy. Brushes, graphics and that
+copy are released in `finally`, with graphics disposed before their backing bitmap.
+Cached templates are released at main-process exit before GDI+ shutdown. The main
+exit path now also releases the planter reader's cached templates.
+
+The window wrapper requires a current focused Roblox client and checks the same
+window geometry again after reading. Missing captures, allocation/search/pixel
+failures, changed geometry and the detection limit throw an error. They do not
+return a successful empty array. In production this reaches the existing failure
+handler, which releases input, stops helpers, records the failure and exits. This
+conservative behavior currently requires restarting after the problem is corrected;
+a recoverable combat action boundary remains future work.
+
+Automated fixtures exercise real GDI bitmaps: independent partial/full/zero-health
+bars, a two-pixel edge case, untouched caller-owned images, locked source/template
+errors, rebuilding cached resources, repeated scans and the 100-bar limit. Synthetic
+images do not establish that these colors uniquely identify current game enemies.
+
+Remaining gates:
+
+- Record current game examples for every boss/bug family, camera zoom and DPI.
+  Planters and unrelated scene colors may still resemble a health bar. Clipped or
+  obscured bars cannot establish the true enemy health percentage.
+- Replace kill-success inference from elapsed loops or missing health bars with
+  positively recognized game results and bounded recovery. A successfully read
+  empty image only establishes that this detector found no bars in that image.
+- Make every combat action release its inputs on interruption and recover from
+  unknown observations without inventing kills or full cooldown timestamps.
+- Correct and test boss health/time estimation independently; its sampling and time
+  unit logic remain legacy behavior.
+- Measure memory, GDI objects and capture/scan cost during long mixed runs. The
+  repeated fixture test is a regression check, not an overnight soak or measured
+  performance improvement.
+
+No live Roblox scenario has been run for this checkpoint.

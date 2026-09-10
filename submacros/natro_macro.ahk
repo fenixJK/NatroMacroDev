@@ -41,6 +41,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "WorkerScripts.ahk"
 #Include "QuestObservation.ahk"
 #Include "QuestActions.ahk"
+#Include "HealthObservation.ahk"
 
 #Warn VarUnset, Off
 
@@ -10518,68 +10519,6 @@ nm_PlanterTimeUpdate(FieldName, SetStatus := 1)
 			Sleep 500
 		}
 	}
-}
-;syspalk if you're reading this hi
-;(+) Keep this in for the final
-nm_HealthDetection(w:=0)
-{
-	static pBMHealth, pBMDamage
-	HealthBars := []
-	if !(IsSet(pBMHealth) && IsSet(pBMDamage))
-	{
-		pBMHealth := Gdip_CreateBitmap(1,4)
-		pGraphics := Gdip_GraphicsFromImage(pBMHealth), Gdip_GraphicsClear(pGraphics, 0xff1fe744), Gdip_DeleteGraphics(pGraphics)
-		pBMDamage := Gdip_CreateBitmap(1,4)
-		pGraphics := Gdip_GraphicsFromImage(pBMDamage), Gdip_GraphicsClear(pGraphics, 0xff6b131a), Gdip_DeleteGraphics(pGraphics)
-	}
-	ActivateRoblox()
-	GetRobloxClientPos()
-	if w = 1 ; king beetle, right half search only to avoid false detections
-		pBMScreen := Gdip_BitmapFromScreen((windowX + windowWidth//2) "|" windowY "|" windowWidth//2 "|" windowHeight)
-	else
-		pBMScreen := Gdip_BitmapFromScreen(windowX "|" windowY "|" windowWidth "|" windowHeight)	
-	G := Gdip_GraphicsFromImage(pBMScreen)
-	pBrush := Gdip_BrushCreateSolid(0xff000000)
-	while ((Gdip_ImageSearch(pBMScreen, pBMHealth, &HPStart, , , , , , , 5) > 0) || (Gdip_ImageSearch(pBMScreen, pBMDamage, &HPStart, , , , , , , 5) > 0))
-	{
-		x := SubStr(HPStart, 1, InStr(HPStart, ",")-1), y := SubStr(HPStart, InStr(HPStart, ",")+1)
-		x1 := x, y1 := y
-		Loop (windowWidth - x)
-		{
-			i := x + A_Index - 1
-			switch Gdip_GetPixel(pBMScreen, i, y)
-			{
-				case 4280280900:
-				x1++
-
-				case 4285207322:
-				x2 := i
-
-				default:
-				Break
-			}
-		}
-		Loop (windowHeight - y)
-		{
-			switch Gdip_GetPixel(pBMScreen, x, y1)
-			{
-				case 4280280900, 4285207322:
-				y1++
-
-				default:
-				Break
-			}
-		}
-		HealthBarPercent := (x1 > x) ? ((IsSet(x2) && (x2 > x)) ? Round((x1-x)/(x2-x)*100, 2) : 100.00) : 0.00
-		Gdip_FillRectangle(G, pBrush, x, y, i-x, y1-y)
-		HealthBars.Push(HealthBarPercent)
-		if (A_Index > 100)
-		{
-			Break
-		}
-	}
-	Gdip_DeleteBrush(pBrush), Gdip_DisposeImage(pBMScreen), Gdip_DeleteGraphics(G)
-	Return HealthBars
 }
 ;;Time interval in minutes
 nm_KillTimeEstimation(bossName, bossTimer)
@@ -21098,6 +21037,8 @@ getout(*){
 	DetectHiddenWindows 1
 	try IniWrite !!WinExist("PlanterTimers.ahk ahk_class AutoHotkey"), "settings\nm_config.ini", "Planters", "TimersOpen"
 	CloseScripts()
+	try nm_HealthBarReader.Release()
+	try nm_PlanterProgressReader.Release()
 	try Gdip_Shutdown(pToken)
 	DllCall(A_WorkingDir "\nm_image_assets\Styles\USkin.dll\USkinExit")
 }
