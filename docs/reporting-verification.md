@@ -201,8 +201,8 @@ alone no longer marks a source as disposable. Folder uploads create an exclusive
 owned GUID directory and remove only that directory after use. They cannot replace
 or delete an unrelated ZIP at the old predictable temp filename.
 
-The local folder archive helper runs a fixed encoded PowerShell script and passes
-source/destination paths as ASCII JSON on stdin. `Compress-Archive -LiteralPath`
+The local folder archive helper runs a fixed PowerShell script and passes
+source/destination paths as UTF-16 JSON through shared memory. `Compress-Archive -LiteralPath`
 handles brackets, apostrophes, Unicode and PowerShell metacharacters as path data.
 It archives the folder, including its root entry. The helper observes a cooperative
 45-second deadline and polls output size while running; the sender checks the final
@@ -220,8 +220,10 @@ architectures; no Discord request is sent.
 Remote upload permissions still permit individual files only. This helper retains
 the library's existing local folder capability. Base-library delivery and archive
 preparation remain synchronous; Status hands encoded file bytes to the command
-queue. Abrupt parent termination can orphan the WScript archive worker
-or its temporary files; kernel-owned worker migration remains work. Archive source
+queue. File workers and descendants now have creation-time Windows job ownership;
+normal cleanup confirms termination and abrupt owner death closes the job's last
+handle. Temporary files can still survive a crash and are not automatically
+reconciled. See [file worker verification](file-worker-verification.md). Archive source
 contents are not a filesystem snapshot, and this is not a reparse-point sandbox.
 
 ## Command reply delivery

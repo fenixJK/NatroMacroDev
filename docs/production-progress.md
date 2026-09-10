@@ -1389,3 +1389,53 @@ missing-file acceptance remain. Helper initialization lacks a readiness handshak
 main-process background gating is not complete cross-process input ownership.
 F18 and the full production plan remain active. No merge, deployment or production
 release is claimed.
+
+## File worker ownership and shared-memory transport checkpoint
+
+Code checkpoint: `c86ef25de092d18c784ccd5cbce0a5dbe114a328`.
+[Windows run 34449086921](https://github.com/fenixJK/NatroMacroDev/actions/runs/34449086921)
+passed **61 regression groups on each AHK architecture**, native Windows suites
+including file-worker descendant cleanup and owner-crash tests, seven production
+and four emitted-worker validations per architecture, **eight file-channel
+checks**, **43 attachment checks** and **35 updater scenarios** on each PowerShell
+version. No AHK warnings occurred. The checkout Node runtime notice remains.
+
+Attachment downloads and local ZIP preparation now use creation-time Windows job
+ownership. File workers and their descendants cannot break away; abrupt owner
+death closes the last job handle and terminates them without exit callbacks.
+Reconnect launchers retain their separate breakaway policy, verified by the
+existing application-survival tests. Normal cleanup terminates the entire file
+job, checks active-process accounting and confirms the retained root process
+handle is terminal before deleting owned temporary data. Failed confirmation
+retains ownership and files.
+
+Fixed PowerShell scripts receive UTF-16 JSON through a bounded 16 KiB mapping,
+with a maximum of 8,000 request units. The existing reconnect limit remains
+4,096. Only script/channel identifiers appear in command arguments; stdin/stdout
+pipes and temporary request files are unnecessary. Workers validate version,
+length and JSON and return a fixed numeric status/reason. Missing completion or
+nonzero process exit cannot mean success. Attachment completion callbacks run
+once after cleanup; callback errors no longer trigger a contradictory second
+notification. Existing download quotas, URL restrictions and deadline rules,
+archive source preservation and remote single-file-only permissions remain.
+
+Actual download-worker launch and ZIP creation pass on both AHK architectures.
+Native fixtures verify literal Unicode/quoted requests, action exceptions, silent
+exit, repeated handle cleanup, normal descendant termination and abrupt owner
+death. The crash fixture confirms workers are outside the harness's own outer
+job before killing their immediate owner. PowerShell 5.1/7 protocol tests cover
+valid/maximum requests, invalid version/length/JSON and known/unknown failure
+reasons. Initial CI exposed a variable-shadowing warning and a real termination
+race: a second TerminateProcess can be denied while the first termination is
+still completing. Cleanup now waits for the retained handle instead of treating
+that transient result as immediate failure. Checks were not relaxed.
+
+[File worker verification](file-worker-verification.md),
+[remote permissions](remote-permissions.md) and
+[reporting verification](reporting-verification.md) record the final contracts.
+The earlier intermittent WScript attachment timeout has no established root
+cause; replacing its pipe transport is not proof that all timeouts are cured.
+Crash-left directories, uncertain final publication/notification, durable receipt
+recovery, hard bounds for native/filesystem calls, live Discord/game verification
+and the full production plan remain open. No merge, deployment or production
+release is claimed.

@@ -64,7 +64,7 @@ against locally created links or concurrent local filesystem changes.
 
 The Status helper starts one Windows PowerShell worker at a time and polls its
 completion while continuing its ordinary loop. Further attachment commands get a
-busy response. A URL is sent through stdin as JSON, never evaluated as shell code
+busy response. A URL is sent through shared memory as JSON, never evaluated as shell code
 or placed on the process command line. The worker accepts HTTPS attachment URLs
 on `cdn.discordapp.com` and `media.discordapp.net`, disables automatic redirects,
 and does not send bot credentials or browser cookies. Other hosts require a code
@@ -98,10 +98,28 @@ PowerShell 5.1 and 7 HTTP fixture checks cover binary bytes, fixed/chunked size
 limits, rejected URLs and redirects, non-200/truncated responses, stalled headers
 and bodies, quota limits, target collisions and concurrent inbox ownership. AHK
 tests cover non-blocking worker polling, busy rejection, watchdog outcomes,
-malformed output, native stdin launch and native shutdown cleanup. These tests
+malformed results, native shared-memory launch and native shutdown cleanup. These tests
 use loopback HTTP or reject the URL before any network request; live Discord
 attachment receipt remains unverified. Local execution policy or unavailable
 PowerShell can reject the worker and produce a download failure.
+
+File workers now belong to a Windows job at process creation. Unlike reconnect
+launchers, they cannot let child processes break away. Abrupt owner termination
+therefore closes the last job handle and stops the worker and its descendants,
+without relying on AHK exit callbacks. Normal cleanup terminates the job, checks
+its active-process count and waits for the retained process handle to become
+terminal before deleting temporary data. Failure to confirm termination retains
+ownership and temporary files. The helper requires Windows 10 / Server 2016 or
+newer, matching the existing reconnect ownership path.
+
+The 16 KiB mapping accepts at most 8,000 UTF-16 request units and returns only a
+fixed numeric status/reason. Request paths and URLs never become shell text or
+temporary request files. A zero process exit without a valid completion record is
+failure. Notification callback errors propagate after cleanup and cannot send a
+second, contradictory completion. Native tests check cross-process Unicode data,
+missing/failed results, normal descendant cleanup and hard owner termination;
+PowerShell 5.1/7 checks cover protocol bounds and fixed failure reasons. See
+[file worker verification](file-worker-verification.md).
 
 ## Support reports
 
