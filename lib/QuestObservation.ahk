@@ -128,7 +128,7 @@ nm_ReadQuestRows(hwnd, startY, count, title, objectives := 0) {
 ; Publish a recognition failure without leaving stale completed text or actions.
 nm_PublishUnknownQuest(family) {
 	global
-	local message := "Unknown: quest title or objective rows could not be verified."
+	local message := "Unknown: quest title or objective rows could not be verified; observation retry is delayed."
 	local setting := family "QuestProgress", keys := [], key
 	if %setting% != message {
 		%setting% := message

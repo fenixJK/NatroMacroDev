@@ -17562,9 +17562,6 @@ nm_QuestRotate(){
 	if (nm_NightInterrupt() || nm_MondoInterrupt() || nm_GatherBoostInterrupt())
 		return
 
-	;open quest log
-	nm_OpenMenu("questlog")
-
 	;polar bear quest
 	nm_PolarQuest()
 
@@ -17573,7 +17570,7 @@ nm_QuestRotate(){
 		nm_BlackQuest()
 
 		;black bear quest is complete but not yet time to turn in, move onto next quest
-		if(BlackQuestCheck=0 || BlackQuestComplete = -1 || (BlackQuestComplete = 1 && (nowUnix()-LastBlackQuest)<3600)) {
+		if(BlackQuestCheck=0 || BlackQuestComplete = -1 || (BlackQuestComplete = 1 && ((nowUnix()-LastBlackQuest)<3600 || !nm_QuestRecovery.Ready("Black", "visit")))) {
 			;bucko quest
 			nm_BuckoQuest()
 			if(BuckoQuestCheck=0 || BuckoQuestComplete != 0 || QuestGatherField = "None") {
@@ -17601,6 +17598,10 @@ nm_HoneyQuestProg(){
 	global state, bitmaps
 	if(!HoneyQuestCheck)
 		return
+	if !nm_QuestRecovery.Begin("Honey", "read") {
+		nm_PublishUnknownQuest("Honey")
+		return
+	}
 	try {
 		nm_setShiftLock(0)
 		nm_OpenMenu("questlog")
@@ -17694,6 +17695,7 @@ nm_HoneyQuestProg(){
 			MainGui["HoneyQuestProgress"].Text := StrReplace(honeyProgress, "|", "`n")
 		}
 	} finally {
+		nm_QuestRecovery.Finish("Honey", "read", HoneyQuestComplete = 0 || HoneyQuestComplete = 1)
 		if HoneyQuestComplete = -1
 			nm_PublishUnknownQuest("Honey")
 	}
@@ -17719,6 +17721,10 @@ nm_PolarQuestProg(){
 	global state, bitmaps
 	if(!PolarQuestCheck)
 		return
+	if !nm_QuestRecovery.Begin("Polar", "read") {
+		nm_PublishUnknownQuest("Polar")
+		return
+	}
 	try {
 		PolarQuest := ""
 		QuestLadybugs := 0
@@ -17902,6 +17908,7 @@ nm_PolarQuestProg(){
 			MainGui["PolarQuestProgress"].Text := StrReplace(polarProgress, "|", "`n")
 		}
 	} finally {
+		nm_QuestRecovery.Finish("Polar", "read", PolarQuestComplete = 0 || PolarQuestComplete = 1)
 		if PolarQuestComplete = -1
 			nm_PublishUnknownQuest("Polar")
 	}
@@ -17923,6 +17930,10 @@ nm_RileyQuestProg(){
 	global LastBugrunLadybugs, MonsterRespawnTime, LastBugrunScorpions, bitmaps
 	if(!RileyQuestCheck)
 		return
+	if !nm_QuestRecovery.Begin("Riley", "read") {
+		nm_PublishUnknownQuest("Riley")
+		return
+	}
 	try {
 		RileyQuest := ""
 		RileyLadybugs := 0
@@ -18140,6 +18151,7 @@ nm_RileyQuestProg(){
 			MainGui["RileyQuestProgress"].Text := StrReplace(rileyProgress, "|", "`n")
 		}
 	} finally {
+		nm_QuestRecovery.Finish("Riley", "read", RileyQuestComplete = 0 || RileyQuestComplete = 1)
 		if RileyQuestComplete = -1
 			nm_PublishUnknownQuest("Riley")
 	}
@@ -18161,6 +18173,10 @@ nm_BuckoQuestProg(){
 	global MonsterRespawnTime, LastBugrunRhinoBeetles, LastBugrunMantis, bitmaps
 	if(!BuckoQuestCheck)
 		return
+	if !nm_QuestRecovery.Begin("Bucko", "read") {
+		nm_PublishUnknownQuest("Bucko")
+		return
+	}
 	try {
 		BuckoQuest := ""
 		BuckoRhinoBeetles := 0
@@ -18377,6 +18393,7 @@ nm_BuckoQuestProg(){
 			MainGui["BuckoQuestProgress"].Text := StrReplace(buckoProgress, "|", "`n")
 		}
 	} finally {
+		nm_QuestRecovery.Finish("Bucko", "read", BuckoQuestComplete = 0 || BuckoQuestComplete = 1)
 		if BuckoQuestComplete = -1
 			nm_PublishUnknownQuest("Bucko")
 	}
@@ -18394,6 +18411,10 @@ nm_BlackQuestProg(){
 	global state, bitmaps
 	if(!BlackQuestCheck)
 		return
+	if !nm_QuestRecovery.Begin("Black", "read") {
+		nm_PublishUnknownQuest("Black")
+		return
+	}
 	try {
 		BlackQuest := ""
 		nm_setShiftLock(0)
@@ -18622,6 +18643,7 @@ nm_BlackQuestProg(){
 			MainGui["BlackQuestProgress"].Text := StrReplace(blackProgress, "|", "`n")
 		}
 	} finally {
+		nm_QuestRecovery.Finish("Black", "read", BlackQuestComplete = 0 || BlackQuestComplete = 1)
 		if BlackQuestComplete = -1
 			nm_PublishUnknownQuest("Black")
 	}
@@ -18639,6 +18661,10 @@ nm_BrownQuestProg(){
 	global state, bitmaps
 	if(!BrownQuestCheck)
 		return
+	if !nm_QuestRecovery.Begin("Brown", "read") {
+		nm_PublishUnknownQuest("Brown")
+		return
+	}
 	try {
 		BrownQuest := ""
 		nm_setShiftLock(0)
@@ -18875,6 +18901,7 @@ nm_BrownQuestProg(){
 		IniWrite brownProgress, "settings\nm_config.ini", "Quests", "BrownQuestProgress"
 		MainGui["BrownQuestProgress"].Text := StrReplace(brownProgress, "|", "`n")
 	} finally {
+		nm_QuestRecovery.Finish("Brown", "read", BrownQuestComplete = 0 || BrownQuestComplete = 1)
 		if BrownQuestComplete = -1
 			nm_PublishUnknownQuest("Brown")
 	}

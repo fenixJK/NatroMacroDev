@@ -1,24 +1,15 @@
+#Include "QuestRecovery.ahk"
+
 ; Quest consumers require explicit observed states. Unknown does not turn in or count a quest.
 
 nm_PolarQuest(){
 	global PolarQuestCheck, PolarQuest, PolarQuestComplete, QuestGatherField, QuestLadybugs, QuestRhinoBeetles, QuestSpider, QuestMantis, QuestScorpions, QuestWerewolf, LastBugrunLadybugs, LastBugrunRhinoBeetles, LastBugrunSpider, LastBugrunMantis, LastBugrunScorpions, LastBugrunWerewolf, MonsterRespawnTime, RotateQuest, TotalQuestsComplete, SessionQuestsComplete
 	if(!PolarQuestCheck)
 		return
-	nm_setShiftLock(0)
 	RotateQuest:="Polar"
 	nm_PolarQuestProg()
 	if(PolarQuestComplete = 1) {
-		nm_updateAction("Quest")
-		nm_gotoQuestgiver("Polar")
-		nm_PolarQuestProg()
-		if(PolarQuestComplete = 0){
-			nm_setStatus("Starting", "Polar Quest: " . PolarQuest)
-			TotalQuestsComplete:=TotalQuestsComplete+1
-			SessionQuestsComplete:=SessionQuestsComplete+1
-			PostSubmacroMessage("StatMonitor", 0x5555, 5, 1)
-			IniWrite TotalQuestsComplete, "settings\nm_config.ini", "Status", "TotalQuestsComplete"
-			IniWrite SessionQuestsComplete, "settings\nm_config.ini", "Status", "SessionQuestsComplete"
-		}
+		nm_TryQuestTurnIn("Polar", nm_PolarQuestProg)
 	}
 	;do quest stuff
 	if(PolarQuestComplete = 0) {
@@ -29,17 +20,7 @@ nm_PolarQuest(){
 			return
 		nm_PolarQuestProg()
 		if(PolarQuestComplete = 1) {
-			nm_updateAction("Quest")
-			nm_gotoQuestgiver("Polar")
-			nm_PolarQuestProg()
-			if(PolarQuestComplete = 0){
-				nm_setStatus("Starting", "Polar Quest: " . PolarQuest)
-				TotalQuestsComplete:=TotalQuestsComplete+1
-				SessionQuestsComplete:=SessionQuestsComplete+1
-				PostSubmacroMessage("StatMonitor", 0x5555, 5, 1)
-				IniWrite TotalQuestsComplete, "settings\nm_config.ini", "Status", "TotalQuestsComplete"
-				IniWrite SessionQuestsComplete, "settings\nm_config.ini", "Status", "SessionQuestsComplete"
-			}
+			nm_TryQuestTurnIn("Polar", nm_PolarQuestProg)
 		}
 	}
 }
@@ -51,17 +32,7 @@ nm_RileyQuest(){
 	RotateQuest:="Riley"
 	nm_RileyQuestProg()
 	if(RileyQuestComplete=1) {
-		nm_updateAction("Quest")
-		nm_gotoQuestgiver("Riley")
-		nm_RileyQuestProg()
-		if(RileyQuestComplete = 0){
-			nm_setStatus("Starting", "Riley Quest: " . RileyQuest)
-			TotalQuestsComplete:=TotalQuestsComplete+1
-			SessionQuestsComplete:=SessionQuestsComplete+1
-			PostSubmacroMessage("StatMonitor", 0x5555, 5, 1)
-			IniWrite TotalQuestsComplete, "settings\nm_config.ini", "Status", "TotalQuestsComplete"
-			IniWrite SessionQuestsComplete, "settings\nm_config.ini", "Status", "SessionQuestsComplete"
-		}
+		nm_TryQuestTurnIn("Riley", nm_RileyQuestProg)
 	}
 	if(RileyQuestComplete = 0){
 		if(QuestFeed!="none") {
@@ -79,16 +50,7 @@ nm_RileyQuest(){
 			return
 		nm_RileyQuestProg()
 		if(RileyQuestComplete=1) {
-			nm_gotoQuestgiver("Riley")
-			nm_RileyQuestProg()
-			if(RileyQuestComplete = 0){
-				nm_setStatus("Starting", "Riley Quest: " . RileyQuest)
-				TotalQuestsComplete:=TotalQuestsComplete+1
-				SessionQuestsComplete:=SessionQuestsComplete+1
-				PostSubmacroMessage("StatMonitor", 0x5555, 5, 1)
-				IniWrite TotalQuestsComplete, "settings\nm_config.ini", "Status", "TotalQuestsComplete"
-				IniWrite SessionQuestsComplete, "settings\nm_config.ini", "Status", "SessionQuestsComplete"
-			}
+			nm_TryQuestTurnIn("Riley", nm_RileyQuestProg)
 		}
 	}
 }
@@ -100,17 +62,7 @@ nm_BuckoQuest(){
 	RotateQuest:="Bucko"
 	nm_BuckoQuestProg()
 	if(BuckoQuestComplete=1) {
-		nm_updateAction("Quest")
-		nm_gotoQuestgiver("Bucko")
-		nm_BuckoQuestProg()
-		if(BuckoQuestComplete = 0){
-			nm_setStatus("Starting", "Bucko Quest: " . BuckoQuest)
-			TotalQuestsComplete:=TotalQuestsComplete+1
-			SessionQuestsComplete:=SessionQuestsComplete+1
-			PostSubmacroMessage("StatMonitor", 0x5555, 5, 1)
-			IniWrite TotalQuestsComplete, "settings\nm_config.ini", "Status", "TotalQuestsComplete"
-			IniWrite SessionQuestsComplete, "settings\nm_config.ini", "Status", "SessionQuestsComplete"
-		}
+		nm_TryQuestTurnIn("Bucko", nm_BuckoQuestProg)
 	}
 	if(BuckoQuestComplete = 0){
 		if(QuestFeed!="none") {
@@ -128,16 +80,7 @@ nm_BuckoQuest(){
 			return
 		nm_BuckoQuestProg()
 		if(BuckoQuestComplete=1) {
-			nm_gotoQuestgiver("Bucko")
-			nm_BuckoQuestProg()
-			if(BuckoQuestComplete = 0){
-				nm_setStatus("Starting", "Bucko Quest: " . BuckoQuest)
-				TotalQuestsComplete:=TotalQuestsComplete+1
-				SessionQuestsComplete:=SessionQuestsComplete+1
-				PostSubmacroMessage("StatMonitor", 0x5555, 5, 1)
-				IniWrite TotalQuestsComplete, "settings\nm_config.ini", "Status", "TotalQuestsComplete"
-				IniWrite SessionQuestsComplete, "settings\nm_config.ini", "Status", "SessionQuestsComplete"
-			}
+			nm_TryQuestTurnIn("Bucko", nm_BuckoQuestProg)
 		}
 	}
 }
@@ -149,19 +92,7 @@ nm_BlackQuest(){
 	RotateQuest:="Black"
 	nm_BlackQuestProg()
 	if(BlackQuestComplete = 1 && (nowUnix()-LastBlackQuest)>3600) {
-		nm_updateAction("Quest")
-		nm_gotoQuestgiver("Black")
-		nm_BlackQuestProg()
-		if(BlackQuestComplete = 0){
-			nm_setStatus("Starting", "Black Bear Quest: " . BlackQuest)
-			TotalQuestsComplete:=TotalQuestsComplete+1
-			SessionQuestsComplete:=SessionQuestsComplete+1
-			PostSubmacroMessage("StatMonitor", 0x5555, 5, 1)
-			IniWrite TotalQuestsComplete, "settings\nm_config.ini", "Status", "TotalQuestsComplete"
-			IniWrite SessionQuestsComplete, "settings\nm_config.ini", "Status", "SessionQuestsComplete"
-			LastBlackQuest:=nowUnix()
-			IniWrite LastBlackQuest, "settings\nm_config.ini", "Quests", "LastBlackQuest"
-		}
+		nm_TryQuestTurnIn("Black", nm_BlackQuestProg)
 	}
 }
 
@@ -172,19 +103,7 @@ nm_BrownQuest(){
 	RotateQuest:="Brown"
 	nm_BrownQuestProg()
 	if(BrownQuestComplete = 1 && (nowUnix()-LastBrownQuest)>3600) {
-		nm_updateAction("Quest")
-		nm_gotoQuestgiver("Brown")
-		nm_BrownQuestProg()
-		if(BrownQuestComplete = 0){
-			nm_setStatus("Starting", "Brown Bear Quest: " . BrownQuest)
-			TotalQuestsComplete:=TotalQuestsComplete+1
-			SessionQuestsComplete:=SessionQuestsComplete+1
-			PostSubmacroMessage("StatMonitor", 0x5555, 5, 1)
-			IniWrite TotalQuestsComplete, "settings\nm_config.ini", "Status", "TotalQuestsComplete"
-			IniWrite SessionQuestsComplete, "settings\nm_config.ini", "Status", "SessionQuestsComplete"
-			LastBrownQuest:=nowUnix()
-			IniWrite LastBrownQuest, "settings\nm_config.ini", "Quests", "LastBrownQuest"
-		}
+		nm_TryQuestTurnIn("Brown", nm_BrownQuestProg)
 	}
 }
 
@@ -199,5 +118,38 @@ nm_HoneyQuest() {
 		nm_HoneyQuestProg()
 		if HoneyQuestComplete = 0
 			nm_setStatus("Starting", "Honey Quest: Honey Hunt")
+	}
+}
+
+; Every entry path uses the same persisted reservation and post-visit check.
+nm_TryQuestTurnIn(family, reader) {
+	global
+	local confirmed := false, questName
+	if !%family%QuestCheck || %family%QuestComplete != 1 || !nm_QuestRecovery.Begin(family, "visit")
+		return false
+	try {
+		nm_updateAction("Quest")
+		nm_gotoQuestgiver(family)
+		reader.Call()
+		if %family%QuestComplete != 0
+			return false
+		questName := family = "Honey" ? "Honey Hunt" : %family%Quest
+		nm_setStatus("Starting", family " Quest: " questName)
+		if family != "Honey" {
+			TotalQuestsComplete++, SessionQuestsComplete++
+			PostSubmacroMessage("StatMonitor", 0x5555, 5, 1)
+			IniWrite TotalQuestsComplete, "settings\nm_config.ini", "Status", "TotalQuestsComplete"
+			IniWrite SessionQuestsComplete, "settings\nm_config.ini", "Status", "SessionQuestsComplete"
+		}
+		if family = "Black" || family = "Brown" {
+			Last%family%Quest := nowUnix()
+			IniWrite Last%family%Quest, "settings\nm_config.ini", "Quests", "Last" family "Quest"
+		}
+		confirmed := true
+		return true
+	} finally {
+		nm_QuestRecovery.Finish(family, "visit", confirmed)
+		if !confirmed
+			nm_setStatus("Unconfirmed", family " quest turn-in was not verified; retry in 5 minutes.")
 	}
 }
