@@ -35,6 +35,22 @@ TestDeliveryCooldown() {
 	AssertEqual(gate.Defer(other, 1000, -1), 61000, "Invalid server delay uses a minute fallback")
 	AssertEqual(gate.Defer(other, 1000, 1.0e30), 0x1fffffffffffff, "Pathological duration cannot overflow to an early send")
 
+	; Model a response just before any timer edge, then the earliest tick at
+	; which the queue could send. The server measures real elapsed time.
+	for quantum in [10, 15.625, 16] {
+		Loop 32 {
+			observed := quantum * 64, actual := observed + quantum * (A_Index - 0.01) / 32
+			guarded := nm_DeliveryCooldown(false, 32)
+			deadline := guarded.Defer({token: "quantized"}, observed, 2.5001)
+			earliestSend := Ceil(deadline / quantum) * quantum
+			Assert(earliestSend - actual >= 2500.1, "Coarse clock cannot shorten the requested real interval")
+		}
+	}
+	guarded := nm_DeliveryCooldown(false, 32)
+	AssertEqual(guarded.Defer(first, 1000, 2.5), 3532, "Native clock allowance extends the published deadline")
+	AssertEqual(guarded.Defer(other, 0x1fffffffffffff - 16, 0.001), 0x1fffffffffffff, "Clock allowance also saturates near the maximum")
+	AssertEqual(nm_DeliveryCooldown(true).ClockMarginMs, 32, "Native shared coordinators enable the clock allowance")
+
 	fixture := TestDeliveryFixture([{status: 429, retryAfter: 300}])
 	fixture.Add(), fixture.queue.Pump(), fixture.queue.Close()
 	second := TestDeliveryFixture([{status: 200, retryAfter: 0}])
@@ -81,7 +97,7 @@ TestLocalCooldown() {
 			Sleep 10
 		}
 		AssertEqual(delivered.Length, 1, "Next native message finishes")
-		if !delivered[1] && FileExist(A_Args[2] ".rate")
+		if FileExist(A_Args[2] ".rate")
 			FileAppend "Native cooldown server elapsed seconds: " FileRead(A_Args[2] ".rate") "`n", "*"
 		Assert(delivered[1], "Server independently confirms the cross-message Retry-After interval")
 		AssertEqual(failures.Length, 1, "Only the deliberately exhausted first message fails")

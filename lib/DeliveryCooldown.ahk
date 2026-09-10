@@ -1,8 +1,14 @@
 ; Cooldowns belong to the sending identity, not to a particular queued message.
 ; Native queues share monotonic deadlines through Windows session-local mappings.
 class nm_DeliveryCooldown {
-	__New(shared := false) {
-		this.Shared := shared, this.Entries := Map()
+	__New(shared := false, clockMarginMs := unset) {
+		; GetTickCount64 advances in coarse steps (typically 10-16 ms). Allow
+		; two normal timer intervals so rounding the response timestamp down
+		; cannot consume the beginning of Retry-After. Exact test clocks use 0.
+		margin := IsSet(clockMarginMs) ? clockMarginMs : (shared ? 32 : 0)
+		if !IsInteger(margin) || margin < 0 || margin > 1000
+			throw ValueError("Invalid delivery clock margin")
+		this.Shared := shared, this.ClockMarginMs := margin, this.Entries := Map()
 	}
 	static Key(job) {
 		if !job.HasOwnProp("rateKey")
@@ -50,7 +56,8 @@ class nm_DeliveryCooldown {
 		entry := this.Entry(job, current)
 		seconds := IsNumber(seconds) && seconds > 0 ? seconds : 60
 		; Saturate pathological durations rather than overflowing into an early send.
-		deadline := seconds >= (0x1fffffffffffff - current) / 1000 ? 0x1fffffffffffff : current + Ceil(seconds * 1000)
+		deadline := seconds >= (0x1fffffffffffff - current - this.ClockMarginMs) / 1000
+			? 0x1fffffffffffff : current + Ceil(seconds * 1000) + this.ClockMarginMs
 		entry.deadline := Max(entry.deadline, deadline)
 		if this.Shared {
 			entry.pending := entry.deadline
