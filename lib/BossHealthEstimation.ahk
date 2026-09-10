@@ -74,13 +74,21 @@ class nm_BossHealthReporting {
 			return false
 		session.Busy := true
 		try {
-			frames := []
+			frames := [], started := this.Tick.Call()
 			Loop 5 {
+				tick := this.Tick.Call()
+				if tick < started || tick - started > 5000
+					return false
 				frames.Push(this.Read.Call())
 				if A_Index < 5
 					this.Wait.Call(100)
 			}
-			plan := session.Plan(frames, this.Tick.Call())
+			tick := this.Tick.Call()
+			; A pause or long interruption must not combine old frames with a new
+			; timestamp. Keep the committed baseline for the next fresh sample set.
+			if tick < started || tick - started > 5000
+				return false
+			plan := session.Plan(frames, tick)
 			if !plan
 				return false
 			previousCritical := A_IsCritical

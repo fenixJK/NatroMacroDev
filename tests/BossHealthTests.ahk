@@ -100,6 +100,11 @@ TestBossHealthReporting() {
 		}
 		frameQueue := BossHealthSamples(70)
 		Assert(nm_KillTimeEstimation("Snail", session), "Report can be retried after a failed write")
+		frameQueue := BossHealthSamples(60)
+		nm_BossHealthReporting.Wait := (*) => sampleTick += 6000
+		Assert(!nm_KillTimeEstimation("Snail", session), "Long interruption rejects stale frame series")
+		Assert(session.Revision = 1 && !session.Busy && frameQueue.Length = 4, "Expired series stops reading and retains the committed baseline")
+		nm_BossHealthReporting.Wait := (*) => 0
 		nm_BossHealthReporting.Read := BossHealthThrow
 		observationRejected := false
 		try nm_KillTimeEstimation("Snail", session)

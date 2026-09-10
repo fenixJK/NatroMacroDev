@@ -37,7 +37,9 @@ has a new observation session, and its first accepted sample establishes a fresh
 baseline rather than treating saved/manual health as measured starting health.
 Five captures are separated by 100 milliseconds. At least three must agree within
 one percentage point of the median; frames with multiple damaged bars are ambiguous
-and cannot vote. Full bars and zero-health bars do not identify a living target.
+and cannot vote. A sample series lasting more than five seconds is rejected, so a
+long pause cannot combine old frames with a new observation timestamp. Full bars
+and zero-health bars do not identify a living target.
 
 A measured rate requires at least 2.5 percentage points of damage and a positive
 monotonic interval since the last committed observation. Failed/inconsistent reads
