@@ -94,6 +94,12 @@ TestInlineRegistry(executable) {
 	catch ValueError
 		sizeRejected := true
 	RequireProcess(IsSet(sizeRejected), "Oversized source rejected before launch")
+	worker := nm_InlineScripts.Start("basic_egg", source, executable)
+	SetTimer (() => nm_InlineScripts.Close("basic_egg")), -50
+	try worker.Output()
+	catch as err
+		cancelled := InStr(err.Message, "cancelled")
+	RequireProcess(IsSet(cancelled) && cancelled, "Result polling tolerates cleanup by a stop callback")
 }
 TestInlineOwnerCrash() {
 	parent := 0, supervisorHandle := 0, generatedHandle := 0

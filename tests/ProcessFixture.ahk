@@ -8,6 +8,7 @@
 channel := nm_ProcessChannel(A_Args[1])
 request := channel.Read()
 if request["mode"] = "inline_owner" {
+	SetWorkingDir A_ScriptDir "\.."
 	child := nm_InlineWorker('#SingleInstance Off`n#NoTrayIcon`nSleep 60000', A_AhkPath)
 	NumPut("Int", child.Pid, channel.View, 12)
 	NumPut("Int", child.ProcessID, channel.View, 16)

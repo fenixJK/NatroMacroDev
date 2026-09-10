@@ -6,6 +6,7 @@
 #Include "%A_ScriptDir%\..\lib\InlineProtocol.ahk"
 #Include "%A_ScriptDir%\..\lib\InlinePipe.ahk"
 
+SetWorkingDir A_ScriptDir "\.."
 channel := 0
 try {
 	if A_Args.Length != 1
