@@ -26,7 +26,7 @@ TestImageObservation() {
 	region := nm_ImageObservation.Region(200, 200, "quest")
 	Assert(region.right = 199 && region.bottom = 199, "Small quest search does not extend onto desktop")
 	Assert(!nm_ImageObservation.Region(200, 100, "quest"), "Quest area below a tiny client is unusable")
-	AssertThrows(nm_ImageObservation.Region.Bind(800, 600, "typo"), "Unknown region rejected")
+	AssertThrows(() => nm_ImageObservation.Region(800, 600, "typo"), "Unknown region rejected")
 	DirCreate "nm_image_assets"
 	FileAppend "fixture", "nm_image_assets\observation-fixture.png"
 	try {
