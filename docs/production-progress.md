@@ -1110,3 +1110,54 @@ durable outbox/recovery, current-artwork/live rendering checks and full end-to-e
 report verification. Positive game receipts, crash-consistent state and the rest
 of the production plan remain active. No live verification, deployment, merge or
 production release is claimed.
+
+## Asynchronous live honey delivery checkpoint
+
+Code checkpoint: `2bb6bad8af222753649ae5ea61a9acdd9040598d`.
+[Windows run 34432989157](https://github.com/fenixJK/NatroMacroDev/actions/runs/34432989157)
+passed **52 regression groups on each AHK architecture**, the existing native
+Windows integration suites, seven production-script and four emitted-worker
+validations per architecture, **43 attachment checks** and **35 updater scenarios**
+on each PowerShell version. No AHK warnings occurred. The checkout Node runtime
+deprecation notice remains.
+
+Live honey posts and edits now share the Status outbox instead of synchronously
+waiting for an HTTP response. The queue supports POST/PATCH, optional response
+metadata, owner cancellation and per-job age limits while preserving existing
+boolean completion callbacks. Its native adapter consumes a bounded-size JSON
+message-ID result. Closed queues cannot accept new work, including from completion
+callbacks. Server retry deadlines are returned on terminal outcomes so a newly
+captured live frame cannot bypass a longer 429 delay after the old frame expires.
+
+The live updater admits one frame at a time. Waiting skips further capture rather
+than accumulating stale screenshots; the next eligible tick captures current data.
+Successful creation establishes the ID for later PATCH requests. Endpoint/token,
+enablement or active-period changes reset session identity and cancel prior work;
+late results cannot set the new session's ID. Configuration is rechecked after
+image preparation. Webhook message paths precede existing query parameters and
+creation normalizes wait=true. Encoded bytes are queued after source bitmap cleanup.
+
+A frame has a one-minute age limit when pumped and uses the shared request timeout
+and bounded retry policy. Failed/expired frames back off at least a minute and
+honor a longer server delay. Deleted edit targets may be recreated after backoff.
+Permanent 4xx responses pause the current live session except retryable 408/429 and
+missing edit targets. Successful creation without a usable ID also pauses and logs
+the uncertainty, avoiding repeated creation for that successful-but-unidentified
+result. A new active period or destination resets the session pause.
+
+Tests exercise single-frame ownership, create/edit selection, message-ID receipt,
+query routing, reconfiguration, late results, cancellation cleanup, missing IDs,
+permanent failures, deleted targets and closed queues. A five-minute 429 fixture
+verifies that one-minute frame expiry cannot shorten server backoff. The loopback
+server independently requires POST/frame 1 and PATCH/frame 2, returns JSON IDs,
+and the real WinHTTP adapter consumes those results. No Discord request is sent.
+
+[Reporting verification](reporting-verification.md) records limits. Cancellation
+is consumed when queued work is reached; it cannot undo external effects already
+delivered. Native calls and queue scheduling are cooperative, and synchronous
+command replies/bot polling can still delay other work. Lost POST responses can
+produce duplicates during bounded retries, and restart loses the in-memory ID.
+Durable receipts/outbox recovery, cross-helper rate coordination, remaining command
+delivery migration, live capture/rendering and measured resource/performance effects
+remain open. F23 and the full production plan remain active. No live verification,
+merge, deployment or production release is claimed.

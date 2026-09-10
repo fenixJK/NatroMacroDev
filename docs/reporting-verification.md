@@ -46,8 +46,9 @@ Ordinary status screenshots are not retained on disk. Status input is capped at
 The outbox itself is in memory. Normal exit records unconfirmed items locally;
 abrupt process termination can lose ordinary queued statuses/images. A lost HTTP
 response can also cause a duplicate on retry: this is not exactly-once delivery.
-Each helper currently has its own queue, and legacy bot polling/command replies and
-live honey message edits still use synchronous requests with bounded waits. Global
+Each helper currently has its own queue, and legacy bot polling/command replies
+still use synchronous requests with bounded waits. Live honey uses the Status
+helper's existing queue. Global
 rate-limit coordination across those paths remains open.
 
 ## Verification scope
@@ -65,8 +66,8 @@ bitmap has been disposed. No test contacts Discord or uses real credentials.
 
 Still required for F23 and the broader production plan:
 
-- Move synchronous command replies and live honey edits onto the common delivery
-  contract. Their payload builders now serialize objects, including the structured
+- Move synchronous command replies onto the common delivery contract. Their
+  payload builders now serialize objects, including the structured
   timer, planter, shrine, blender and memory-match displays.
 - Coordinate rate limits and dispatch across helpers, commands and bot polling;
   persist ordinary queued reports with explicit destination identity and recovery.
@@ -131,8 +132,8 @@ Reports reuse one attachment for a shared catalog bitmap and generate unique
 filenames with consecutive file indexes, independent of empty slots or repeated
 item names. The shared multipart encoder copies the borrowed images; the report
 does not dispose catalog bitmaps. Reports without icons use a JSON body. Live honey
-updates now serialize their image/color and explicit empty attachment list, while
-retaining their existing synchronous post/edit behavior.
+updates serialize their image/color and explicit empty attachment list; their
+asynchronous post/edit behavior is described below.
 
 Regression tests cover sparse/repeated planter slots, hold/smoking/ready timing,
 blender Infinite/exhausted slots and invalid colors, shrine rotation, enabled timer
@@ -143,6 +144,48 @@ validity is checked afterward. HTTP transport is replaced; live game accuracy,
 current artwork, Discord rendering and delivery remain unverified. Structured
 field text is bounded to platform-sized fields; this is not arbitrary-size report
 pagination or an atomic cross-process settings snapshot.
+
+## Live honey delivery
+
+Live honey creation and edits now use the same outbox as Status reports. The queue
+supports POST/PATCH and an optional result callback while preserving existing
+boolean completion callbacks. The HTTP adapter extracts a decimal message ID from
+JSON response text up to 65,536 characters before the updater may edit it; larger
+bodies do not provide an ID. One frame may be queued or
+in flight; subsequent ticks skip capture rather than retaining more images. When
+that request finishes, a later tick captures current data. Encoded image bytes
+belong to the queue after preparation, and the source bitmap is released.
+
+Each active period/destination has its own identity. Disablement, inactive honey
+status, or a changed endpoint/token marks old work cancelled and clears the ID.
+Old callbacks cannot adopt an ID for the new session. Cancelled work is consumed
+by the queue when reached and active requests are aborted when cancellation is
+pumped; an external request already delivered cannot be undone. Destination and
+enablement are checked again after image preparation before submission. Webhook
+query parameters remain after the message path, and creation requests wait=true.
+
+Live frames have a one-minute age limit, checked when pumped, and use the existing
+twenty-second request timeout/five-attempt policy. Expiry/exhaustion imposes a
+one-minute fresh-frame backoff and retains any longer server retry deadline.
+Deleted edit targets clear the ID and may be recreated after backoff. Permanent
+4xx failures pause the session (except retryable 408/429 and a missing edit target).
+A successful create without a usable ID also pauses the session and records the
+uncertainty instead of repeatedly creating messages. A new active period or
+destination resets that session pause. Closed queues reject further frames.
+
+Scripted tests cover single-frame ownership, create/edit transitions, destination
+changes, late receipts, cancellation, missing IDs, permanent errors, deleted
+messages, closed queues and a five-minute server retry delay across frame expiry.
+A loopback fixture independently checks actual POST/PATCH methods and frame bodies
+and returns a message ID consumed by the native WinHTTP adapter. It does not contact
+Discord. Legacy queue, report and attachment tests remain in the full suite.
+
+This remains an in-memory delivery protocol. A lost POST response may create a
+duplicate during bounded retries, and restart loses the message ID. Cancellation
+does not revoke an already delivered request. Native calls and delayed queue pumps
+make timing cooperative, and other synchronous commands can still delay work.
+Cross-helper rate coordination, durable receipts/recovery, live Discord behavior,
+game capture accuracy and measured resource/performance effects remain open.
 
 ## Counter consistency
 
