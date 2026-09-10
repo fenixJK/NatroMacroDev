@@ -74,3 +74,11 @@ ownership, and rejected known values exit before GUI construction. The native
 GUI suite now checks both retained unknown keys and rejected selections. See
 [Auto-Jelly settings verification](auto-jelly-settings-verification.md) for
 Windows run 34457713047 and remaining persistence/game limits.
+
+## Priority editor follow-up
+
+The priority probe now exercises the actual save/reset functions and verifies
+the drag coordinate mode before its redraw and cleanup checks. Saved order uses
+a shared validated store, and the renderer no longer mutates the array before
+persistence succeeds. [Priority settings verification](priority-settings-verification.md)
+records Windows run 34458814651 and the remaining physical-input/live-game scope.

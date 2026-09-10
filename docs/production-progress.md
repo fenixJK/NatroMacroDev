@@ -1692,3 +1692,45 @@ transaction. Auto-Jelly OCR, consumption budgets, live stop behavior, additional
 COM/image lifetimes and the broader production plan remain open. No Windows/Roblox
 machine is available; work continues through code fixes and CI. No merge, deployment
 or release is claimed. The full production goal remains active.
+
+## Task-priority editing and persistence checkpoint
+
+Code checkpoint: `3e70c501689ae3ff9282de8a168c4c74e38fb4e9`.
+[Windows run 34458814651](https://github.com/fenixJK/NatroMacroDev/actions/runs/34458814651)
+passed **64 regression groups on both AHK architectures**, native process/GUI
+suites, **nine production-script, four test-entry and seven emitted-worker
+validations** per architecture, plus **eight file-channel checks, 43 attachment
+checks and 35 updater scenarios** per PowerShell version. No AHK warnings occurred;
+the checkout Node runtime deprecation notice remains.
+
+Priority reading, moves, descriptions and persistence share the full permutation
+validator. Editor and Status writes use a serialized file lock. The editor rejects
+a save when the stored order changed since it opened, and publishes its new array
+only after IniWrite succeeds. Drawing no longer changes the order. Dragging has
+explicit screen coordinates, a finite monotonic deadline, Escape cancellation,
+frame yielding and finally-based cursor restoration.
+
+Discord's priority get command now describes the saved permutation rather than
+the default task names. Set reports save failures and explains that the new order
+takes effect at the next full task cycle. Main reads and validates the file at
+startup and each cycle, while preserving the current cycle's array. Priority
+notifications carry no setting payload and target verified main/Status paths and
+runtimes in this installation. Receivers reload their own file; missed notifications
+do not prevent the next cycle from seeing the saved order.
+
+Regression fixtures exercise all 128 moves across default/reverse orders, invalid
+permutations, save/read behavior, stale edits, lock contention, failed writes and
+corrupt-file preservation. The native GUI probe saves and resets via its real
+functions. Native process fixtures verify that a 32-bit main and 64-bit Status
+receive one notification, while personal scripts, another installation and a
+same-path script under the wrong runtime receive none. Queue barriers and handle
+counts check delivery/isolation and cleanup. CI caught a test variable collision
+and hidden-window notification issue; both were corrected.
+
+[Priority settings verification](priority-settings-verification.md) records the
+contract and limits. This improves F17 but does not establish full live main
+startup/retry, physical drag/Escape, Discord dispatch or mid-run behavior with
+interrupts. These writers are serialized, not a dedicated single writer for all
+settings, and IniWrite remains non-atomic across crashes. Other settings still
+use legacy IPC. No Windows/Roblox machine is available. The full production goal
+remains active; no merge, deployment or release is claimed.
