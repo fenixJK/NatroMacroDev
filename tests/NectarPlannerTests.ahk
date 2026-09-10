@@ -14,6 +14,7 @@ TestNectarPlanner() {
 	candidates := [NectarCandidate("A", "Field A", "Pot A", 1.5), NectarCandidate("B", "Field B", "Pot B", 1.5)]
 	choice := p.Choose(needs, candidates, [])
 	AssertEqual(choice.nectar, "B", "A low lower-priority bar can win over a healthy first priority")
+	Assert(choice.seconds <= 3600, "An almost-empty bar gets an early emergency batch")
 	needs := [NectarNeed("A", 5, 80, 1), NectarNeed("B", 5, 80, 2)]
 	AssertEqual(p.Choose(needs, candidates, []).nectar, "A", "Equal need keeps configured priority")
 	AssertEqual(p.Choose(needs, candidates, [{nectar: "A", at: 300, amount: 90}]).nectar, "B", "Pending delivery redirects the next slot")
@@ -38,7 +39,7 @@ NectarNeed(name, percentage, target, priority) => {name: name, percent: percenta
 NectarCandidate(nectar, field, name, bonus, hours := 8) => {nectar: nectar, field: field, planter: [name, bonus, 1, hours], preference: 1}
 
 TestNectarObservation() {
-	AssertThrows(() => nm_NectarObservation.Read(0), "Failed capture is not zero nectar")
+	AssertDeliveryError(() => nm_NectarObservation.Read(0), "Failed capture is not zero nectar")
 	token := Gdip_Startup(), bitmap := Gdip_CreateBitmap(861, 159)
 	try {
 		graphics := Gdip_GraphicsFromImage(bitmap)

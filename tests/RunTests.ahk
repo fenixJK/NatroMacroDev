@@ -24,6 +24,8 @@
 #Include "%A_ScriptDir%\..\lib\NectarPlanner.ahk"
 #Include "%A_ScriptDir%\..\lib\NectarObservation.ahk"
 #Include "%A_ScriptDir%\NectarPlannerTests.ahk"
+#Include "%A_ScriptDir%\..\lib\AutomaticPlanters.ahk"
+#Include "%A_ScriptDir%\AutomaticPlantersTests.ahk"
 #Include "%A_ScriptDir%\ReconnectTests.ahk"
 #Include "%A_ScriptDir%\..\lib\PlanterRecovery.ahk"
 #Include "%A_ScriptDir%\..\lib\PlanterDialog.ahk"
@@ -129,7 +131,7 @@ DirCreate testDirectory "\settings"
 SetWorkingDir testDirectory
 passed := failed := 0
 try {
-	for test in [TestNectarPlanner, TestNectarObservation, TestNectarSimulation, TestResetRecovery, TestGlueDispenser, TestMenuNavigation, TestMenuTemplates, TestTextGraphics, TestScreenCapture, TestAutoJellyLimits, TestAutoJellyOcr, TestAutoJellySafety, TestPrioritySettings, TestAutoJellySettings, TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
+	for test in [TestAutomaticPlanters, TestNectarPlanner, TestNectarObservation, TestNectarSimulation, TestResetRecovery, TestGlueDispenser, TestMenuNavigation, TestMenuTemplates, TestTextGraphics, TestScreenCapture, TestAutoJellyLimits, TestAutoJellyOcr, TestAutoJellySafety, TestPrioritySettings, TestAutoJellySettings, TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
 		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures, TestCollectionInterrupts, TestDiscordPayload, TestDeliveryQueue, TestHourlyReportDelivery, TestLocalHttpDelivery, TestGeometryCache, TestInventoryEngine, TestInventoryReader, TestPointerLease, TestInventoryDrag, TestQuestObservation, TestQuestFrames, TestQuestActions, TestQuestUnknownPublication, TestQuestRecovery, TestQuestTurnInRecovery, TestHealthObservation, TestBossHealthEstimation, TestBossHealthReporting, TestImageObservation, TestCombatPresence, TestRemoteCapabilities, TestAttachmentWorker, TestSupportReport, TestGatherProfiles, TestReconnectSession, TestRecoveryActivity, TestPlanterDialog, TestStatCounters, TestDiscordRepliesEncoding, TestDiscordHelp, TestDiscordReports, TestLiveHoneyDelivery, TestLocalLiveHoney, TestUploadOwnership, TestCommandDelivery, TestDeliveryCooldown, TestLocalCooldown, TestBotInbox, TestBotRoles, TestBotRecovery, TestLocalBotInbox, TestStartupControl, TestWatchdogRecovery] {
 		try {
 			test.Call()

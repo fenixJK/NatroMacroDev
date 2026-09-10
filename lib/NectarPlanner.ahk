@@ -67,6 +67,8 @@ class nm_NectarPlanner {
 				if event.nectar = need.name
 					events.Push({at: event.at, amount: event.amount})
 			baseline := this.Forecast(percentage, target, events, this.Horizon)
+			near := this.Forecast(percentage, target, events, 7200).value
+			urgency := Floor(Max(0, need.target - near) / Max(1, need.target) * (1 + (6 - need.priority) / 10) * 10)
 			for candidate in candidates {
 				if candidate.nectar != need.name
 					continue
@@ -77,10 +79,13 @@ class nm_NectarPlanner {
 					: [mode = "full" ? full : Min(full, Floor(fixedHours * 3600))]
 				; Short emergency batches only when the observed bar is near empty.
 				if mode = "auto" && percentage <= 10
-					intervals.Push(1800, 3600)
+					intervals := [Min(full, 1800), Min(full, 3600)]
+				limit := mode = "auto" ? Min(full, Max(1800, Floor(percentage * this.SecondsPerPercent - 300))) : full
+				if mode = "auto" && percentage > 10 && limit < 7200
+					intervals.Push(limit)
 				seen := Map()
 				for seconds in intervals {
-					if seconds <= 0 || seconds > full || seen.Has(seconds)
+					if seconds <= 0 || seconds > limit || seen.Has(seconds)
 						continue
 					seen[seconds] := true
 					amount := seconds * bonus / this.SecondsPerPercent
@@ -90,10 +95,10 @@ class nm_NectarPlanner {
 					; weights preserve preference without permanently starving later needs.
 					score := Max(0, baseline.area - forecast.area) * (1 + (6 - need.priority) / 10)
 						/ (seconds + this.VisitSeconds)
-					if !best || score > best.score + 0.000001
-						|| (Abs(score - best.score) <= 0.000001 && candidate.preference < best.preference) {
+					if !best || urgency > best.urgency || (urgency = best.urgency && (score > best.score + 0.000001
+						|| (Abs(score - best.score) <= 0.000001 && candidate.preference < best.preference))) {
 						best := {nectar: need.name, field: candidate.field, planter: candidate.planter,
-							seconds: seconds, amount: amount, score: score, preference: candidate.preference,
+							seconds: seconds, amount: amount, score: score, urgency: urgency, preference: candidate.preference,
 							percent: percentage, target: need.target}
 					}
 				}
