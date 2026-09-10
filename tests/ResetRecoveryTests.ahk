@@ -21,6 +21,9 @@ TestResetRecovery() {
 	fixture := ResetRecoveryFixture([0]), fixture.Cost := 40, recovery := fixture.Controller(100)
 	AssertResetExhausted(() => recovery.Run(ObjBindMethod(fixture, "Attempt"), ObjBindMethod(fixture, "Cleanup")), "Attempts share one elapsed budget")
 	AssertEqual(fixture.Calls, 3, "Retries do not receive a new deadline")
+	fixture := ResetRecoveryFixture([1]), fixture.Cost := 50, fixture.CleanupCost := 50, recovery := fixture.Controller(100)
+	AssertResetExhausted(() => recovery.Run(ObjBindMethod(fixture, "Attempt"), ObjBindMethod(fixture, "Cleanup")), "Cleanup time belongs to the same recovery budget")
+	AssertEqual(fixture.Cleanups, 1, "Expired cleanup is not repeated")
 	fixture := ResetRecoveryFixture([0]), recovery := fixture.Controller(100)
 	AssertResetExhausted(() => recovery.Wait(1000), "Wait clips to remaining budget")
 	AssertEqual(fixture.Tick, 100, "No excess wait time")
@@ -47,7 +50,7 @@ AssertResetExhausted(action, message) {
 class ResetRecoveryFixture {
 	__New(outcomes) {
 		this.Outcomes := outcomes.Clone(), this.Last := 0, this.Tick := this.Calls := this.Cleanups := this.Cost := 0
-		this.Throws := false
+		this.Throws := false, this.CleanupCost := 0
 	}
 	Controller(limitMs := 1000) => nm_ResetRecovery(() => this.Tick, (ms) => this.Tick += ms, limitMs)
 	Attempt(recovery) {
@@ -59,5 +62,7 @@ class ResetRecoveryFixture {
 			this.Last := this.Outcomes.RemoveAt(1)
 		return this.Last
 	}
-	Cleanup() => this.Cleanups++
+	Cleanup() {
+		this.Cleanups++, this.Tick += this.CleanupCost
+	}
 }

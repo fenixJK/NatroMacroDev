@@ -24,14 +24,15 @@ class nm_ResetRecovery {
 			try {
 				result := attempt.Call(this)
 				this.Check()
-				if result = 1
-					return 1
-				if result != 0
+				if result != 0 && result != 1
 					throw nm_ResetExhausted("Hive recovery observation was unknown during " this.Stage)
 			} finally {
 				try cleanup.Call()
 				finally this.Close()
 			}
+			this.Check()
+			if result = 1
+				return 1
 		}
 		throw nm_ResetExhausted("Hive recovery exhausted " this.Attempts " attempts during " this.Stage)
 	}
