@@ -1242,3 +1242,47 @@ coordination across helpers. Abrupt exit can lose pending replies; lost response
 can cause duplicates on retry. Durable recovery, full asynchronous command
 execution, live verification and the full production plan remain active. No merge,
 deployment or production release is claimed.
+
+## Shared queued-request cooldown checkpoint
+
+Code checkpoint: `d0d623ae29376db809c71c4154c2e8181cf436c6`.
+[Windows run 34434884867](https://github.com/fenixJK/NatroMacroDev/actions/runs/34434884867)
+passed **56 regression groups on each AHK architecture**, native Windows suites
+including new opposite-architecture cooldown sharing, seven production-script and
+four emitted-worker validations per architecture, **43 attachment checks** and
+**35 updater scenarios** on each PowerShell version. No AHK warnings occurred.
+The checkout Node runtime deprecation notice remains.
+
+Queued HTTP 429 delays now belong to a sending identity rather than to the failed
+message. Expiry, cancellation or attempt exhaustion cannot make a subsequent
+message bypass the retained server deadline. The response clock is read after
+polling, fractional milliseconds round up, shorter deadlines cannot replace longer
+ones, and pathological durations saturate rather than overflow. Live-honey result
+callbacks continue receiving the effective retry deadline.
+
+Native queues share monotonic deadlines through session-local Windows mappings
+and nonblocking mutexes. Same-token bot requests share a conservative gate across
+channels and helpers; unauthenticated requests share one gate. Kernel names contain
+only an identity digest, and registry/entry counts are bounded at 128. Contention
+prevents new requests and keeps failed publications pending for later pumps, even
+after the queue empties. An abandoned mutex retains the observed deadline and adds
+at least a minute of recovery backoff. Native slots outlive individual queues.
+
+Scripted tests cover first-message removal followed by a new message, deadline
+boundaries, response-processing time, identity separation, fractional rounding,
+duration overflow and queue replacement. Native tests use the opposite AHK runtime
+to read/extend a deadline, verify the extension after that child exits, terminate a
+lock-owning child, retry pending publication and check handle cleanup. A loopback
+server sends a 2.5-second Retry-After header with a shorter JSON delay and rejects
+an early second message. The first message has already exhausted its attempts.
+No Discord request or game action is sent.
+
+[Reporting verification](reporting-verification.md) records the contract and
+limits. This conservatively holds more routes than a bucket-aware scheduler.
+Synchronous polling/authorization and restart notifications still bypass it.
+Requests already started before a 429 publication cannot be recalled. Shared
+memory lasts only while participating processes retain it; all-helper shutdown,
+session changes and reboot do not preserve it, and interrupted publication remains
+uncertain. Durable cooldowns/outbox recovery, proactive bucket headers, all-request
+coordination, live verification and the full production plan remain active. No
+merge, deployment or production release is claimed.

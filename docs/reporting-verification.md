@@ -48,8 +48,9 @@ abrupt process termination can lose ordinary queued statuses/images. A lost HTTP
 response can also cause a duplicate on retry: this is not exactly-once delivery.
 Each helper currently has its own queue. Bot polling, authorization lookups and the
 pre-shutdown restart reply still use synchronous requests with bounded waits.
-Ordinary command replies and live honey use the Status helper's existing queue. Global
-rate-limit coordination across those paths remains open.
+Ordinary command replies and live honey use the Status helper's existing queue.
+Queued helpers now share observed 429 cooldowns in the Windows session as described
+below. Polling/authorization and the synchronous restart reply do not yet participate.
 
 ## Verification scope
 
@@ -69,8 +70,9 @@ Still required for F23 and the broader production plan:
 - Migrate synchronous bot polling/authorization and coordinate the pre-shutdown
   reply with process exit. Ordinary replies, including structured timer, planter,
   shrine, blender and memory-match displays, now use the common queue.
-- Coordinate rate limits and dispatch across helpers, commands and bot polling;
-  persist ordinary queued reports with explicit destination identity and recovery.
+- Extend shared rate-limit coordination to synchronous bot requests, parse proactive
+  bucket headers and coordinate dispatch. Persist ordinary queued reports with
+  explicit destination identity and recovery.
 - Add user-visible pending/failed report management and controlled resend; verify
   configuration changes and normal/abrupt restart while a request is in flight.
 - Exercise end-to-end hourly rollover, graph/sample correctness, real Discord
@@ -187,7 +189,7 @@ duplicate during bounded retries, and restart loses the message ID. Cancellation
 does not revoke an already delivered request. Native calls and delayed queue pumps
 make timing cooperative, and synchronous bot polling/authorization, shutdown
 notification and command actions can still delay work.
-Cross-helper rate coordination, durable receipts/recovery, live Discord behavior,
+Complete request-path rate coordination, durable receipts/recovery, live Discord behavior,
 game capture accuracy and measured resource/performance effects remain open.
 
 ## Upload source ownership
@@ -253,8 +255,60 @@ actions can still block helper progress. Pending replies share the queue's FIFO
 ordering with other reports, so an earlier retry delay can hold later replies.
 This is not full asynchronous command execution or durable delivery: abrupt exit
 can lose queued replies, and retries after a lost response can duplicate messages.
-Cross-helper/global rate coordination, preserving server delays across distinct
-jobs, shutdown/restart recovery and live verification remain work.
+Coordination with synchronous requests, shutdown/restart recovery and live
+verification remain work. Queued-message cooldown retention is described next.
+
+## Shared queued-request cooldowns
+
+An observed HTTP 429 now establishes a deadline independently of its message.
+Expiry, cancellation, retry exhaustion and queue replacement cannot make the next
+message in the same retained coordinator send early. Fractional milliseconds round
+up, longer delays extend the deadline, and shorter replies cannot reduce it.
+The clock is read again after HTTP polling so response-processing time cannot
+consume part of the new cooldown before it is established.
+Pathological numeric durations saturate instead of overflowing into an early send.
+The existing HTTP adapter takes the longer numeric body/header delay, following
+Discord's [Retry-After guidance](https://docs.discord.com/developers/topics/rate-limits).
+
+Native queues coordinate through an eight-byte Windows named mapping and a
+nonblocking mutex. The mapping stores a monotonic GetTickCount64 deadline; kernel
+object names contain a SHA256 digest rather than the credential. Queued requests
+using the same bot token share a gate across channels and helpers. Unauthenticated
+requests share one conservative gate in the Windows session. This deliberately
+holds more routes than a full Discord bucket scheduler; unrelated webhook requests
+may be delayed together. Distinct bot credentials have independent gates.
+
+A contended/unavailable gate prevents new request creation. A 429 deadline is kept
+locally until it can be published, and the queue retries pending publication even
+when no messages remain. An abandoned mutex retains the observed value and imposes
+at least a fresh minute of backoff. Both per-coordinator entries and the native
+slot registry are limited to 128 identities. Expired entries can be reclaimed;
+native eviction requires a minute without use and an expired observed deadline.
+Capacity or mapping failures do not permit an uncoordinated request.
+
+Native slots remain referenced independently of queue lifetime. Another helper can
+observe a deadline after its writer exits if a participating process still retains
+the mapping. Windows releases named memory when its final handle closes; this is
+not persistence across all-helper shutdown, Windows-session changes or reboot.
+See Microsoft's [named shared memory lifecycle](https://learn.microsoft.com/en-us/windows/win32/memory/creating-named-shared-memory).
+Publication interrupted by a hard crash remains uncertain. Requests already in
+flight, or started before another helper publishes a 429, cannot be recalled.
+
+Tests cover expiry/exhaustion/cancellation followed by a new message, exact deadline
+boundaries, fractional rounding, credential separation, conservative anonymous
+sharing, longer/shorter delays, response-processing time, overflow and queue replacement. A native child of
+the opposite AHK architecture reads and extends the parent's cooldown; the parent
+then reads it after child exit. A lock-owning child is terminated to verify
+nonblocking contention, pending publication and abandoned-lock recovery. Fixture
+cleanup checks handle counts. A loopback HTTP server sends a 2.5-second header and
+a shorter JSON delay, then independently rejects a following message if it arrives
+too early. The first message exhausts its attempts before the second is submitted.
+
+This covers queued sends in one Windows session. Synchronous bot polling/member
+lookups and restart notification still bypass the coordinator. Proactive use of
+bucket/remaining/reset headers, precise route scheduling, durable cooldowns,
+cross-session or other-machine coordination, live Discord verification and
+performance measurements remain open.
 
 ## Counter consistency
 
