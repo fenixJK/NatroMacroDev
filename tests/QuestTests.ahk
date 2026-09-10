@@ -55,6 +55,11 @@ TestQuestFrames() {
 ; travel, game capture or external reporting is allowed in these fixtures.
 TestQuestActions() {
 	global
+	PolarQuestCheck := RileyQuestCheck := BuckoQuestCheck := BlackQuestCheck := BrownQuestCheck := 0
+	PolarQuestComplete := RileyQuestComplete := BuckoQuestComplete := BlackQuestComplete := BrownQuestComplete := -1
+	PolarQuest := RileyQuest := BuckoQuest := BlackQuest := BrownQuest := ""
+	LastBugrunLadybugs := LastBugrunRhinoBeetles := LastBugrunSpider := LastBugrunMantis := LastBugrunScorpions := LastBugrunWerewolf := 0
+	MonsterRespawnTime := 0, QuestBarSize := 50, QuestBarGapSize := 10, QuestBarInset := 16
 	TestQuestMode := true
 	try {
 		for family in ["Polar", "Riley", "Bucko", "Black", "Brown"] {
@@ -101,3 +106,23 @@ nm_Bugrun(*) => UnexpectedObservation()
 nm_Feed(*) => UnexpectedObservation()
 nm_Collect(*) => UnexpectedObservation()
 nm_ToAnyBooster(*) => UnexpectedObservation()
+
+TestQuestUnknownPublication() {
+	global
+	for family in ["Honey", "Polar", "Riley", "Bucko", "Black", "Brown"] {
+		%family%QuestProgress := "Complete"
+		MainGui[family "QuestProgress"] := {Text: "Complete"}
+		QuestGatherField := "Pine Tree", QuestGatherFieldSlot := 1
+		QuestLadybugs := QuestRhinoBeetles := QuestSpider := QuestMantis := QuestScorpions := QuestWerewolf := 1
+		RileyLadybugs := RileyScorpions := RileyAll := BuckoRhinoBeetles := BuckoMantis := 1
+		QuestAnt := QuestRedBoost := QuestBlueBoost := 1, QuestFeed := "Strawberry"
+		nm_PublishUnknownQuest(family)
+		Assert(InStr(MainGui[family "QuestProgress"].Text, "Unknown"), family " clears stale completed display")
+		Assert(InStr(IniRead("settings\nm_config.ini", "Quests", family "QuestProgress"), "Unknown"), family " persists unknown progress")
+		AssertEqual(QuestGatherField, family = "Honey" ? "Pine Tree" : "None", family " clears only its own gather planning")
+		if family = "Polar"
+			Assert(!QuestLadybugs && !QuestRhinoBeetles && !QuestSpider && !QuestMantis && !QuestScorpions && !QuestWerewolf, "Unknown Polar does not leave kill objectives")
+		if family = "Riley" || family = "Bucko"
+			Assert(!QuestAnt && QuestFeed = "None", family " unknown does not leave spending/action objectives")
+	}
+}

@@ -1,5 +1,5 @@
-; 1 = positively complete, 0 = incomplete, -1 = unknown. Scheduling deferral (2)
-; is assigned separately and must never be interpreted as completed progress.
+; 1 = positively complete, 0 = incomplete, -1 = unknown. Action availability
+; does not alter observed completion; the former deferred value 2 is not complete.
 class nm_QuestObservation {
 	static Aggregate(rows, expected, recognized := true) {
 		if !recognized || expected < 1 || rows.Length != expected
@@ -50,6 +50,20 @@ class nm_QuestObservation {
 			}
 		if !recognized
 			return rows
+		if IsObject(objectives) && count < 4 {
+			; Brown's dynamically recognized row count needs a fresh endpoint in
+			; this same frame, not an earlier observation made before scrolling.
+			endpoint := false, endpointY := 30 + gap + count * step
+			if Gdip_GetImageHeight(capture) < endpointY + 40
+				return rows
+			for key in ["questbartitle", "questbartitlebeesmas"]
+				if assets.Has(key) && Gdip_ImageSearch(capture, assets[key], , 0, endpointY, 6, endpointY + 40, 5) = 1 {
+					endpoint := true
+					break
+				}
+			if !endpoint
+				return rows
+		}
 		observed := []
 		Loop count {
 			rowIndex := A_Index, y := 30 + gap + (rowIndex - 1) * step
@@ -85,6 +99,8 @@ nm_ReadQuestRows(hwnd, startY, count, title, objectives := 0) {
 	if !snapshot || offsetFailed || !nm_WindowOwnsFocus(hwnd) || !nm_SameClient(snapshot, nm_ClientSnapshot(hwnd))
 		return rows
 	top := startY - 30, height := 30 + count * QuestBarSize
+	if IsObject(objectives) && count < 4
+		height += QuestBarSize
 	if count < 1 || snapshot.width < 306 || top < offset + 150 || top + height > snapshot.height
 		return rows
 	capture := Gdip_BitmapFromScreen(snapshot.x "|" snapshot.y + top "|306|" height)
