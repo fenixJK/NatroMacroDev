@@ -22,6 +22,8 @@ class TestBotFixture {
 }
 
 TestBotInbox() {
+	Assert(!nm_BotInbox.SameID(100000000000000001, "100000000000000001"), "Numeric identity cannot substitute for the API string ID")
+	Assert(!nm_BotInbox.SameID("99999999999999999998", "99999999999999999999"), "Large decimal identities compare exactly without floating point")
 	f := TestBotFixture(), baseline := "100000000000000010", first := "100000000000000011", last := "100000000000000013"
 	f.Receive([TestBotFixture.Message(baseline, "!restart")])
 	AssertEqual(f.commands.Length, 0, "Startup watermark does not execute a historical restart command")

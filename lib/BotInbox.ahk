@@ -16,6 +16,7 @@ class nm_BotInbox {
 		this.Queue.Limit := 1, this.Queue.MaxAge := 20000, this.Queue.Timeout := 10000, this.Queue.MaxAttempts := 3
 	}
 	static ID(value) => Type(value) = "String" && RegExMatch(value, "^[0-9]{17,20}$")
+	static SameID(a, b) => nm_BotInbox.ID(a) && nm_BotInbox.ID(b) && StrCompare(a, b, true) = 0
 	static Same(a, b) {
 		if !IsObject(a) || !IsObject(b)
 			return !IsObject(a) && !IsObject(b)
@@ -106,11 +107,11 @@ class nm_BotInbox {
 			switch kind {
 				case "messages": this.Messages(body)
 				case "channel":
-					if !(body is Map) || body.Get("id", "") != this.Config.channel || !nm_BotInbox.ID(body.Get("guild_id", ""))
+					if !(body is Map) || !nm_BotInbox.SameID(body.Get("id", ""), this.Config.channel) || !nm_BotInbox.ID(body.Get("guild_id", ""))
 						throw Error("Invalid channel identity")
 					this.Guild := body["guild_id"]
 				case "member":
-					if !(body is Map) || !(body.Get("user", 0) is Map) || body["user"].Get("id", "") != command.user_id
+					if !(body is Map) || !(body.Get("user", 0) is Map) || !nm_BotInbox.SameID(body["user"].Get("id", ""), command.user_id)
 						throw Error("Invalid member identity")
 					roles := body.Get("roles", 0)
 					if !(roles is Array) || roles.Length > 512
@@ -152,7 +153,7 @@ class nm_BotInbox {
 			throw Error("Invalid message page")
 		ordered := [], seen := Map()
 		for message in body {
-			if !(message is Map) || !nm_BotInbox.ID(message.Get("id", "")) || message.Get("channel_id", "") != this.Config.channel
+			if !(message is Map) || !nm_BotInbox.ID(message.Get("id", "")) || !nm_BotInbox.SameID(message.Get("channel_id", ""), this.Config.channel)
 				throw Error("Invalid message identity")
 			id := message["id"]
 			if seen.Has(id)
