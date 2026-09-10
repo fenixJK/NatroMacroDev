@@ -102,3 +102,11 @@ their own propagation/freshness review. This checkpoint does not verify quest
 scrolling, exports, item use, planter placement or collection receipts end to end.
 No Windows/Roblox machine is currently available. The production goal remains
 active; no release or measured whole-program performance gain is claimed.
+
+## Dependent workflow follow-up
+
+Startup now gates session initialization on confirmed closure, Bee List selects
+its tab directly, and Glue Dispenser checks every menu result before continuing
+or retrying. [Glue Dispenser verification](glue-dispenser-verification.md) records
+the workflow, recovery and spending-attempt limits. Remaining reset, gathering,
+Mondo and final cleanup callers have not been declared verified by these changes.

@@ -1998,3 +1998,37 @@ closed-state inference. Close-only callers and later quest, item and planter
 actions still need failure propagation and freshness review. No Windows/Roblox
 machine is available. The full production goal remains active; no merge,
 deployment or release is claimed.
+
+## Startup and Glue Dispenser menu continuation checkpoint
+
+Code checkpoint: `cf07eb39f943468a9f81152eb9c04d249eda6120`.
+[Windows run 34471108548](https://github.com/fenixJK/NatroMacroDev/actions/runs/34471108548)
+passed **72 regression groups on both AHK architectures**, including the production
+Glue Dispenser workflow and real INI recovery tests. Existing native menu,
+planter input, pointer, GUI, OCR and process suites also passed. Validation covered
+**nine production scripts, four test entrypoints and seven emitted workers** per
+architecture. Both PowerShell versions passed **eight file-channel checks,
+43 attachment checks and 35 updater scenarios**. No AHK warnings occurred; the
+checkout Node runtime deprecation notice remains.
+
+Startup now stops before session-statistics reset and runtime accounting if menu
+closure cannot be confirmed. Bee List directly selects its tab without a redundant
+unchecked close. Glue Dispenser gates every later action on the preceding result,
+including menu closure before walking or retrying. Only preparatory travel/search
+failures can retry once; once gumdrop input is attempted, the visit cannot repeat
+it. Early exits and exceptions release movement and publish the failed stage with
+the recovery delay, preserving the prior collection cooldown. Worker creation and
+both start/completion waits are checked. The E interaction uses a fresh guarded
+prompt/key surface, and the status explicitly distinguishes interaction from a
+verified reward.
+
+The tests reject every workflow stage, exercise preparatory retry success,
+exceptions and cleanup failure, and assert that dependent actions do not occur.
+They cover the production workflow and recovery persistence with an action
+adapter. They do not run the native Glue route or complete main startup. The
+[verification record](glue-dispenser-verification.md) distinguishes these scopes.
+Reset behavior, movement between focus checks, actual Gummy Lair arrival, gumdrop
+consumption and reward receipts remain open. Other reset, gathering, Mondo and
+final cleanup menu callers still need review. No Windows/Roblox machine is
+available. The full production goal remains active; no merge, deployment or
+release is claimed.

@@ -77,3 +77,9 @@ Heartbeat automatic replacement now waits for the launched process's own final
 main-GUI title and limits restart attempts. See
 [watchdog verification](watchdog-verification.md). This does not close the separate
 helper-readiness and live startup checks above.
+
+Startup now also checks the shared menu helper's explicit close result before
+resetting session statistics or starting runtime accounting. Failure reports the
+menu outcome and returns through startup-controller cleanup. This closes the
+unguarded continuation at that boundary; it does not verify the full GUI/game
+startup path. See [dependent menu workflows](glue-dispenser-verification.md).

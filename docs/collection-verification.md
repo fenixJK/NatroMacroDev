@@ -52,3 +52,12 @@ Still required:
 
 No Windows/Roblox machine is currently available. None of these live gates is
 marked passed; the production recovery plan remains active.
+
+## Glue Dispenser follow-up
+
+The [Glue Dispenser workflow](glue-dispenser-verification.md) now gates travel,
+item use and approach on the preceding result, stops on uncertain menu closure,
+and allows no repeated gumdrop attempt within a visit. Its failure paths publish
+the recovery stage and release movement. Successful guarded input is labeled
+`Interacted`; the other collection families' existing status and reward-receipt
+limitations remain as described above.
