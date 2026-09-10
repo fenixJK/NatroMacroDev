@@ -1886,3 +1886,42 @@ non-atomic across crashes. Positive roll receipts, mutation/animation accuracy,
 actual item budgets and live game behavior remain work. No Windows/Roblox machine
 is available. The full production goal remains active; no merge, deployment or
 release is claimed.
+
+## Shared screen capture checkpoint
+
+Code checkpoint: `97a801dad5f942445b385cd00653a5c80b9db57f`.
+[Windows run 34466765646](https://github.com/fenixJK/NatroMacroDev/actions/runs/34466765646)
+passed **68 regression groups on both AHK architectures**, native process/GUI/
+input/OCR suites, **nine production-script, four test-entry and seven emitted-worker
+validations** per architecture, plus **eight file-channel checks, 43 attachment
+checks and 35 updater scenarios** per PowerShell version. No AHK warnings occurred;
+the checkout Node runtime deprecation notice remains.
+
+The shared screen-capture helper now releases borrowed DCs to the original HWND
+and deletes only its owned memory DC. It checks allocation, selection, copy and
+decode outcomes and cleans temporary resources in a finally path. Failed window
+acquisition no longer falls back to desktop capture. Cleanup failures invalidate
+decoded output; malformed requests fail before allocation. Existing desktop,
+monitor, rectangle, window and explicit raster request forms remain supported.
+
+Fault fixtures cover false returns and exceptions at acquisition through decode
+and bitmap restoration. Native fixtures verify screen/window dimensions and
+pixels, explicit BLACKNESS output, and 200 successful plus 300 injected failed
+captures after real resource acquisition. The GDI count remained **34 to 34** on
+both architectures. This is a bounded handle check, not a GDI+ heap measurement.
+
+CI also exposed an existing fixture scheduling problem: exhaustive bee template
+checks took about 17.5 seconds before the GUI interactions in a single 20-second
+worker. Stage timing located the delay. Two disjoint asset batches now each test
+34 templates against the full search set, while interactions run separately.
+Each worker retains the same deadline and assertions. Fresh settings fixtures
+prevent a preceding worker's normal position save from changing the next
+worker's startup baseline. All asset, startup, mouse, limits, redraw and close
+checks pass.
+
+[Screen capture verification](screen-capture-verification.md) records the native
+ownership contract, failed runs, measured fixture timings and final evidence.
+Persistent native cleanup failures, hard native-call timeouts, occlusion/freshness,
+the separate PrintWindow helper and other GDI+/font/icon resource paths remain
+outside this checkpoint. No Windows/Roblox machine is available. The full
+production goal remains active; no merge, deployment or release is claimed.

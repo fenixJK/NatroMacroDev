@@ -115,3 +115,18 @@ and the Roll row below. A native editor displays and validates both run limits,
 restores its owner on Save/Cancel, and is closed before main GUI teardown.
 [Run-limit verification](auto-jelly-limits-verification.md) records control bounds,
 invalid/save/reopen/cancel behavior and budget enforcement scope.
+
+## Shared capture and fixture scheduling follow-up
+
+Screen/window capture now checks resource and transfer results and releases a
+borrowed source DC to its owning HWND. It never deletes that borrowed DC or
+falls back to the desktop after failed window acquisition. Native pixel and
+repeated capture/failure cleanup checks are recorded in
+[Screen capture verification](screen-capture-verification.md).
+
+Timed GUI probe failures also showed that exhaustive bee comparisons consumed
+about 17.5 seconds of one 20-second worker, before its interaction and redraw
+checks. The fixture now splits those template inputs into two disjoint workers
+and runs interactions separately. Each template still searches the complete
+asset set; input counts, interaction assertions and per-worker deadlines remain.
+The test logs bounded stage timings to explain future delays.
