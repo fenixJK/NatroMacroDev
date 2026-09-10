@@ -29,7 +29,7 @@ nm_ProbeBeePreflight() {
 		saved[bee] := %bee%, %bee% := 0
 	saved["SelectAll"] := SelectAll, SelectAll := 0
 	DismissDialog() {
-		local hwnd, button
+		local hwnd, button, control
 		FileAppend "timer`n", "probe-phase.txt"
 		for hwnd in WinGetList("ahk_class #32770 ahk_pid " DllCall("GetCurrentProcessId"))
 			if WinGetTitle("ahk_id " hwnd) = "Auto-Jelly stopped" {
@@ -40,7 +40,12 @@ nm_ProbeBeePreflight() {
 					FileAppend "unexpected dialog: " WinGetText("ahk_id " hwnd) "`n", "probe-phase.txt"
 					ExitApp 1
 				}
-				button := DllCall("GetDlgItem", "Ptr", hwnd, "Int", 1, "Ptr")
+				button := 0
+				for control in WinGetControlsHwnd("ahk_id " hwnd) {
+					FileAppend "control=" WinGetClass("ahk_id " control) ":" ControlGetText(control) "`n", "probe-phase.txt"
+					if StrReplace(ControlGetText(control), "&") = "OK"
+						button := control
+				}
 				FileAppend "button=" button "`n", "probe-phase.txt"
 				DllCall("PostMessageW", "Ptr", button, "UInt", 0xF5, "UPtr", 0, "Ptr", 0)
 			}
