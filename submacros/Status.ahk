@@ -22,6 +22,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "JSON.ahk"
 #Include "Discord.ahk"
 #Include "DiscordHelp.ahk"
+#Include "DiscordReports.ahk"
 #Include "DurationFromSeconds.ahk"
 #Include "Roblox.ahk"
 #Include "ErrorHandling.ahk"
@@ -794,7 +795,7 @@ nm_honey()
 		return id := ""
 	if HoneyUpdate
 	{
-		payload_json := '{"embeds": [{"description": "[' A_Hour ':' A_Min ':' A_Sec '] Current Honey/Pollen", "color": "' HoneyUpdate '", "image": {"url": "attachment://honey.png"}}], "attachments": []}'
+		payload_json := nm_DiscordHoneyPayload("[" A_Hour ":" A_Min ":" A_Sec "] Current Honey/Pollen", HoneyUpdate)
 		pBM := CreateHoneyBitmap()
 		if pBM <= 0
 			return
@@ -1213,100 +1214,7 @@ nm_command(command)
 				discord.SendEmbed((StrLen(params[3]) = 0) ? "You must specify a Planter Slot to screenshot!" : ("Planter Slot must be 1, 2, or 3!`nYou entered " params[3] "."), 16711731, , , , id)
 
 			default:
-			objParam := []
-			payload_json :=
-			(
-			'
-			{
-				"allowed_mentions": {
-					"parse": []
-				},
-				"message_reference": {
-					"message_id": "' id '",
-					"fail_if_not_exists": false
-				},
-				"embeds": [{
-					"color": "5066239",
-					"title": "Planters",
-					"description": "The macro`'s currently placed planters are shown below.\nYou can use these commands to edit the timers:",
-					"fields": [{
-						"name": "' commandPrefix 'planter harvest [``n``]",
-						"value": "Harvests planter in Slot ``n`` and moves to the next Slot, even if the planter is not ready or is held/smoking",
-						"inline": true
-					},
-					{
-						"name": "' commandPrefix 'planter add [``h:m:s``] [``n``]",
-						"value": "Adds ``h:m:s`` to planter timer in Slot ``n``",
-						"inline": true
-					},
-					{
-						"name": "' commandPrefix 'planter sub [``h:m:s``] [``n``]",
-						"value": "Subtracts ``h:m:s`` from planter timer in Slot ``n``",
-						"inline": true
-					},
-					{
-						"name": "' commandPrefix 'planter clear [``n``]",
-						"value": "Clears planter in Slot ``n`` from the macro Planter Timers",
-						"inline": true
-					},
-					{
-						"name": "' commandPrefix 'planter smoking [``n``]",
-						"value": "Sets held planter in Slot ``n`` to smoking (Manual planters `'disable auto harvest`' option)",
-						"inline": true
-					},
-					{
-						"name": "' commandPrefix 'planter screenshot [``n``]",
-						"value": "Takes a screenshot of planter in Slot ``n``",
-						"inline": true
-					}]
-				}
-				'
-			)
-
-			t := nowUnix()
-			vars["PlanterMode"] := IniRead("settings\nm_config.ini", "Planters", "PlanterMode")
-			Loop 3
-			{
-				if (vars["PlanterName" A_Index] && (vars["PlanterName" A_Index] != "None") && planters.Has(vars["PlanterName" A_Index]))
-				{
-					objParam.Push(Map("name",("files[" A_Index-1 "]"),"filename",(vars["PlanterName" A_Index] ".png"),"content-type","image/png","pBitmap",planters[vars["PlanterName" A_Index]].bitmap))
-					duration := DurationFromSeconds(ptimer := (vars["PlanterHarvestTime" A_Index] - t), (ptimer > 0) ? (((ptimer >= 3600) ? "h'h' m" : "") ((ptimer >= 60) ? "m'm' s" : "") "s's'") : ((vars["MPlanterSmoking" A_Index]) && (vars["PlanterMode"] = 1)) ? "'Smoking'" : ((vars["MPlanterHold" A_Index]) && (vars["PlanterMode"] = 1)) ? "'Holding'" : "'Ready'")
-					payload_json .=
-					(
-					'
-					,{
-						"title": "Slot ' A_Index '",
-						"author": {
-							"name": "' planters[vars["PlanterName" A_Index]].name '",
-							"icon_url": "attachment://' vars["PlanterName" A_Index] '.png"
-						},
-						"color": "' planters[vars["PlanterName" A_Index]].color '",
-						"fields": [{
-							"name": "Field Planted",
-							"value": "' vars["PlanterField" A_Index] ' (' Format("{1:Us}", SubStr(vars["PlanterNectar" A_Index], 1, 3)) ')",
-							"inline": true
-						},
-						{
-							"name": "Time Remaining",
-							"value": "' duration '",
-							"inline": true
-						},
-						{
-							"name": "Glitter Used",
-							"value": "' (vars["PlanterGlitter" A_Index] ? "Yes" : "No") '",
-							"inline": true
-						}]
-					}
-					'
-					)
-				}
-			}
-
-			payload_json .= "]}"
-
-			objParam.InsertAt(1, Map("name","payload_json","content-type","application/json","content",payload_json))
-			discord.CreateFormData(&postdata, &contentType, objParam)
-			discord.SendMessageAPI(postdata, contentType)
+			nm_DiscordPlanterReport(vars, planters, commandPrefix, id, nowUnix()).Send()
 		}
 
 
@@ -1467,119 +1375,7 @@ nm_command(command)
 				discord.SendEmbed("``" ((StrLen(var) > 0) ? var : "<blank>") "`` is not recognised as a valid timer!`nUse ``?timers`` for a list of enabled timers.", 16711731, , , , id)
 
 			default:
-			objParam := []
-			payload_json :=
-			(
-			'
-			{
-				"allowed_mentions": {
-					"parse": []
-				},
-				"message_reference": {
-					"message_id": "' id '",
-					"fail_if_not_exists": false
-				},
-				"embeds": [{
-					"color": "5066239",
-					"title": "Timers",
-					"description": "The macro`'s ongoing timers are shown below.\nYou can use these commands to edit them:",
-					"fields": [{
-						"name": "' commandPrefix 'timer reset [``var``]",
-						"value": "Resets timer, e.g. sets Coco Crab to 1.5 days",
-						"inline": true
-					},
-					{
-						"name": "' commandPrefix 'timer add [``h:m:s``] [``var``]",
-						"value": "Adds ``h:m:s`` to ``var```'s timer",
-						"inline": true
-					},
-					{
-						"name": "' commandPrefix 'timer sub [``h:m:s``] [``var``]",
-						"value": "Subtracts ``h:m:s`` from ``var```'s timer",
-						"inline": true
-					}]
-				}
-				'
-			)
-
-			t := nowUnix()
-
-			objParam.Push(Map("name",("files[0]"),"filename","Mobs.png","content-type","image/png","pBitmap",timers.mobs.bitmap))
-			payload_json .=
-			(
-			'
-			,{
-				"author": {
-					"name": "Mobs",
-					"icon_url": "attachment://Mobs.png"
-				},
-				"color": "' timers.mobs.color '",
-				"fields": [
-			'
-			)
-			for i,j in timers.mobs.values
-			{
-				varname := j.varname
-				duration := DurationFromSeconds(time := (vars["Last" varname] + j.cooldown*(1-(vars["MonsterRespawnTime"]?vars["MonsterRespawnTime"]:0)*0.01) - t), (time > 0) ? (((time >= 86400) ? "d'd' h" : "") ((time >= 3600) ? "h'h' m" : "") ((time >= 60) ? "m'm' s" : "") "s's'") : "'Alive'")
-				payload_json .=
-				(
-				'
-				{
-					"name": "' j.name '",
-					"value": "' duration '",
-					"inline": true
-				},'
-				)
-			}
-			payload_json := RTrim(payload_json, ",") "]}"
-
-			for k,v in ["Machines","Beesmas"]
-			{
-				n := 0
-				for i,j in timers.%v%.values
-					varname := j.varname, n += (vars[varname "Check"] = 1) ? 1 : 0
-
-				if (n > 0)
-				{
-					objParam.Push(Map("name",("files[" k "]"),"filename",(v ".png"),"content-type","image/png","pBitmap",timers.%v%.bitmap))
-					payload_json .=
-					(
-					'
-					,{
-						"author": {
-							"name": "' v '",
-							"icon_url": "attachment://' v '.png"
-						},
-						"color": "' timers.%v%.color '",
-						"fields": [
-						'
-					)
-					for i,j in timers.%v%.values
-					{
-						varname := j.varname
-						if (vars[varname "Check"] = 1)
-						{
-							duration := DurationFromSeconds(time := (vars["Last" varname] + j.cooldown - t), (time > 0) ? (((time >= 86400) ? "d'd' h" : "") ((time >= 3600) ? "h'h' m" : "") ((time >= 60) ? "m'm' s" : "") "s's'") : "'Ready'")
-							payload_json .=
-							(
-							'
-							{
-								"name": "' j.name '",
-								"value": "' duration '",
-								"inline": true
-							},'
-							)
-						}
-					}
-					payload_json := RTrim(payload_json, ",") "]}"
-				}
-			}
-
-			payload_json .= "]}"
-
-			objParam.InsertAt(1, Map("name","payload_json","content-type","application/json","content",payload_json))
-			discord.CreateFormData(&postdata, &contentType, objParam)
-			discord.SendMessageAPI(postdata, contentType)
+			nm_DiscordTimerReport(vars, timers, commandPrefix, id, nowUnix()).Send()
 		}
 
 
@@ -1864,42 +1660,8 @@ nm_command(command)
 				discord.SendEmbed((StrLen(params[3]) = 0) ? "You must specify a slot to clear!" : ("Slot must be 1, 2, or 3!`nYou entered " params[3] "."), 16711731, , , , id)
 
 			default:
-			ShrineRotTemp := (vars["ShrineRot"] = 2) ? 1 : 2, t := nowUnix(), duration := DurationFromSeconds(time := (vars["LastShrine"] + 3600 - t), (time > 0) ? (((time >= 86400) ? "d'd' h" : "") ((time >= 3600) ? "h'h' m" : "") ((time >= 60) ? "m'm' s" : "") "s's'") : "'Ready'")
-			postdata :=
-			(
-			'
-			{
-				"allowed_mentions": {
-					"parse": []
-				},
-				"message_reference": {
-					"message_id": "' id '",
-					"fail_if_not_exists": false
-				},
-				"embeds": [{
-					"title": "Wind Shrine",
-					"color": "5066239",
-					"fields": [{
-						"name": "Current Donation",
-						"value": "' vars["ShrineItem" ShrineRot] '",
-						"inline": true
-					},
-					{
-						"name": "Next Donation",
-						"value": "' vars["ShrineItem" ShrineRotTemp] '",
-						"inline": true
-					},
-					{
-						"name": "Time Until Next Donation",
-						"value": "' duration '",
-						"inline": true
-					}]
-				}]
-			}
-			'
-			)
+			nm_DiscordShrineReport(vars, id, nowUnix()).Send()
 		}
-		discord.SendMessageAPI(postdata)
 
 
 		case "Blender":
@@ -1948,70 +1710,7 @@ nm_command(command)
 				discord.SendEmbed((StrLen(params[3]) = 0) ? "You must specify a slot to clear!" : ("Slot must be 1, 2, or 3!`nYou entered " params[3] "."), 16711731, , , , id)
 
 			default:
-			objParam := []
-			payload_json :=
-			(
-			'
-			{
-			"allowed_mentions": {
-				"parse": []
-			},
-			"message_reference": {
-				"message_id": "' id '",
-				"fail_if_not_exists": false
-			},
-			"embeds": [{
-				"color": "5066239",
-				"title": "Blender",
-				"description": "The macro`'s currently rotating between the items shown below.",
-				"fields": []
-			}
-			'
-			)
-
-			Loop 3
-			{
-				if ((vars["BlenderIndex" A_Index] = "Infinite" || vars["BlenderIndex" A_Index] > 0) && vars["BlenderItem" A_Index] != "None" && blender.Has(vars["BlenderItem" A_Index]))
-				{
-					duration := DurationFromSeconds(btimer := (vars["BlenderTime" A_Index] - nowUnix()), (btimer > 0) ? (((btimer >= 3600) ? "h'h' m" : "") ((btimer >= 60) ? "m'm' s" : "") "s's'") : "'Ready'")
-
-					objParam.Push(Map("name",("files[" A_Index-1 "]"),"filename",(vars["BlenderItem" A_Index] ".png"),"content-type","image/png","pBitmap",Blender[vars["BlenderItem" A_Index]].bitmap))
-					payload_json .=
-					(
-					'
-					,{
-						"title": "Slot ' A_Index '",
-						"author": {
-							"name": "' blender[vars["BlenderItem" A_Index]].name '",
-							"icon_url": "attachment://' vars["BlenderItem" A_Index] '.png"
-						},
-						"color": "' blender[vars["BlenderItem" A_Index]].color '",
-						"fields": [{
-							"name": "Item Amount",
-							"value": "' vars["BlenderAmount" A_Index] '",
-							"inline": true
-						},
-						{
-							"name": "Times to loop",
-								"value": "' vars["BlenderIndex" A_Index] '",
-							"inline": true
-						},
-						{
-							"name": "Time Left",
-							"value": "' duration '",
-							"inline": true
-						}]
-					}
-					'
-					)
-				}
-			}
-
-			payload_json .= "]}"
-
-			objParam.InsertAt(1, Map("name","payload_json","content-type","application/json","content",payload_json))
-			discord.CreateFormData(&postdata, &contentType, objParam)
-			discord.SendMessageAPI(postdata, contentType)
+			nm_DiscordBlenderReport(vars, blender, id, nowUnix()).Send()
 		}
 
 
@@ -2072,71 +1771,7 @@ nm_command(command)
 			}
 
 			default:
-			postdata :=
-			(
-			'
-			{
-				"allowed_mentions": {
-					"parse": []
-				},
-				"message_reference": {
-					"message_id": "' id '",
-					"fail_if_not_exists": false
-				},
-				"embeds": [{
-					"color": "5066239",
-					"title": "Memory Match",
-					"description": "The macro`'s currently enabled Memory Match games are shown below.\nYou can use ``' commandPrefix 'timers`` to change the timers, and you can also use these commands to change certain Memory Match settings:",
-					"fields": [{
-						"name": "' commandPrefix 'mm enable [``game``]",
-						"value": "Enables the macro playing the selected Memory Match game",
-						"inline": true
-					},
-					{
-						"name": "' commandPrefix 'mm disable [``game``]",
-						"value": "Disables the macro playing the selected Memory Match game",
-						"inline": true
-					},
-					{
-						"name": "' commandPrefix 'mm ignore [``item``] (``game``)",
-						"value": "Toggles whether ``item`` is ignored (if ``game`` is omitted, ignore is turned on/off for all games)",
-						"inline": true
-					}]
-				}
-			'
-			)
-
-			for game in ["Normal", "Mega", "Night", "Extreme", "Winter"]
-			{
-				if (vars[game "MemoryMatchCheck"] = 1)
-				{
-					bit := MemoryMatchGames[game].bit, ignore := "None"
-					for item, data in MemoryMatch
-						if (vars[item "MatchIgnore"] & bit)
-							ignore .= ", " data.name
-
-					postdata .=
-					(
-					'
-					,{
-						"title": "' game ' Memory Match",
-						"color": "5066239",
-						"fields": [{
-							"name": "Time Left",
-							"value": "' DurationFromSeconds(time := (vars["Last" game "MemoryMatch"] + MemoryMatchGames[game].cooldown - nowUnix()), (time > 0) ? (((time >= 86400) ? "d'd' h" : "") ((time >= 3600) ? "h'h' m" : "") ((time >= 60) ? "m'm' s" : "") "s's'") : "'Ready'") '"
-						},
-						{
-							"name": "Ignored Items",
-							"value": "' StrReplace(ignore, "None, ") '"
-						}]
-					}
-					'
-					)
-				}
-			}
-
-			postdata .= "]}"
-			discord.SendMessageAPI(postdata)
+			nm_DiscordMemoryReport(vars, MemoryMatchGames, MemoryMatch, commandPrefix, id, nowUnix()).Send()
 		}
 		
 		case "FindItem":
