@@ -38,10 +38,10 @@ class nm_CollectionRecovery {
 		} finally Critical previousCritical
 	}
 
-	static Failed(key) {
+	static Failed(key, reason := "interaction not found") {
 		values := this.Read(key)
 		this.Write(key, [values[1], nowUnix() + this.Delay, values[3]])
-		nm_setStatus("Unconfirmed", SubStr(key, 5) ": interaction not found; retry in 5 minutes.")
+		nm_setStatus("Unconfirmed", SubStr(key, 5) ": " reason "; retry in 5 minutes.")
 	}
 
 	static Interacted(key) {

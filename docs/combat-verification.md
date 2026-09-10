@@ -89,3 +89,32 @@ Remaining gates:
   performance improvement.
 
 No live Roblox scenario has been run for this checkpoint.
+
+## Shared image search and unconfirmed boss outcomes
+
+The shared `nm_imgSearch` helper delegates to `ImageObservation.ahk`. Its named
+regions use inclusive bounds within a fresh client snapshot, including odd sizes
+and small quest panels. A native search uses screen coordinates temporarily and
+restores the caller's mode. Missing assets, invalid regions, native decode/search
+errors and changed focus/geometry throw through the existing failure handler;
+they no longer forcibly kill the process or return usable stale coordinates.
+A completed no-match retains the existing `[1, 0, 0]` interface.
+
+Commando and Mondo no longer infer defeat from repeated missing health bars. A
+monotonic absence timer determines when to end an unconfirmed search, resets when
+health is reacquired, and checks the existing defeat notification once more at its
+deadline. Only an existing defeat-image match can set their defeated flag. Commando
+reserves a separate five-minute retry before travel and retains it on missing,
+timed-out or interrupted attempts. Those failures do not advance LastCommando.
+
+Mondo likewise has a separate retry reservation. LastMondoBuff advances only when
+the existing buff template is detected, including after the visit. Failure to find
+a buff no longer creates a successful-looking timestamp. Recovery uses the existing
+CollectionRecovery storage with explicit boss-specific failure reasons.
+
+These changes do not establish current template accuracy, unique/fresh defeat
+receipts, or visibility beneath overlays. The regular Spider/Ladybug/Rhino/Mantis/
+Werewolf/Scorpion routines still have timeout/absence-based success and fixed kill
+counts; their positive confirmation, per-field state and retry migration remain
+required. Other boss failure cooldowns and interrupted input ownership also remain
+open. No live combat result has been verified.

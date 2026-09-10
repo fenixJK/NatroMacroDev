@@ -42,6 +42,8 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "QuestObservation.ahk"
 #Include "QuestActions.ahk"
 #Include "HealthObservation.ahk"
+#Include "ImageObservation.ahk"
+#Include "CombatPresence.ahk"
 #Include "BossHealthEstimation.ahk"
 
 #Warn VarUnset, Off
@@ -10292,7 +10294,7 @@ nm_Start(){
 #Include "nm_OpenMenu.ahk"
 ;interrupts
 nm_MondoInterrupt() => (utc_min := FormatTime(A_NowUTC, "m"), now := nowUnix(),
-	((MondoBuffCheck = 1) && ((utc_min<14 && (now-LastMondoBuff)>960 && MondoAction="Kill")
+	((MondoBuffCheck = 1) && nm_CollectionRecovery.Ready("LastMondoBuff") && ((utc_min<14 && (now-LastMondoBuff)>960 && MondoAction="Kill")
 		|| (!nm_GatherBoostInterrupt()
 			&& ((utc_min<14 && (now-LastMondoBuff)>960 && MondoAction="Buff")
 			|| (utc_min<12 && (now-LastGuid)<60 && PMondoGuid && MondoAction="Guid")
@@ -10521,33 +10523,7 @@ nm_PlanterTimeUpdate(FieldName, SetStatus := 1)
 		}
 	}
 }
-nm_imgSearch(fileName,v,aim := "full", trans:="none"){
-	GetRobloxClientPos()
-	;xi := 0
-	;yi := 0
-	;ww := windowWidth
-	;wh := windowHeight
-	xi:=(aim="actionbar") ? windowWidth//4 : (aim="highright") ? windowWidth//2 : (aim="right") ? windowWidth//2 : (aim="center") ? windowWidth//4 : (aim="lowright") ? windowWidth//2 : 0
-	yi:=(aim="low") ? windowHeight//2 : (aim="actionbar") ? (windowHeight//4)*3 : (aim="center") ? windowHeight//4 : (aim="lowright") ? windowHeight//2 : (aim="quest") ? 150 : 0
-	ww:=(aim="actionbar") ? xi*3 : (aim="highleft") ? windowWidth//2 : (aim="left") ? windowWidth//2 : (aim="center") ? xi*3 : (aim="quest" || aim="questbrown") ? 310 : windowWidth
-	wh:=(aim="high") ? windowHeight//2 : (aim="highright") ? windowHeight//2 : (aim="highleft") ? windowHeight//2 : (aim="buff") ? 150 : (aim="abovebuff") ? 30 : (aim="center") ? yi*3 : (aim="quest") ? Max(560, windowHeight-100) : (aim="questbrown") ? windowHeight//2 : windowHeight
-	if DirExist(A_WorkingDir "\nm_image_assets")
-	{
-		try result := ImageSearch(&FoundX, &FoundY, windowX + xi, windowY + yi, windowX + ww, windowY + wh, "*" v ((trans != "none") ? (" *Trans" trans) : "") " " A_WorkingDir "\nm_image_assets\" fileName)
-		catch {
-			nm_setStatus("Error", "Image file " filename " was not found in:`n" A_WorkingDir "\nm_image_assets\" fileName)
-			Sleep 5000
-			ProcessClose DllCall("GetCurrentProcessId")
-		}
-		if (result = 1)
-			return [0,FoundX-windowX,FoundY-windowY]
-		else
-			return [1, 0, 0]
-	} else {
-		MsgBox "Folder location cannot be found:`n" A_WorkingDir "\nm_image_assets\"
-		return [3, 0, 0]
-	}
-}
+nm_imgSearch(fileName, v, aim := "full", trans := "none") => nm_ImageObservation.Find(fileName, v, aim, trans)
 PostSubmacroMessage(submacro, args*){
 	DetectHiddenWindows 1
 	if WinExist(submacro ".ahk ahk_class AutoHotkey")
@@ -14614,7 +14590,9 @@ nm_Bugrun(){
 			return
 
 		;Commando
-		if((CommandoCheck) && (nowUnix()-LastCommando)>floor(1800*(1-(MonsterRespawnTime?MonsterRespawnTime:0)*0.01))){ ;30 minutes
+		if((CommandoCheck) && (nowUnix()-LastCommando)>floor(1800*(1-(MonsterRespawnTime?MonsterRespawnTime:0)*0.01))) && nm_CollectionRecovery.Begin("LastCommando") {
+			commandoConfirmed := false
+			try { ;30 minutes
 			Loop 2 {
 				nm_Reset()
 				;Go to Commando tunnel
@@ -14809,7 +14787,7 @@ nm_Bugrun(){
 					ChickStartTime := DllCall("GetTickCount64", "UInt64")
 					healthEstimate := nm_BossHealthSession()
 					UpdateTimer := ChickStartTime
-					chickStrikes := 0
+					presence := nm_CombatPresence(60000)
 					loop { ;10 minute chick timer to keep blessings, Will rehunt in an hour
 						click
 						sleep 100
@@ -14833,7 +14811,6 @@ nm_Bugrun(){
 						If(ChickTime != "Kill" && ElaspedChickTime > ChickTime*60000)
 						{
 							nm_setStatus("Time Limit", "Commando Chick")
-							LastCommando:=nowUnix()-floor(1800*(1-(MonsterRespawnTime?MonsterRespawnTime:0)*0.01))+1800
 							Break
 						}
 						if (LastUpdate > 60000)
@@ -14844,20 +14821,15 @@ nm_Bugrun(){
 						loop 20
 						{
 							comChick:= nm_HealthDetection()
+							if presence.Expired(comChick, DllCall("GetTickCount64", "UInt64")) {
+								if nm_imgSearch("ChickDead.png", 50, "lowright")[1] = 0
+									CCdead := 1
+								else
+									nm_setStatus("Unconfirmed", "Commando health was lost; no defeat was verified.")
+								break 2
+							}
 							if(comChick.Length > 0)
 								break
-							if(A_Index=20)
-							{
-								if (chickStrikes <= 10)
-								{
-									chickStrikes += 1
-								}
-								else
-								{
-									CCdead:=1
-									break 2
-								}
-							}
 							if(nm_imgSearch("ChickDead.png",50,"lowright")[1] = 0){
 								CCdead:=1
 								break 2
@@ -14867,8 +14839,7 @@ nm_Bugrun(){
 					}
 				}
 				else { ;No Commando chick try again in 30 mins
-					LastCommando:=nowUnix()
-					IniWrite LastCommando, "settings\nm_config.ini", "Collect", "LastCommando"
+
 					nm_setStatus("Missing", "Commando Chick")
 				}
 
@@ -14880,11 +14851,15 @@ nm_Bugrun(){
 					PostSubmacroMessage("StatMonitor", 0x5555, 1, 1)
 					IniWrite TotalBossKills, "settings\nm_config.ini", "Status", "TotalBossKills"
 					IniWrite SessionBossKills, "settings\nm_config.ini", "Status", "SessionBossKills"
-					LastCommando:=nowUnix()
-					IniWrite LastCommando, "settings\nm_config.ini", "Collect", "LastCommando"
+					LastCommando := nm_CollectionRecovery.Interacted("LastCommando")
+					commandoConfirmed := true
 					nm_PublishBossHealth("Chick", 100)
 					break
 				}
+			}
+			} finally {
+				if !commandoConfirmed
+					nm_CollectionRecovery.Failed("LastCommando", "defeat not verified")
 			}
 		}
 		if nm_NightInterrupt()
@@ -15062,11 +15037,13 @@ nm_Mondo(){
 	global MondoBuffCheck, PMondoGuid, LastGuid, MondoAction, LastMondoBuff, PMondoGuidComplete, GatherFieldBoostedStart, LastGlitter
 	if nm_NightInterrupt()
 		return
-	if nm_MondoInterrupt(){
+	if nm_MondoInterrupt() && nm_CollectionRecovery.Begin("LastMondoBuff") {
+		mondoConfirmed := false
+		try {
 		mondobuff := nm_imgSearch("mondobuff.png",50,"buff")
 		If (mondobuff[1] = 0) {
-			LastMondoBuff:=nowUnix()
-			IniWrite LastMondoBuff, "settings\nm_config.ini", "Collect", "LastMondoBuff"
+			LastMondoBuff := nm_CollectionRecovery.Interacted("LastMondoBuff")
+			mondoConfirmed := true
 			return
 		}
 		repeat:=1
@@ -15157,17 +15134,17 @@ nm_Mondo(){
 						}
 					} else if(MondoAction="Kill"){
 						repeat:=1
-						success:=count:=0
+						success := 0, presence := nm_CombatPresence(15000, true)
 						loop 3600 { ;15 mins
 							mondoDead:=nm_HealthDetection()
-							if ((mondoDead.Length = 0) || (mondoDead.Length = 1 && mondoDead[1] = 100.00)) {
-								if (++count >= 60) { ; Changed from 5 seconds to 15 seconds for when mondo goes off screen
+							if presence.Expired(mondoDead, DllCall("GetTickCount64", "UInt64")) {
+								if nm_imgSearch("mondo3.png", 50, "lowright")[1] = 0
 									success := 1
-									break
-								}
+								else
+									nm_setStatus("Unconfirmed", "Mondo health was lost; no defeat was verified.")
+								repeat := 0
+								break
 							}
-							else ; one health bar < 100 or multiple health bars (assumed Mondo is one of them)
-								count := 0
 							if(Mod(A_Index, 4)=0) { ; 1 second
 								nm_autoFieldBoost(CurrentField)
 								if(nm_NightInterrupt() || AFBrollingDice || AFBuseGlitter || AFBuseBooster) {
@@ -15241,8 +15218,14 @@ nm_Mondo(){
 			}
 
 		}
-		LastMondoBuff:=nowUnix()
-		IniWrite LastMondoBuff, "settings\nm_config.ini", "Collect", "LastMondoBuff"
+		if nm_imgSearch("mondobuff.png", 50, "buff")[1] = 0 {
+			LastMondoBuff := nm_CollectionRecovery.Interacted("LastMondoBuff")
+			mondoConfirmed := true
+		}
+		} finally {
+			if !mondoConfirmed
+				nm_CollectionRecovery.Failed("LastMondoBuff", "buff not verified")
+		}
 	}
 }
 nm_GoGather(){

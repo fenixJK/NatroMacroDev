@@ -7,6 +7,7 @@
 #Include "%A_ScriptDir%\..\lib\nm_OpenMenu.ahk"
 #Include "%A_ScriptDir%\..\lib\nm_InventorySearch.ahk"
 #Include "%A_ScriptDir%\..\lib\HealthObservation.ahk"
+#Include "%A_ScriptDir%\..\lib\ImageObservation.ahk"
 
 bitmaps := Map(), windowX := windowY := windowWidth := windowHeight := 0
 fixture := Gui("-DPIScale", "Natro geometry fixture")
@@ -89,6 +90,7 @@ TestNativeHealth() {
 		Require(bars.Length = 2 && bars[1] = 25 && bars[2] = 50, "Actual client capture finds both painted health bars")
 		bars := nm_ReadHealthWindow(capturedGui.Hwnd, 1)
 		Require(bars.Length = 1 && bars[1] = 50, "Right-half capture excludes the left health bar")
+		TestNativeSharedImage(capturedGui)
 		capturedGui.Hide()
 		observationFailed := false
 		try nm_ReadHealthWindow(capturedGui.Hwnd)
@@ -100,5 +102,37 @@ TestNativeHealth() {
 		capturedGui.Destroy()
 		nm_HealthBarReader.Release()
 		Gdip_Shutdown(token)
+	}
+}
+
+TestNativeSharedImage(capturedGui) {
+	originalDirectory := A_WorkingDir, originalMode := A_CoordModePixel
+	fixtureDirectory := A_Temp "\natro-image-search-" DllCall("GetCurrentProcessId")
+	DirCreate fixtureDirectory "\nm_image_assets"
+	needle := Gdip_CreateBitmap(3, 3), graphics := Gdip_GraphicsFromImage(needle)
+	try {
+		Gdip_GraphicsClear(graphics, 0xFF1FE744)
+		Require(Gdip_SaveBitmapToFile(needle, fixtureDirectory "\nm_image_assets\native-needle.png") = 0, "Save native image-search template")
+		SetWorkingDir fixtureDirectory
+		CoordMode "Pixel", "Client"
+		surface := nm_ImageSearchSurface(capturedGui.Hwnd)
+		result := nm_ImageObservation.Find("native-needle.png", 0, "full", "none", surface)
+		Require(result[1] = 0 && result[2] = 10 && result[3] = 30, "Native image result uses client-relative coordinates")
+		Require(A_CoordModePixel = "Client", "Native search restores caller coordinate mode")
+		result := nm_ImageObservation.Find("native-needle.png", 0, "right", "none", surface)
+		Require(result[1] = 0 && result[2] = 200 && result[3] = 30, "Native right region excludes the left match")
+		Require(nm_ImageObservation.Find("native-needle.png", 0, "low", "none", surface)[1] = 1, "Valid native no-match result")
+		FileAppend "invalid image", "nm_image_assets\invalid.png"
+		nativeFailed := false
+		try nm_ImageObservation.Find("invalid.png", 0, "full", "none", surface)
+		catch Error
+			nativeFailed := true
+		Require(nativeFailed && A_CoordModePixel = "Client", "Actual native decode failure propagates and restores coordinate mode")
+		FileAppend "PASS Windows shared image search integration (" A_PtrSize * 8 "-bit)`n", "*"
+	} finally {
+		CoordMode "Pixel", originalMode
+		SetWorkingDir originalDirectory
+		Gdip_DeleteGraphics(graphics), Gdip_DisposeImage(needle)
+		DirDelete fixtureDirectory, true
 	}
 }
