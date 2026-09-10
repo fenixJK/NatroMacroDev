@@ -134,11 +134,12 @@ WM_LBUTTONDOWN(*) {
 			MouseGetPos(,&y)
 			priorityGui.GetPos(,&wy)
 			index := Integer(row[1]), offset := y - wy-(index*34+3)
-			started := A_TickCount, cancelled := false
+			y := index*34+3
+			started := DllCall("GetTickCount64", "UInt64"), cancelled := false
 			ReplaceSystemCursors("IDC_HAND")
 			try {
 				While GetKeyState("LButton", "P") {
-					if A_TickCount - started >= 15000 || GetKeyState("Escape", "P") {
+					if DllCall("GetTickCount64", "UInt64") - started >= 15000 || GetKeyState("Escape", "P") {
 						cancelled := true
 						break
 					}

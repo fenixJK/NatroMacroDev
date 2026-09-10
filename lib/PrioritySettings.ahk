@@ -1,6 +1,6 @@
-#Include "%A_ScriptDir%\..\lib\RuntimePolicy.ahk"
-#Include "%A_ScriptDir%\..\lib\ScriptProcess.ahk"
-#Include "%A_ScriptDir%\..\lib\RobloxProcesses.ahk"
+#Include "RuntimePolicy.ahk"
+#Include "ScriptProcess.ahk"
+#Include "RobloxProcesses.ahk"
 
 class nm_PrioritySettings {
 	static Path := "settings\nm_config.ini"
