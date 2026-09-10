@@ -15,65 +15,64 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #SingleInstance Force
 #MaxThreads 255
 
-#Include "%A_ScriptDir%\..\lib\nowUnix.ahk"
+#Include "%A_ScriptDir%\..\lib\JSON.ahk"
+#Include "%A_ScriptDir%\..\lib\OwnedProcessJob.ahk"
+#Include "%A_ScriptDir%\..\lib\RobloxProcesses.ahk"
+#Include "%A_ScriptDir%\..\lib\ScriptProcess.ahk"
+#Include "%A_ScriptDir%\..\lib\WatchdogRecovery.ahk"
+#Include "%A_ScriptDir%\..\lib\FailureLog.ahk"
 
-SetWorkingDir A_ScriptDir
+SetWorkingDir A_ScriptDir "\.."
 OnMessage(0x5552, nm_SetGlobalInt)
 OnMessage(0x5556, nm_SetHeartbeat)
 
-LastRobloxWindow := LastStatusHeartbeat := LastMainHeartbeat := LastBackgroundHeartbeat := nowUnix()
+LastRobloxWindow := LastStatusHeartbeat := LastMainHeartbeat := LastBackgroundHeartbeat := DllCall("GetTickCount64", "UInt64")
 MacroState := 0
-path := '"' A_AhkPath '" "' A_ScriptDir '\natro_macro.ahk"'
+watchdog := nm_WatchdogRecovery()
+mainScript := A_ScriptDir "\natro_macro.ahk"
 
 Loop
 {
-	time := nowUnix()
+	time := DllCall("GetTickCount64", "UInt64")
 	DetectHiddenWindows 0
 	if (WinExist("Roblox ahk_exe RobloxPlayerBeta.exe") || WinExist("Roblox ahk_exe ApplicationFrameHost.exe"))
 		LastRobloxWindow := time
 	DetectHiddenWindows 1
 	; request heartbeat
-	if WinExist("natro_macro ahk_class AutoHotkey")
+	if WinExist(mainScript " - AutoHotkey v" A_AhkVersion " ahk_class AutoHotkey")
 		PostMessage 0x5556
-	if WinExist("Status.ahk ahk_class AutoHotkey")
+	if WinExist(A_ScriptDir "\Status.ahk - AutoHotkey v" A_AhkVersion " ahk_class AutoHotkey")
 		PostMessage 0x5556
-	if WinExist("background.ahk ahk_class AutoHotkey")
+	if WinExist(A_ScriptDir "\background.ahk - AutoHotkey v" A_AhkVersion " ahk_class AutoHotkey")
 		PostMessage 0x5556
 	; check for timeouts
-	if (((MacroState = 2) && (((time - LastMainHeartbeat > 120) && (reason := "Macro Unresponsive Timeout!"))
-		|| ((time - LastBackgroundHeartbeat > 120) && (reason := "Background Script Timeout!"))
-		|| ((time - LastStatusHeartbeat > 120) && (reason := "Status Script Timeout!"))
-		|| ((time - LastRobloxWindow > 600) && (reason := "No Roblox Window Timeout!"))))
+	if (((MacroState = 2) && (((time - LastMainHeartbeat > 120000) && (reason := "Macro Unresponsive Timeout!"))
+		|| ((time - LastBackgroundHeartbeat > 120000) && (reason := "Background Script Timeout!"))
+		|| ((time - LastStatusHeartbeat > 120000) && (reason := "Status Script Timeout!"))
+		|| ((time - LastRobloxWindow > 600000) && (reason := "No Roblox Window Timeout!"))))
 
-		|| ((MacroState = 1) && (((time - LastMainHeartbeat > 120) && (reason := "Macro Unresponsive Timeout!"))
-		|| ((time - LastStatusHeartbeat > 120) && (reason := "Status Script Timeout!"))))) {
+		|| ((MacroState = 1) && (((time - LastMainHeartbeat > 120000) && (reason := "Macro Unresponsive Timeout!"))
+		|| ((time - LastStatusHeartbeat > 120000) && (reason := "Status Script Timeout!"))))) {
 		Prev_MacroState := MacroState, MacroState := 0
-		Loop
-		{
-			while WinExist("natro_macro ahk_class AutoHotkey")
-				ProcessClose WinGetPID()
-			for p in ComObjGet("winmgmts:").ExecQuery("SELECT * FROM Win32_Process WHERE Name LIKE '%Roblox%' OR CommandLine LIKE '%ROBLOXCORPORATION%'")
-				ProcessClose p.ProcessID
-
-			ForceStart := (Prev_MacroState = 2)
-
-			run path ' "' ForceStart '" "' A_ScriptHwnd '"'
-
-			if (WinWait("Natro ahk_class AutoHotkeyGUI", , 300) != 0)
-			{
-				Sleep 2000
-				Send_WM_COPYDATA("Error: " reason "`nSuccessfully restarted macro!", "natro_macro ahk_class AutoHotkey")
-				Sleep 1000
-				LastRobloxWindow := LastStatusHeartbeat := LastMainHeartbeat := LastBackgroundHeartbeat := nowUnix()
-				break
-			}
+		try {
+			restartedHwnd := watchdog.Run(
+				() => nm_ScriptProcess.Stop(mainScript, A_AhkPath),
+				() => nm_OwnedProcessJob.Execute(Map("kind", "close")),
+				() => nm_ScriptProcess.Launch(mainScript, A_AhkPath, [Prev_MacroState = 2 ? 1 : 0, A_ScriptHwnd]))
+			nm_Failures.Write(Error(reason), "Watchdog replaced macro; UI ready")
+			try Send_WM_COPYDATA("Error: " reason "`nMacro UI restarted. Startup checks still apply.", "ahk_class AutoHotkey ahk_pid " WinGetPID("ahk_id " restartedHwnd))
+			LastRobloxWindow := LastStatusHeartbeat := LastMainHeartbeat := LastBackgroundHeartbeat := DllCall("GetTickCount64", "UInt64")
+		} catch as recoveryError {
+			nm_Failures.Write(recoveryError, "Watchdog automatic recovery stopped")
+			MsgBox "Automatic recovery stopped. Check settings/errors and restart Natro after correcting the problem.", "Natro recovery stopped", "0x10 T60"
+			ExitApp 1
 		}
 	}
 	else
 	{
 		if MacroState != 2 {
-			LastBackgroundHeartbeat += 5
-			LastRobloxWindow += 5
+			LastBackgroundHeartbeat := time
+			LastRobloxWindow := time
 		}
 	}
 	Sleep 5000
@@ -100,7 +99,8 @@ nm_SetHeartbeat(wParam, *)
 	global
 	Critical
 	static arr := ["Main", "Background", "Status"]
-	script := arr[wParam], Last%script%Heartbeat := nowUnix()
+	if IsInteger(wParam) && wParam >= 1 && wParam <= 3
+		script := arr[wParam], Last%script%Heartbeat := DllCall("GetTickCount64", "UInt64")
 }
 
 nm_SetGlobalInt(wParam, lParam, *)
@@ -111,6 +111,10 @@ nm_SetGlobalInt(wParam, lParam, *)
 	; enumeration
 	static arr := Map(23, "MacroState")
 
+	if wParam != 23 || (lParam != 0 && lParam != 1 && lParam != 2)
+		return 0
+	if MacroState = 0 && lParam != 0
+		LastRobloxWindow := LastStatusHeartbeat := LastMainHeartbeat := LastBackgroundHeartbeat := DllCall("GetTickCount64", "UInt64")
 	var := arr[wParam], %var% := lParam
 	return 0
 }
