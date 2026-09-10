@@ -36,6 +36,18 @@ TestAutomaticPlanters() {
 				}
 			}
 		}
+		NectarAdapterSetup(), MaxAllowedPlanters := 1, GatherFieldSipping := 1
+		ba_PlaceNectarPlanters()
+		AssertEqual(TestNectarCalls[1].field, "Bamboo", "Enabled sipping favors the gather field for a deficient nectar")
+		NectarAdapterSetup(), MaxAllowedPlanters := 1, LastComfortingField := "Bamboo"
+		ba_PlaceNectarPlanters()
+		AssertEqual(TestNectarCalls[1].field, "Dandelion", "Rotate away from the last field when another usable field exists")
+		NectarAdapterSetup(), MaxAllowedPlanters := 1, BambooFieldCheck := 0
+		ba_PlaceNectarPlanters()
+		Assert(TestNectarCalls[1].field != "Bamboo", "A disabled field cannot be selected")
+		NectarAdapterSetup(), MaxAllowedPlanters := 0
+		ba_PlaceNectarPlanters()
+		AssertEqual(TestNectarCalls.Length, 0, "Zero configured slots prevent placement")
 		NectarAdapterSetup(), TestNectarUnknown := true
 		ba_PlaceNectarPlanters()
 		AssertEqual(TestNectarCalls.Length, 0, "Unreadable nectar levels prevent placement")
@@ -75,6 +87,9 @@ NectarAdapterSetup() {
 	HarvestInterval := 2, PlanterBuffer := 10, MaxAllowedPlanters := 3, PlanterMode := 2, AdaptivePlanterGatherInterrupt := 1
 	n1priority := "Comforting", n2priority := "Motivating", n3priority := n4priority := n5priority := "None"
 	n1minPercent := n2minPercent := 70
+	PlanterName1 := PlanterName2 := PlanterName3 := "None"
+	PlanterField1 := PlanterField2 := PlanterField3 := "None"
+	PlanterHarvestTime1 := PlanterHarvestTime2 := PlanterHarvestTime3 := 2147483647
 	Loop 3 {
 		i := A_Index
 		PlanterName%i% := PlanterField%i% := PlanterNectar%i% := "None"

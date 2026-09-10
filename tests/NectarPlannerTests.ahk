@@ -1,5 +1,8 @@
 TestNectarPlanner() {
 	p := nm_NectarPlanner
+	AssertEqual(p.BufferPercent("bad"), 10, "Invalid saved buffer falls back safely")
+	AssertEqual(p.BufferPercent(25), 20, "Saved buffer is bounded")
+	AssertEqual(p.BufferPercent(0), 0, "Zero reserve remains supported")
 	forecast := p.Forecast(10, 50, [{at: 8640, amount: 40}], 8640)
 	AssertEqual(forecast.value, 40, "Nectar decays before the pending harvest arrives")
 	AssertEqual(forecast.area, (50 ** 3 - 40 ** 3) * 864 / 3, "Future nectar cannot cover the preceding shortage")
@@ -30,6 +33,9 @@ TestNectarPlanner() {
 	}
 	choice := p.Choose([needs[1]], [NectarCandidate("A", "Short field", "Short pot", 1, 1)], [], "fixed", 2)
 	AssertEqual(choice.seconds, 3600, "Fixed interval stops at full growth")
+	candidate := NectarCandidate("A", "Fast field", "Fast pot", 1.5), candidate.planter[3] := 2
+	choice := p.Choose([needs[1]], [candidate], [], "fixed", 2)
+	AssertEqual(choice.amount, 7200 * 3 / 864, "Growth and nectar bonuses both contribute to modeled yield")
 	AssertThrows(() => p.Choose([NectarNeed("A", -1, 80, 1)], candidates, []), "Unknown observation cannot become empty nectar")
 	AssertThrows(() => p.Choose(needs, candidates, [], "fixed", 0), "Zero interval rejected")
 	AssertThrows(() => p.Forecast(101, 80, []), "Impossible percentage rejected")

@@ -57,7 +57,8 @@ ba_PlaceNectarPlanters() {
 				total%SubStr(nectar, 1, 3)% := values[nectar]
 				lastField := Last%nectar%Field, alternatives := false, needCandidates := []
 				hasSipping := false
-				if GatherFieldSipping && !GotoPlanterField && !HarvestFullGrown {
+				if GatherFieldSipping && !GotoPlanterField && !HarvestFullGrown
+					&& values[nectar] < Min(100, n%i%minPercent * (1 + nm_NectarPlanner.BufferPercent(PlanterBuffer) / 100)) {
 					for field in %nectar%Fields
 						if field = CurrentField {
 							fieldKey := StrReplace(field, " ")
