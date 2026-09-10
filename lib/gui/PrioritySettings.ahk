@@ -8,6 +8,7 @@
 resources := nm_GuiGraphics()
 OnExit(ExitFunc)
 DetectHiddenWindows 1
+CoordMode "Mouse", "Screen"
 
 bitmaps := resources.Bitmaps
 #Include "%A_ScriptDir%\nm_image_assets\webhook_gui\bitmaps.ahk"
