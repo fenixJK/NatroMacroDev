@@ -27,6 +27,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "RuntimePolicy.ahk"
 #Include "RemoteCapabilities.ahk"
 #Include "AttachmentDownload.ahk"
+#Include "SupportReport.ahk"
 
 SetWorkingDir A_ScriptDir "\.."
 CoordMode "Mouse", "Client"
@@ -1073,7 +1074,7 @@ nm_command(command)
 					},
 					{
 						"name": "' commandPrefix 'log",
-						"value": "Uploads your debug_log.txt",
+						"value": "Sends redacted recent issues (Diagnostics permission)",
 						"inline": true
 					},
 					{
@@ -1247,7 +1248,7 @@ nm_command(command)
 
 
 		case "log":
-		discord.SendFile("settings\debug_log.txt", id)
+		nm_SendSupportReport(id, true)
 
 
 		case "keep":
@@ -2421,41 +2422,7 @@ nm_command(command)
 			DetectHiddenWindows 0
 
 		case 'Debug', 'Debuglog':
-			DetectHiddenWindows 1
-			if WinExist("natro_macro ahk_class AutoHotkey"){
-				static os_version:='', processorName:='', RAMAmount:=''
-				if !os_version || !processorName || !RAMAmount
-					winmgmts := ComObjGet("winmgmts:")
-				if !os_version
-					for objItem in winmgmts.ExecQuery("SELECT * FROM Win32_OperatingSystem")
-						os_version := Trim(StrReplace(StrReplace(StrReplace(StrReplace(objItem.Caption, "Microsoft"), "Майкрософт"), "مايكروسوفت"), "微软"))
-				if !processorName
-					for objItem in winmgmts.ExecQuery("SELECT * FROM Win32_Processor")
-						processorName := Trim(objItem.Name)
-				if !RAMAmount {
-					MEMORYSTATUSEX := Buffer(64,0)
-					NumPut("uint", 64, MEMORYSTATUSEX)
-					DllCall("kernel32\GlobalMemoryStatusEx", "ptr", MEMORYSTATUSEX)
-					RAMAmount := Round(NumGet(MEMORYSTATUSEX, 8, "int64") / 1073741824, 1)
-				}
-				
-				try result := SendMessage(0x5560, 1)
-
-				if !result
-					discord.SendEmbed("Timed out", 5066239, , , , id)
-				else {
-					point(key, value) => "`n- " key ": " value
-					str := A_Clipboard
-					str := StrReplace(str, '%RAM%', point('RAM', RAMAmount 'GB'))
-					str := StrReplace(str, '%OS%', point('OS', os_version ' (' (A_Is64bitOS ? '64-bit' : '32-bit') ')'))
-					str := StrReplace(str, '%CPU%', point('CPU', processorName))
-					str := StrReplace(StrReplace(StrReplace(str, '\', '\\'), '`n', '\n'), '`r', '')
-				}
-				A_Clipboard := str
-				discord.SendEmbed('**Debug Log**\nTo get help with debugging you can join [our discord](https:\/\/discord.gg\/invite\/xbkXjwWh8U)', , str, , , id)
-			}
-			DetectHiddenWindows 0
-
+		nm_SendSupportReport(id)
 
 		#Include "*i %A_ScriptDir%\..\settings\personal_commands.ahk"
 

@@ -33,6 +33,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "HashFile.ahk"
 #Include "RuntimePolicy.ahk"
 #Include "RemoteCapabilities.ahk"
+#Include "SupportReport.ahk"
 #Include "PlanterRecovery.ahk"
 #Include "PlanterObservation.ahk"
 #Include "BlenderAccounting.ahk"
@@ -124,7 +125,6 @@ OnMessage(0x5556, nm_sendHeartbeat)
 OnMessage(0x5557, nm_ForceReconnect)
 OnMessage(0x5558, nm_AmuletPrompt)
 OnMessage(0x5559, nm_FindItem)
-OnMessage(0x5560, nm_copyDebugLog)
 OnMessage(0x0020, nm_WM_SETCURSOR)
 
 ; set version identifier
@@ -2196,7 +2196,7 @@ TraySetIcon "nm_image_assets\auryn.ico"
 A_TrayMenu.Delete()
 A_TrayMenu.Add()
 A_TrayMenu.Add("Open Logs", (*) => ListLines())
-A_TrayMenu.Add("Copy Logs", nm_copyDebugLog)
+A_TrayMenu.Add("Preview Support Report", nm_copyDebugLog)
 A_TrayMenu.Add()
 A_TrayMenu.Add("Edit Roblox FPS", robloxFPSGui)
 A_TrayMenu.Add()
@@ -2224,52 +2224,6 @@ DllCall(DllCall("GetProcAddress"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; DEFAULT ROBLOX TYPE/PATH DETECTION
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-nm_GetRobloxUWPPath()
-{
-	try {
-		loop Reg, "HKCU\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\Repository\Packages", "K" {
-			if InStr(StrLower(A_LoopRegName),"robloxcorporation") {
-				exePath := "C:\Program Files\WindowsApps\" A_LoopRegName "\Windows10Universal.exe"
-				if FileExist(exePath)
-					return exePath
-				exePath := "C:\XboxGames\Roblox\Content\RobloxPlayerBeta.exe"
-				if FileExist(exePath)
-					return exePath
-			}
-		}
-	}
-}
-nm_GetRobloxWebPath() => RegRead("HKCR\roblox\shell\open\command")
-
-RobloxTypes := {
-	UWP: "UWP Version",
-	Bootstrapper: "Bootstrapper (Web)",
-	Web: "Web Version",
-	Custom: "Custom/Unknown (Web)",
-	NotFound: "Not found"
-}
-
-nm_DetectRobloxType()
-{
-	robloxpath := defaultapp := ""
-
-	try robloxpath := nm_GetRobloxWebPath()
-	if robloxpath {
-		switch {
-			case robloxpath ~= "i)[a-z]+strap":
-				return RobloxTypes.Bootstrapper
-			case InStr(robloxpath, "RobloxPlayerBeta"):
-				return RobloxTypes.Web
-			case robloxpath:
-				return RobloxTypes.Custom
-		}
-	}
-
-	if nm_GetRobloxUWPPath()
-		return RobloxTypes.UWP
-
-	return RobloxTypes.NotFound
-}
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; DETECT INCORRECT ROBLOX SETTINGS
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -8551,7 +8505,7 @@ nm_DebugLogGUI(*){
 	DebugLogGui.SetFont("s8 cDefault Norm", "Tahoma")
 	DebugLogGui.Add("CheckBox", "x10 y6 vDebugLogEnabled Checked" DebugLogEnabled, "Enable Debug Logging").OnEvent("Click", nm_DebugLogCheck)
 	DebugLogGui.Add("Button", "xp+140 y5 h16", "Go To File").OnEvent("Click", (*) => Run('explorer.exe /e, /n, /select,"' A_WorkingDir '\settings\debug_log.txt"'))
-	DebugLogGui.Add("Button", "x10 yp+20 hp w200", "Copy Logs (" DebugHotkey ")").OnEvent("Click", nm_copyDebugLog)
+	DebugLogGui.Add("Button", "x10 yp+20 hp w200", "Support Report (" DebugHotkey ")").OnEvent("Click", nm_copyDebugLog)
 	DebugLogGui.Show("w210 h36")
 }
 nm_DebugLogCheck(*){
@@ -10058,146 +10012,8 @@ nm_priorityListGui(*) {
 
 	return (PGUIPID := exec.ProcessID)
 }
-nm_copyDebugLog(param:="", *) {
-	static os_version := "", processorName := "", RAMAmount := 0
-	, robloxtype:="", robloxpath:=""
-
-	fromRC := (param is number && param = 1)
-
-	SetCursor("IDC_APPSTARTING")
-
-	debugReport :=
-	(
-	'``````md
-	<NM Debug>'
-	header("PC Info", "`n")
-	PcInfo()
-
-	header("Macro Info")
-	MacroInfo()
-
-	header("Roblox Info")
-	RobloxInfo()
-	
-	header("Detected Problems")
-	DetectedProblems()
-
-	header("Recent Issues")
-	RecentIssues()
-	'``````'
-	)
-	A_Clipboard := debugReport
-	SetCursor("") ;reset back
-	if !fromRC
-		MsgBox("Copied Debug report to your clipboard.", "Copy Debug Logs", "T10 Iconi")
-
-	return 1
-
-	;formatters
-	header(text, newlines:="`n`n") => newlines "# " text
-	point(label, text) => "`n- " label ": " text
-	path(text) => "``" text "``"
- 
-	PcInfo(){
-		static DisplayScale := Map(
-		96, 100,
-		120, 125,
-		144, 150,
-		192, 200
-		)
-		if fromRC {
-			return 
-			(
-			'%OS%'
-			point("Resolution", A_ScreenWidth 'x' A_ScreenHeight ' (' Round(A_ScreenDPI * 100 / 96) '%)')
-			'%CPU% %RAM%'
-			)
-		}
-		winmgmts := ComObjGet("winmgmts:")
-		if (!os_version) {
-			for objItem in winmgmts.ExecQuery("SELECT * FROM Win32_OperatingSystem")
-				os_version := Trim(StrReplace(StrReplace(StrReplace(StrReplace(objItem.Caption, "Microsoft"), "Майкрософт"), "مايكروسوفت"), "微软"))
-		}
-		if (!processorName){
-			for objItem in winmgmts.ExecQuery("SELECT * FROM Win32_Processor")
-				processorName := Trim(objItem.Name)
-		}
-		if (!RAMAmount) {
-			MEMORYSTATUSEX := Buffer(64,0)
-			NumPut("uint", 64, MEMORYSTATUSEX)
-			DllCall("kernel32\GlobalMemoryStatusEx", "ptr", MEMORYSTATUSEX)
-			RAMAmount := Round(NumGet(MEMORYSTATUSEX, 8, "int64") / 1073741824, 1)
-		}
-
-		return
-		(
-		point("OS", os_version ' (' (A_Is64bitOS ? '64-bit' : '32-bit') ')')
-		point("Resolution", A_ScreenWidth 'x' A_ScreenHeight ' (' Round(A_ScreenDPI * 100 / 96) '%)')
-		. (processorName ? point("CPU", processorName) : '')
-		. (RAMAmount ? point("RAM", RAMAmount ' GB') : '')
-		)
-	}
-	MacroInfo(){
-		return 
-		(
-			point("AHK Version", A_AhkVersion (A_AhkPath = A_WorkingDir '\submacros\AutoHotkey32.exe' ? ' (built-in)' : ' (installed)'))
-			point("Natro Version", VersionID ((VerCompare(VersionID, LatestVer) < 0) ? ' (outdated)' : ''))	
-			point("Installation Path", path(StrReplace(A_WorkingDir, EnvGet("USERPROFILE"), '%USERPROFILE%')))
-		)
-	}
-	RobloxInfo(){
-		robloxtype := nm_DetectRobloxType()
-		robloxpath := ""
-		if robloxtype = RobloxTypes.UWP
-			robloxpath := nm_GetRobloxUWPPath()
-		else
-			robloxpath := nm_GetRobloxWebPath()
-		if robloxpath 
-			robloxpath := Trim(StrReplace(StrReplace(StrReplace(robloxpath, EnvGet("USERPROFILE"), '%USERPROFILE%'), '%1', ''), '"', ''))
-		return 
-		(
-			(robloxpath ? point("Path", path(robloxpath)) : '')
-			point("Default app", robloxtype)
-		)
-	}
-	DetectedProblems(){
-		try static remoteDesktopMinimize := RegRead("HKLM\Software\Microsoft\Terminal Server Client", "RemoteDesktop_SuppressWhenMinimized")
-		problems := 0
-		return (
-			checkProblem((A_ScreenDPI != 96), 'Display scale is not set to 100%')
-			checkProblem((robloxtype = RobloxTypes.NotFound || robloxtype = RobloxTypes.Custom), 'Roblox not found or using a custom install')
-			checkProblem((robloxtype = RobloxTypes.Bootstrapper), 'Using custom bootstrapper (e.g. Bloxstrap), check config')
-			checkProblem((A_ScreenHeight <= 600) || (A_ScreenWidth <= 1300), 'Low screen resolution')
-			checkProblem((offsetfail ?? 0), 'Recent y-offset fail')
-			checkProblem((VerCompare(VersionID, LatestVer) < 0), 'Outdated Natro Macro version')
-			checkProblem((InStr(EnvGet("SESSIONNAME"), "RDP") && remoteDesktopMinimize != 2), 'Minimizing remote desktop connection will cause Natro Macro to break')
-			checkProblem(((DllCall("GetSystemMetrics", "int", 94)) & 0x40 && DllCall("GetSystemMetrics", "int", 95) >= 2), 'Touchscreen is enabled')
-			checkProblem((robloxtype = RobloxTypes.UWP), 'Using UWP Roblox, it is currently unsupported for this Natro Macro version')
-			; Visible errors are a supported diagnostic setting.
-
-			(problems = 0 ? '`n<None>' : '`n`n> Total: ' problems)
-		)
-		checkProblem(condition, text) => ((condition) ? ('`r`n' (++problems) '. ' text) : '')
-	}
-	RecentIssues(){
-		if (DebugLogEnabled = 0)
-			return '`n<Debugging disabled>'
-		latestDebuglog := FileRead('.\settings\debug_log.txt')
-		latestLogs := SubStr(latestDebugLog, ((pos := InStr(latestDebuglog, '`n', 0, -1, -250)) ? pos : 1))
-		issues := '', totalissues := 0
-
-		loop parse latestLogs, '`r`n' {
-			if InStr(A_LoopField, 'Error') || InStr(A_LoopField, 'Warning') || InStr(A_LoopField, 'Failed'){
-				issues .= A_LoopField '`n'
-				if ++totalissues > 10	
-					break
-			}
-		}
-		if !issues
-			return '`n<None>'
-
-		return '`n' issues '`n> Total: ' totalissues
-	}
+nm_copyDebugLog(*) {
+	nm_SupportPreview.Open()
 }
 
 robloxFPSGui(*) {
