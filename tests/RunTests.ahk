@@ -31,6 +31,7 @@
 #Include "%A_ScriptDir%\LiveHoneyTests.ahk"
 #Include "%A_ScriptDir%\UploadOwnershipTests.ahk"
 #Include "%A_ScriptDir%\CommandDeliveryTests.ahk"
+#Include "%A_ScriptDir%\DeliveryCooldownTests.ahk"
 #Include "%A_ScriptDir%\DiscordReportTests.ahk"
 #Include "%A_ScriptDir%\DiscordHelpTests.ahk"
 #Include "%A_ScriptDir%\..\lib\HourlyReportDelivery.ahk"
@@ -102,7 +103,7 @@ SetWorkingDir testDirectory
 passed := failed := 0
 try {
 	for test in [TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
-		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures, TestCollectionInterrupts, TestDiscordPayload, TestDeliveryQueue, TestHourlyReportDelivery, TestLocalHttpDelivery, TestGeometryCache, TestInventoryEngine, TestInventoryReader, TestPointerLease, TestInventoryDrag, TestQuestObservation, TestQuestFrames, TestQuestActions, TestQuestUnknownPublication, TestQuestRecovery, TestQuestTurnInRecovery, TestHealthObservation, TestBossHealthEstimation, TestBossHealthReporting, TestImageObservation, TestCombatPresence, TestRemoteCapabilities, TestAttachmentWorker, TestSupportReport, TestGatherProfiles, TestReconnectSession, TestRecoveryActivity, TestPlanterDialog, TestStatCounters, TestDiscordRepliesEncoding, TestDiscordHelp, TestDiscordReports, TestLiveHoneyDelivery, TestLocalLiveHoney, TestUploadOwnership, TestCommandDelivery] {
+		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures, TestCollectionInterrupts, TestDiscordPayload, TestDeliveryQueue, TestHourlyReportDelivery, TestLocalHttpDelivery, TestGeometryCache, TestInventoryEngine, TestInventoryReader, TestPointerLease, TestInventoryDrag, TestQuestObservation, TestQuestFrames, TestQuestActions, TestQuestUnknownPublication, TestQuestRecovery, TestQuestTurnInRecovery, TestHealthObservation, TestBossHealthEstimation, TestBossHealthReporting, TestImageObservation, TestCombatPresence, TestRemoteCapabilities, TestAttachmentWorker, TestSupportReport, TestGatherProfiles, TestReconnectSession, TestRecoveryActivity, TestPlanterDialog, TestStatCounters, TestDiscordRepliesEncoding, TestDiscordHelp, TestDiscordReports, TestLiveHoneyDelivery, TestLocalLiveHoney, TestUploadOwnership, TestCommandDelivery, TestDeliveryCooldown, TestLocalCooldown] {
 		try {
 			test.Call()
 			passed++

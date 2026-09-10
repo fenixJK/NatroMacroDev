@@ -8,6 +8,7 @@ $listener = [Net.HttpListener]::new()
 $listener.Prefixes.Add("http://127.0.0.1:$port/")
 $listener.Start()
 [IO.File]::WriteAllText($ReadyFile, [string]$port)
+$rateStarted = @{}
 try {
     while ($listener.IsListening) {
         $context = $listener.GetContext()
@@ -30,7 +31,23 @@ try {
                 continue
             }
             $body = $reader.ReadToEnd()
-            if ($context.Request.Url.AbsolutePath -in @('/live', '/live/123')) {
+            if ($context.Request.Url.AbsolutePath -eq '/rate') {
+                $payload = ConvertFrom-Json -InputObject $body -ErrorAction Stop
+                $key = $context.Request.QueryString['fixture']
+                if ($key -notmatch '^(32|64)$') { throw 'Unknown rate fixture' }
+                if ($payload.phase -eq 1) {
+                    $rateStarted[$key] = [Diagnostics.Stopwatch]::GetTimestamp()
+                    $bytes = [Text.Encoding]::UTF8.GetBytes('{"retry_after":0.1}')
+                    $context.Response.StatusCode = 429
+                    $context.Response.Headers['Retry-After'] = '2.5'
+                    $context.Response.ContentLength64 = $bytes.Length
+                    $context.Response.OutputStream.Write($bytes, 0, $bytes.Length)
+                    continue
+                }
+                if ($payload.phase -ne 2 -or -not $rateStarted.ContainsKey($key)) { throw 'Missing rate-limit predecessor' }
+                $elapsed = ([Diagnostics.Stopwatch]::GetTimestamp() - $rateStarted[$key]) / [Diagnostics.Stopwatch]::Frequency
+                if ($elapsed -lt 2.5) { throw 'Message bypassed predecessor rate limit' }
+            } elseif ($context.Request.Url.AbsolutePath -in @('/live', '/live/123')) {
                 $payload = ConvertFrom-Json -InputObject $body -ErrorAction Stop
                 $expectedMethod = if ($context.Request.Url.AbsolutePath -eq '/live') { 'POST' } else { 'PATCH' }
                 $expectedFrame = if ($expectedMethod -eq 'POST') { 1 } else { 2 }

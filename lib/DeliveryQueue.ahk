@@ -1,10 +1,12 @@
 ; One asynchronous request at a time. Payloads own their encoded bytes, never a
 ; borrowed bitmap pointer. A successful enqueue transfers ownership to this queue.
+#Include "DeliveryCooldown.ahk"
 class nm_DeliveryQueue {
-	__New(factory := unset, clock := unset, failure := unset) {
+	__New(factory := unset, clock := unset, failure := unset, cooldown := unset) {
 		this.Factory := IsSet(factory) ? factory : nm_HttpDelivery
 		this.Clock := IsSet(clock) ? clock : (() => DllCall("GetTickCount64", "UInt64"))
 		this.Failure := IsSet(failure) ? failure : ((job, reason) => 0)
+		this.Cooldown := IsSet(cooldown) ? cooldown : nm_DeliveryCooldown(!IsSet(factory) && !IsSet(clock))
 		this.Items := [], this.Bytes := 0, this.Busy := false, this.Closed := false
 		this.Limit := 100, this.ByteLimit := 32 * 1024 * 1024
 		this.Timeout := 20000, this.MaxAttempts := 5, this.MaxAge := 3600000
@@ -36,10 +38,13 @@ class nm_DeliveryQueue {
 	}
 
 	Pump() {
-		if this.Busy || !this.Items.Length
+		if this.Busy
 			return
 		this.Busy := true
 		try {
+			this.Cooldown.Flush()
+			if !this.Items.Length
+				return
 			job := this.Items[1], current := this.Clock.Call()
 			if job.cancelled {
 				this.Finish(job, false, "Cancelled")
@@ -50,6 +55,11 @@ class nm_DeliveryQueue {
 				return
 			}
 			if !job.request {
+				try job.next := Max(job.next, this.Cooldown.Deadline(job, current))
+				catch {
+					this.Retry(job, current, 0, "Rate-limit coordination unavailable")
+					return
+				}
 				if current < job.next
 					return
 				job.attempts++, job.started := current
@@ -69,6 +79,8 @@ class nm_DeliveryQueue {
 					this.Retry(job, current, 0, "Network request timed out; delivery is uncertain")
 				return
 			}
+			if response.status = 429
+				job.next := Max(job.next, this.Cooldown.Defer(job, current, response.retryAfter))
 			if job.cancelled
 				this.Finish(job, false, "Cancelled")
 			else if response.status >= 200 && response.status < 300
@@ -83,7 +95,7 @@ class nm_DeliveryQueue {
 	Retry(job, current, retryAfter, reason) {
 		this.Abort(job)
 		delay := Max(1000 * 2 ** job.attempts, IsNumber(retryAfter) ? retryAfter * 1000 : 0)
-		job.next := current + delay
+		job.next := Max(job.next, current + delay)
 		if job.attempts >= this.MaxAttempts {
 			this.Finish(job, false, reason "; attempt limit reached")
 			return
