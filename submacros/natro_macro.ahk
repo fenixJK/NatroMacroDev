@@ -42,6 +42,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "QuestObservation.ahk"
 #Include "QuestActions.ahk"
 #Include "HealthObservation.ahk"
+#Include "BossHealthEstimation.ahk"
 
 #Warn VarUnset, Off
 
@@ -10520,92 +10521,6 @@ nm_PlanterTimeUpdate(FieldName, SetStatus := 1)
 		}
 	}
 }
-;;Time interval in minutes
-nm_KillTimeEstimation(bossName, bossTimer)
-{
-	global InputSnailHealth, SnailTime, InputChickHealth, ChickTime, intialHealthCheck
-	static bosses := Map()
-	confidenceArray := []
-	confidenceTotal := 0
-	if (!IsSet(intialHealthCheck) || (intialHealthCheck = 0) || !bosses.Has(bossName "Health"))
-	{
-		bosses[bossName "Health"] := (Input%bossName%Health > 0) ? Input%bossName%Health : 100
-		intialHealthCheck := 1
-	}
-	bosses[bossName "TimeInterval"] := bossTimer
-	loop 5
-	{
-		HealthBars := nm_HealthDetection()
-		for i, v in HealthBars
-		{
-			if (v = 100.00) ;Not enough damage was dealt or there is a planter detected
-			{
-				continue
-			}
-			else if (!IsSet(healthDiff) || Abs(bosses[bossName "Health"] - v) < healthDiff)
-			{
-				healthDiff := Abs(bosses[bossName "Health"] - v)
-				lastHealth := v
-				confidenceArray.Push(v)
-			}
-		}
-	}
-	if (!IsSet(lastHealth) || (confidenceArray.Length = 0))
-		return 0
-	for index, value in confidenceArray
-	{
-		confidenceTotal += value
-	}
-	confidenceMean := confidenceTotal / confidenceArray.Length
-	if ((confidenceMean >= lastHealth - 1) && (confidenceMean <= lastHealth + 1))
-	{
-		dmgDealt := round((bosses[bossName "Health"]-lastHealth)/(bosses[bossName "TimeInterval"]/60000), 4)
-		if ((dmgDealt > 0) && ((abs(bosses[bossName "Health"]-lastHealth) >= 2.5) && lastHealth > 0))
-		{
-			timeEstimation := round(lastHealth/abs(dmgDealt), 2)
-			elapsedMins := floor(bossTimer/60000)
-			elapsedSecs := Mod(bossTimer, 60)
-			if (timeEstimation > 60)
-			{
-				sHours := Floor(timeEstimation/60)
-				sMinutes := Mod(timeEstimation, 60)
-				nm_setStatus("Detected",
-					(
-					"Health
-					Boss: " bossName "
-					Est Previous Health: " round(bosses[bossName "Health"], 2) "%
-					Est Current Health: " lastHealth "%
-					Est Change of health: " round(abs(dmgDealt), 2) "% Per minute
-					Est Time until dead: " round(sHours) " Hours " round(sMinutes) " Minutes
-					Time Elasped: " elapsedMins " Minutes " elapsedSecs " Seconds"
-					)
-				)
-			}
-			else
-			{
-				sMinutes := Floor(timeEstimation)
-				Sseconds := Round((timeEstimation - sMinutes) * 60)
-				nm_setStatus("Detected",
-					(
-					"Health
-					Boss: " bossName "
-					Est Previous Health: " round(bosses[bossName "Health"], 2) "%
-					Est Current Health: " lastHealth "%
-					Est Change of health: " round(abs(dmgDealt), 2) "% Per minute
-					Est Time until dead: " round(sMinutes) " Minutes " round(sSeconds) " Seconds
-					Time Elasped: " elapsedMins " Minutes " elapsedSecs " Seconds"
-					)
-				)
-			}
-			IniWrite lastHealth, "settings\nm_config.ini", "Collect", "Input" bossName "Health"
-			bosses[bossName "Health"] := lastHealth
-		}
-		else
-		{
-			Return 0
-		}
-	}
-}
 nm_imgSearch(fileName,v,aim := "full", trans:="none"){
 	GetRobloxClientPos()
 	;xi := 0
@@ -12975,7 +12890,6 @@ nm_Bugrun(){
 		, BugrunMantisCheck, BugrunMantisLoot, LastBugrunMantis
 		, BugrunWerewolfCheck, BugrunWerewolfLoot, LastBugrunWerewolf
 		, BugrunScorpionsCheck, BugrunScorpionsLoot, LastBugrunScorpions
-		, intialHealthCheck
 		, CocoCrabCheck, LastCocoCrab
 		, StumpSnailCheck, LastStumpSnail
 		, CommandoCheck, LastCommando
@@ -14593,8 +14507,8 @@ nm_Bugrun(){
 				Ssdead:=0
 				if(found) {
 					nm_setStatus("Attacking", "Stump Snail")
-					DllCall("GetSystemTimeAsFileTime", "int64p", &SnailStartTime:=0)
-					KillCheck := SnailStartTime
+					SnailStartTime := DllCall("GetTickCount64", "UInt64")
+					healthEstimate := nm_BossHealthSession()
 					UpdateTimer := SnailStartTime
 					Send "{" SC_1 "}"
 					loop 2
@@ -14655,10 +14569,9 @@ nm_Bugrun(){
 						}
 						Click "Up"
 						;(+) New detection system for snail
-						DllCall("GetSystemTimeAsFileTime", "int64p", &currentTime:=0)
-						ElaspedSnailTime :=  (currentTime - SnailStartTime)//10000
-						LastHealthCheck := (currentTime - KillCheck)//10000
-						LastUpdate := (currentTime - UpdateTimer)//10000
+						currentTime := DllCall("GetTickCount64", "UInt64")
+						ElaspedSnailTime :=  (currentTime - SnailStartTime)
+						LastUpdate := (currentTime - UpdateTimer)
 						If(SnailTime != "Kill" && ElaspedSnailTime > SnailTime*60000)
 						{
 							nm_setStatus("Time Limit", "Stump Snail")
@@ -14667,10 +14580,7 @@ nm_Bugrun(){
 						}
 						if (LastUpdate > 60000)
 						{
-							if (nm_KillTimeEstimation("Snail", LastHealthCheck) != 0)
-							{
-								KillCheck := currentTime
-							}
+							nm_KillTimeEstimation("Snail", healthEstimate)
 							UpdateTimer := currentTime
 						}
 					}
@@ -14691,9 +14601,7 @@ nm_Bugrun(){
 					IniWrite SessionBossKills, "settings\nm_config.ini", "Status", "SessionBossKills"
 					LastStumpSnail:=nowUnix()
 					IniWrite LastStumpSnail, "settings\nm_config.ini", "Collect", "LastStumpSnail"
-					InputSnailHealth := 100.00
-					IniWrite InputSnailHealth, "settings\nm_config.ini", "Collect", "InputSnailHealth"
-					intialHealthCheck:=0
+					nm_PublishBossHealth("Snail", 100)
 					break
 				}
 				else if (A_Index = 2){ ;stump snail not dead, come again in 30 mins
@@ -14898,8 +14806,8 @@ nm_Bugrun(){
 				if(found) {
 					nm_setStatus("Attacking", "Commando Chick")
 
-					DllCall("GetSystemTimeAsFileTime", "int64p", &ChickStartTime:=0)
-					KillCheck := ChickStartTime
+					ChickStartTime := DllCall("GetTickCount64", "UInt64")
+					healthEstimate := nm_BossHealthSession()
 					UpdateTimer := ChickStartTime
 					chickStrikes := 0
 					loop { ;10 minute chick timer to keep blessings, Will rehunt in an hour
@@ -14919,10 +14827,9 @@ nm_Bugrun(){
 								break
 						}
 						;(+) New detection system for Chick
-						DllCall("GetSystemTimeAsFileTime", "int64p", &currentTime:=0)
-						LastHealthCheck := (currentTime - KillCheck)//10000
-						ElaspedChickTime := (currentTime-ChickStartTime)//10000
-						LastUpdate := (currentTime - UpdateTimer)//10000
+						currentTime := DllCall("GetTickCount64", "UInt64")
+						ElaspedChickTime := (currentTime-ChickStartTime)
+						LastUpdate := (currentTime - UpdateTimer)
 						If(ChickTime != "Kill" && ElaspedChickTime > ChickTime*60000)
 						{
 							nm_setStatus("Time Limit", "Commando Chick")
@@ -14931,10 +14838,7 @@ nm_Bugrun(){
 						}
 						if (LastUpdate > 60000)
 						{
-							if (nm_KillTimeEstimation("Chick", LastHealthCheck) != 0)
-							{
-								KillCheck := currentTime
-							}
+							nm_KillTimeEstimation("Chick", healthEstimate)
 							UpdateTimer := currentTime
 						}
 						loop 20
@@ -14978,9 +14882,7 @@ nm_Bugrun(){
 					IniWrite SessionBossKills, "settings\nm_config.ini", "Status", "SessionBossKills"
 					LastCommando:=nowUnix()
 					IniWrite LastCommando, "settings\nm_config.ini", "Collect", "LastCommando"
-					InputChickHealth:=100.00
-					IniWrite InputChickHealth, "settings\nm_config.ini", "Collect", "InputChickHealth"
-					intialHealthCheck:=0
+					nm_PublishBossHealth("Chick", 100)
 					break
 				}
 			}
