@@ -54,7 +54,7 @@ TestNectarObservation() {
 		index := 0
 		for color, name in nm_NectarObservation.Colors {
 			index++
-			Loop index = 1 ? 38 : 19
+			Loop name = "Comforting" ? 38 : 19
 				Gdip_SetPixel(bitmap, index * 100, 50 + A_Index, 0xff000000 | color)
 		}
 		values := nm_NectarObservation.Read(bitmap)
@@ -73,11 +73,20 @@ TestNectarObservation() {
 }
 
 TestNectarSimulation() {
-	; Deterministic capacity-feasible model: five equal targets, three slots,
+	maintenance := RunNectarModel(80, 72)
+	Assert(maintenance.lowest >= 70, "All five modeled bars remain above target in the final day")
+	Assert(maintenance.visits <= 110, "Maintenance does not depend on constant short-batch harvesting")
+	build := RunNectarModel(0, 168)
+	Assert(build.lowest >= 70, "An empty start can build all five modeled bars and maintain their targets")
+	Assert(build.visits <= 300, "Build-up eventually leaves emergency short-batch behavior")
+}
+
+RunNectarModel(initial, hours) {
+	; Capacity-feasible model: five equal targets, three interchangeable slots,
 	; 2x effective yield, eight-hour full growth, five minutes per collection.
 	; This is a scheduler check, not evidence of Roblox throughput.
-	values := [80, 80, 80, 80, 80], pending := [], visits := 0, lowest := 100
-	Loop 864 { ; 72 hours in five-minute steps
+	values := [initial, initial, initial, initial, initial], pending := [], visits := 0, lowest := 100
+	Loop hours * 12 {
 		tick := A_Index
 		Loop 5
 			values[A_Index] := Max(0, values[A_Index] - 300 / 864)
@@ -101,11 +110,10 @@ TestNectarSimulation() {
 			pending.Push({nectar: choice.nectar, at: choice.seconds + 300, amount: choice.amount})
 			visits++
 		}
-		if tick > 576
+		if tick > (hours - 24) * 12
 			for value in values
 				lowest := Min(lowest, value)
 	}
-	Assert(lowest >= 70, "All five modeled bars remain above target in the final day")
-	Assert(visits <= 110, "Maintenance does not depend on constant short-batch harvesting")
-	FileAppend "Nectar model: 72h, final-day minimum=" Round(lowest, 2) "%, placements=" visits "`n", "*"
+	FileAppend "Nectar model: " hours "h from " initial "%, final-day minimum=" Round(lowest, 2) "%, placements=" visits "`n", "*"
+	return {lowest: lowest, visits: visits}
 }
