@@ -19,9 +19,9 @@ try {
 	else
 		nm_ReconnectLaunch.Run(request), count := 0
 	channel.Complete(count), outcome := 0
-} catch {
+} catch as workerError {
 	if channel
-		channel.Complete(0, false)
+		channel.Complete(workerError.Line, false)
 } finally {
 	if channel
 		channel.Close()

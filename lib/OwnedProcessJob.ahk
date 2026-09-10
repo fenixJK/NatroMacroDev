@@ -70,7 +70,7 @@ class nm_OwnedProcessJob {
 		}
 		if !DllCall("GetExitCodeProcess", "Ptr", this.Process, "UIntP", &code := 0) || code != 0
 			|| NumGet(this.View, 8, "Int") != 1
-			throw nm_ProcessJobError("Reconnect helper failed")
+			throw nm_ProcessJobError("Reconnect helper failed (worker line " NumGet(this.View, 12, "Int") ")")
 		return NumGet(this.View, 12, "Int")
 	}
 	Close() {

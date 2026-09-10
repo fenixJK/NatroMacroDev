@@ -32,7 +32,10 @@ ProcessTests() {
 		Loop 5 {
 			job := nm_OwnedProcessJob(Map("mode", "echo", "text", 'Unicode Ω " & $(not-a-command)'), A_ScriptDir "\ProcessFixture.ahk")
 			try RequireProcess(job.Wait() = 42, "Shared-memory request round trip")
-			finally job.Close()
+			catch as fixtureError {
+				DumpProcessJob(job)
+				throw fixtureError
+			} finally job.Close()
 		}
 		DllCall("GetProcessHandleCount", "Ptr", -1, "UIntP", &after := 0)
 		RequireProcess(after <= before + 2 && nm_OwnedProcessJob.Jobs.Count = 0, "Worker handles/mappings released across repeated completion")
@@ -67,6 +70,10 @@ ProcessTests() {
 			else
 				decoy := job
 		}
+		selected := nm_RobloxProcesses.Find()
+		for item in selected
+			DllCall("CloseHandle", "Ptr", item.handle)
+		RequireProcess(selected.Length = 1 && selected[1].pid = player.Pid, "Native snapshot selects the expected player before cleanup")
 		RequireProcess(nm_OwnedProcessJob.Execute(Map("kind", "close")) = 1, "Production cleanup selects only the exact player")
 		RequireProcess(!player.Running(), "Verified player process terminated")
 		RequireProcess(decoy.Running(), "Studio/Roblox-named command-line decoy survives")
@@ -89,6 +96,15 @@ WaitProcessReady(job) {
 	while NumGet(job.View, 8, "Int") != 3 {
 		RequireProcess(job.Running() && DllCall("GetTickCount64", "UInt64") < deadline, "Fixture reached its running state")
 		Sleep 20
+	}
+}
+DumpProcessJob(job) {
+	FileAppend "Worker fixture PID " job.Pid ", running " job.Running() ", channel state " NumGet(job.View, 8, "Int") ", value " NumGet(job.View, 12, "Int") "`n", "*"
+	DetectHiddenWindows true
+	for hwnd in WinGetList("ahk_pid " job.Pid) {
+		FileAppend "Fixture window: " WinGetTitle("ahk_id " hwnd) "`n", "*"
+		for control in WinGetControls("ahk_id " hwnd)
+			try FileAppend control ": " ControlGetText(control, "ahk_id " hwnd) "`n", "*"
 	}
 }
 try ProcessTests()
