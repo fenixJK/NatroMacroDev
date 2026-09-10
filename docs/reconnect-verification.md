@@ -16,9 +16,9 @@ recovery; elapsed pause time consumes the budget.
 
 The existing loaded-game (`science`) template must match. Disappearance of the
 loading template is inconclusive. Disconnect imagery takes precedence over loaded
-imagery. All three searches share one owned frame of the focused Roblox client,
+imagery. During loading, all three searches share one owned frame of the focused Roblox client,
 with focus and geometry checked again before accepting it. Failed native searches
-throw rather than become successful observations. Current-game template accuracy
+throw rather than become successful observations. Routine disconnect checks retain their smaller center-region capture. Current-game template accuracy
 still requires live verification.
 
 Hive claiming shares the overall deadline. Its sleeps and worker waits are
@@ -26,7 +26,9 @@ clipped, and it checks the budget before new walking work. Exiting the claim
 routine releases the interaction key and stops its walk worker. Completion and
 legacy timer adjustments occur only after the claim routine accepts a hive (or
 an explicit connection-only check). Failed claims no longer repeatedly extend
-planter/gingerbread times by the entire recovery duration. The existing claim
+planter/gingerbread times by the entire recovery duration. Elapsed compensation
+uses monotonic time including the actual scheduled delay, and zero elapsed time
+no longer becomes an invented five-minute adjustment. The existing claim
 routine still infers acceptance from its prompt/input sequence; a positive
 post-input hive receipt remains open. Related INI writes are not a crash-atomic
 transaction.

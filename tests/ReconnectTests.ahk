@@ -65,6 +65,23 @@ TestReconnectSession() {
 	fixture := ReconnectFixture(), session := fixture.Session()
 	fixture.Tick := 1800000, session.Stage := "hive claim"
 	AssertReconnectExhausted(ObjBindMethod(session, "Check"), "Hive work shares the same total deadline")
+	; Several slow attempts share one deadline; starting a new attempt cannot
+	; renew it. No actual time or network is consumed by this fixture.
+	fixture := ReconnectFixture(), session := fixture.Session([1,2,3,4], true)
+	RunUntilExhausted() {
+		Loop {
+			session.Next()
+			fixture.Join(session)
+		}
+	}
+	AssertReconnectExhausted(RunUntilExhausted, "Repeated attempts must respect the total deadline")
+	AssertEqual(fixture.Tick, 1800000, "Elapsed budget is not renewed by retries")
+	AssertEqual(fixture.Launches, 8, "Budget expiration prevents the ninth slow launch")
+	fixture := ReconnectFixture(), session := fixture.Session([1], false, 2000)
+	session.Next()
+	LateLaunch() => fixture.Tick += 2000
+	AssertReconnectExhausted(() => session.Join(LateLaunch, ObjBindMethod(fixture, "Read")), "Launch work counts toward the same deadline")
+	AssertEqual(fixture.Reads, 0, "Expired launch is not followed by observation or success")
 	AssertEqual(nm_ReconnectObservation.Classify(0,0,0), "unknown", "No match is unknown")
 	AssertEqual(nm_ReconnectObservation.Classify(1,1,1), "disconnected", "Disconnect takes precedence over other signals")
 	AssertEqual(nm_ReconnectObservation.Classify(0,1,1), "loaded", "Positive loaded signal accepted")

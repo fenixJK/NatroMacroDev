@@ -16077,7 +16077,7 @@ DisconnectCheck(testCheck := 0)
 
 	; Unknown imagery is not a disconnect receipt. Missing processes, the
 	; crash window and the existing disconnect template trigger recovery.
-	observation := nm_ReconnectObservation.Read()
+	observation := nm_ReconnectObservation.Read(true)
 	if observation != "missing" && observation != "disconnected" && !WinExist("Roblox Crash")
 		return 0
 
@@ -16086,13 +16086,12 @@ DisconnectCheck(testCheck := 0)
 	; end any residual movement and set reconnect start time
 	Click "Up"
 	nm_endWalk()
-	ReconnectRequestedDelay := 0
+	ReconnectStartedTick := DllCall("GetTickCount64", "UInt64")
 	nm_updateAction("Reconnect")
 
 	; wait for any requested delay time (e.g. from remote control or daily reconnect)
 	if (ReconnectDelay) {
 		nm_setStatus("Waiting", ReconnectDelay " seconds before Reconnect")
-		ReconnectRequestedDelay := ReconnectDelay
 		Sleep 1000*ReconnectDelay
 		ReconnectDelay := 0
 	}
@@ -16180,7 +16179,7 @@ DisconnectCheck(testCheck := 0)
 			ActivateRoblox()
 			GetRobloxClientPos()
 			MouseMove windowX + windowWidth//2, windowY + windowHeight//2
-			duration := DurationFromSeconds(ReconnectDuration := recovery.ElapsedSeconds() + ReconnectRequestedDelay, "mm:ss")
+			duration := DurationFromSeconds(ReconnectDuration := Max(0, (DllCall("GetTickCount64", "UInt64") - ReconnectStartedTick) // 1000), "mm:ss")
 			nm_setStatus("Completed", "Reconnect`nTime: " duration " - Attempts: " i)
 			Sleep 500
 
@@ -16188,11 +16187,11 @@ DisconnectCheck(testCheck := 0)
 			IniWrite LastClock, "settings\nm_config.ini", "Collect", "LastClock"
 			if (beesmasActive)
 			{
-				LastGingerbread += ReconnectDuration ? ReconnectDuration : 300
+				LastGingerbread += ReconnectDuration
 				IniWrite LastGingerbread, "settings\nm_config.ini", "Collect", "LastGingerbread"
 			}
 			Loop 3 {
-				PlanterHarvestTime%A_Index% += PlanterName%A_Index% ? (ReconnectDuration ? ReconnectDuration : 300) : 0
+				PlanterHarvestTime%A_Index% += PlanterName%A_Index% ? ReconnectDuration : 0
 				IniWrite PlanterHarvestTime%A_Index%, "settings\nm_config.ini", "Planters", "PlanterHarvestTime" A_Index
 			}
 
@@ -16326,155 +16325,137 @@ nm_claimHiveSlot(recovery := 0){
 		CheckRecovery()
 	}
 	try {
-	DetectHiveslots := 1
-	Loop 5
-	{
-		CheckRecovery()
-		ActivateRoblox()
-		hwnd := GetRobloxHWND()
-		offsetY := GetYOffset(hwnd)
-		GetRobloxClientPos(hwnd)
-		MouseMove windowX+350, windowY+offsetY+100
-
-		;reset
-		if (A_Index > 1)
+		DetectHiveslots := 1
+		Loop 5
 		{
-			resetTime:=nowUnix()
-			PostSubmacroMessage("background", 0x5554, 1, resetTime)
+			CheckRecovery()
 			ActivateRoblox()
-			PrevKeyDelay := A_KeyDelay
-			SetKeyDelay 250+KeyDelay
-			send "{" SC_Esc "}{" SC_R "}{" SC_Enter "}"
-			SetKeyDelay PrevKeyDelay
-			n := 0
-			while ((n < 2) && (A_Index <= 80))
+			hwnd := GetRobloxHWND()
+			offsetY := GetYOffset(hwnd)
+			GetRobloxClientPos(hwnd)
+			MouseMove windowX+350, windowY+offsetY+100
+
+			;reset
+			if (A_Index > 1)
 			{
-				WaitRecovery(100)
-				GetRobloxClientPos(hwnd)
-				pBMScreen := Gdip_BitmapFromScreen(windowX "|" windowY "|" windowWidth "|50")
-				n += (Gdip_ImageSearch(pBMScreen, bitmaps["emptyhealth"], , , , , , 10) = (n = 0))
-				Gdip_DisposeImage(pBMScreen)
-			}
-			WaitRecovery(1000)
-		}
-
-		; detect unclaimed hive slots.
-		if DetectHiveslots {
-			preferred := (ClaimMethod = "Detect") ? 0 : HiveSlot
-			if ClaimMethod = "Detect" {
-				slots := nm_detectHiveSlots()
-				for i, slot in slots {
-					if (HiveSlot = slot.HiveSlot && slot.Claimed = "Empty") {
-						preferred := HiveSlot
-						break
-					}
+				resetTime:=nowUnix()
+				PostSubmacroMessage("background", 0x5554, 1, resetTime)
+				ActivateRoblox()
+				PrevKeyDelay := A_KeyDelay
+				SetKeyDelay 250+KeyDelay
+				send "{" SC_Esc "}{" SC_R "}{" SC_Enter "}"
+				SetKeyDelay PrevKeyDelay
+				n := 0
+				while ((n < 2) && (A_Index <= 80))
+				{
+					WaitRecovery(100)
+					GetRobloxClientPos(hwnd)
+					pBMScreen := Gdip_BitmapFromScreen(windowX "|" windowY "|" windowWidth "|50")
+					n += (Gdip_ImageSearch(pBMScreen, bitmaps["emptyhealth"], , , , , , 10) = (n = 0))
+					Gdip_DisposeImage(pBMScreen)
 				}
+				WaitRecovery(1000)
+			}
 
-				if (!preferred) {
+			; detect unclaimed hive slots.
+			if DetectHiveslots {
+				preferred := (ClaimMethod = "Detect") ? 0 : HiveSlot
+				if ClaimMethod = "Detect" {
+					slots := nm_detectHiveSlots()
 					for i, slot in slots {
-						if (slot.Claimed = "Empty") {
-							preferred := slot.HiveSlot
+						if (HiveSlot = slot.HiveSlot && slot.Claimed = "Empty") {
+							preferred := HiveSlot
 							break
 						}
 					}
+
+					if (!preferred) {
+						for i, slot in slots {
+							if (slot.Claimed = "Empty") {
+								preferred := slot.HiveSlot
+								break
+							}
+						}
+					}
 				}
-			}
-			if (preferred) {
-				movement := nm_spawnMoveTo(slotMove[preferred])
-				CheckRecovery()
-				nm_createWalk(movement)
-				WalkWait(5, true)
-				WalkWait(20)
-				nm_endWalk()
-				WaitRecovery(500)
-				pBMScreen := GetBitmap()
-				if (Gdip_ImageSearch(pBMScreen, bitmaps["claimhive"], , , , , , 2, , 6) = 1) {
+				if (preferred) {
+					movement := nm_spawnMoveTo(slotMove[preferred])
+					CheckRecovery()
+					nm_createWalk(movement)
+					WalkWait(5, true)
+					WalkWait(20)
+					nm_endWalk()
+					WaitRecovery(500)
+					pBMScreen := GetBitmap()
+					if (Gdip_ImageSearch(pBMScreen, bitmaps["claimhive"], , , , , , 2, , 6) = 1) {
+						Gdip_DisposeImage(pBMScreen)
+						Send "{" SC_E " down}"
+						WaitRecovery(100)
+						Send "{" SC_E " up}"
+						HiveConfirmed := 1
+						HiveSlot := preferred
+						MainGui["HiveSlot"].Text := HiveSlot
+						IniWrite HiveSlot, "settings\nm_config.ini", "Settings", "HiveSlot"
+						nm_setStatus("Claimed", "Hive Slot " HiveSlot)
+						MouseMove windowX+350, windowY+offsetY+100
+						return 1
+					}
 					Gdip_DisposeImage(pBMScreen)
-					Send "{" SC_E " down}"
-					WaitRecovery(100)
-					Send "{" SC_E " up}"
-					HiveConfirmed := 1
-					HiveSlot := preferred
-					MainGui["HiveSlot"].Text := HiveSlot
-					IniWrite HiveSlot, "settings\nm_config.ini", "Settings", "HiveSlot"
-					nm_setStatus("Claimed", "Hive Slot " HiveSlot)
-					MouseMove windowX+350, windowY+offsetY+100
-					return 1
 				}
-				Gdip_DisposeImage(pBMScreen)
-			}
-			DetectHiveslots := 0
-			continue
-		}
-
-		; old system
-		
-		;go to slot 1
-		WaitRecovery(500)
-		GetRobloxClientPos(hwnd)
-		MouseMove windowX+350, windowY+offsetY+100
-		send "{" ZoomOut " 8}"
-
-		movement :=
-		(
-		'Send "{' RightKey ' down}"
-		Walk(4)
-		Send "{' FwdKey ' down}"
-		Walk(20)
-		Send "{' RightKey ' up}{' FwdKey ' up}"'
-		)
-		CheckRecovery()
-		nm_createWalk(movement)
-		WalkWait(5, true)
-		WalkWait(20)
-		nm_endWalk()
-
-		;check slots 1 to old HiveSlot
-		slots := Map()
-		movement := nm_Walk(9.2, LeftKey)
-		Loop HiveSlot
-		{
-			if (A_Index > 1)
-			{
-				CheckRecovery()
-				nm_createWalk(movement)
-				WalkWait(5, true)
-				WalkWait(20)
-				nm_endWalk()
+				DetectHiveslots := 0
+				continue
 			}
 
+			; old system
+
+			;go to slot 1
 			WaitRecovery(500)
-			pBMScreen := GetBitmap()
-			if (Gdip_ImageSearch(pBMScreen, bitmaps["claimhive"], , , , , , 2, , 6) = 1)
-				slots[A_Index] := 1
-			Gdip_DisposeImage(pBMScreen)
-		}
+			GetRobloxClientPos(hwnd)
+			MouseMove windowX+350, windowY+offsetY+100
+			send "{" ZoomOut " 8}"
 
-		if (slots.Has(HiveSlot) && (slots[HiveSlot] = 1))
-			break
-		else
-		{
-			if ((slot := ObjMinIndex(slots)) > 0)
+			movement :=
+			(
+			'Send "{' RightKey ' down}"
+			Walk(4)
+			Send "{' FwdKey ' down}"
+			Walk(20)
+			Send "{' RightKey ' up}{' FwdKey ' up}"'
+			)
+			CheckRecovery()
+			nm_createWalk(movement)
+			WalkWait(5, true)
+			WalkWait(20)
+			nm_endWalk()
+
+			;check slots 1 to old HiveSlot
+			slots := Map()
+			movement := nm_Walk(9.2, LeftKey)
+			Loop HiveSlot
 			{
-				movement := nm_Walk((HiveSlot - slot) * 9.2, RightKey)
-				CheckRecovery()
-				nm_createWalk(movement)
-				WalkWait(5, true)
-				WalkWait(20)
-				nm_endWalk()
+				if (A_Index > 1)
+				{
+					CheckRecovery()
+					nm_createWalk(movement)
+					WalkWait(5, true)
+					WalkWait(20)
+					nm_endWalk()
+				}
 
 				WaitRecovery(500)
 				pBMScreen := GetBitmap()
-				if (Gdip_ImageSearch(pBMScreen, bitmaps["claimhive"], , , , , , 2, , 6) = 1) {
-					Gdip_DisposeImage(pBMScreen)
-					HiveSlot := slot
-					break
-				}
+				if (Gdip_ImageSearch(pBMScreen, bitmaps["claimhive"], , , , , , 2, , 6) = 1)
+					slots[A_Index] := 1
 				Gdip_DisposeImage(pBMScreen)
 			}
-			else {
-				Loop (6 - HiveSlot)
+
+			if (slots.Has(HiveSlot) && (slots[HiveSlot] = 1))
+				break
+			else
+			{
+				if ((slot := ObjMinIndex(slots)) > 0)
 				{
+					movement := nm_Walk((HiveSlot - slot) * 9.2, RightKey)
 					CheckRecovery()
 					nm_createWalk(movement)
 					WalkWait(5, true)
@@ -16485,30 +16466,48 @@ nm_claimHiveSlot(recovery := 0){
 					pBMScreen := GetBitmap()
 					if (Gdip_ImageSearch(pBMScreen, bitmaps["claimhive"], , , , , , 2, , 6) = 1) {
 						Gdip_DisposeImage(pBMScreen)
-						HiveSlot += A_Index
-						break 2
+						HiveSlot := slot
+						break
 					}
 					Gdip_DisposeImage(pBMScreen)
 				}
+				else {
+					Loop (6 - HiveSlot)
+					{
+						CheckRecovery()
+						nm_createWalk(movement)
+						WalkWait(5, true)
+						WalkWait(20)
+						nm_endWalk()
+
+						WaitRecovery(500)
+						pBMScreen := GetBitmap()
+						if (Gdip_ImageSearch(pBMScreen, bitmaps["claimhive"], , , , , , 2, , 6) = 1) {
+							Gdip_DisposeImage(pBMScreen)
+							HiveSlot += A_Index
+							break 2
+						}
+						Gdip_DisposeImage(pBMScreen)
+					}
+				}
 			}
+
+			nm_setStatus("Failed", "Claim Hive Slot" ((A_Index > 1) ? (" (Attempt " A_Index ")") : ""))
+			if (A_Index = 5)
+				return 0
 		}
 
-		nm_setStatus("Failed", "Claim Hive Slot" ((A_Index > 1) ? (" (Attempt " A_Index ")") : ""))
-		if (A_Index = 5)
-			return 0
-	}
+		SendInput "{" SC_E " down}"
+		WaitRecovery(100)
+		SendInput "{" SC_E " up}"
+		HiveConfirmed := 1
+		;update hive slot
+		MainGui["HiveSlot"].Text := HiveSlot
+		IniWrite HiveSlot, "settings\nm_config.ini", "Settings", "HiveSlot"
+		nm_setStatus("Claimed", "Hive Slot " HiveSlot)
+		MouseMove windowX+350, windowY+offsetY+100
 
-	SendInput "{" SC_E " down}"
-	WaitRecovery(100)
-	SendInput "{" SC_E " up}"
-	HiveConfirmed := 1
-	;update hive slot
-	MainGui["HiveSlot"].Text := HiveSlot
-	IniWrite HiveSlot, "settings\nm_config.ini", "Settings", "HiveSlot"
-	nm_setStatus("Claimed", "Hive Slot " HiveSlot)
-	MouseMove windowX+350, windowY+offsetY+100
-
-	return 1
+		return 1
 	} finally {
 		try Send "{" SC_E " up}"
 		try nm_endWalk()

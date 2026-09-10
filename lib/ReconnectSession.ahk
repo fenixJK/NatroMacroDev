@@ -72,20 +72,26 @@ class nm_ReconnectObservation {
 				throw Error("Reconnect image observation failed")
 		return disconnected ? "disconnected" : loaded ? "loaded" : loading ? "loading" : "unknown"
 	}
-	static Read() {
+	static Read(disconnectOnly := false) {
 		global bitmaps
 		hwnd := GetRobloxHWND()
 		if !hwnd
 			return "missing"
 		if !ActivateRoblox(hwnd) || !(snapshot := nm_ClientSnapshot(hwnd)) || snapshot.height <= 30
 			return "unknown"
-		capture := Gdip_BitmapFromScreen(snapshot.x "|" snapshot.y + 30 "|" snapshot.width "|" snapshot.height - 30)
+		; Ordinary disconnect checks retain the small center region. The loading
+		; state machine searches all signals in one full client frame.
+		x := disconnectOnly ? snapshot.width // 2 : 0
+		y := disconnectOnly ? snapshot.height // 2 : 30
+		width := disconnectOnly ? Min(200, snapshot.width - x) : snapshot.width
+		height := disconnectOnly ? Min(80, snapshot.height - y) : snapshot.height - 30
+		capture := Gdip_BitmapFromScreen(snapshot.x + x "|" snapshot.y + y "|" width "|" height)
 		if !capture
 			throw Error("Reconnect frame capture failed")
 		try {
 			result := this.Classify(Gdip_ImageSearch(capture, bitmaps["disconnected"], , , , , , 2),
-				Gdip_ImageSearch(capture, bitmaps["loading"], , , , , 150, 4),
-				Gdip_ImageSearch(capture, bitmaps["science"], , , , , 150, 2))
+				disconnectOnly ? 0 : Gdip_ImageSearch(capture, bitmaps["loading"], , , , , 150, 4),
+				disconnectOnly ? 0 : Gdip_ImageSearch(capture, bitmaps["science"], , , , , 150, 2))
 			if !nm_WindowOwnsFocus(hwnd) || !nm_SameClient(snapshot, nm_ClientSnapshot(hwnd))
 				return "unknown"
 			return result
