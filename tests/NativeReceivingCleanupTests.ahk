@@ -3,37 +3,37 @@ TestNativeReceivingCleanup() {
 	inbox := root "\settings\remote-inbox"
 	DirCreate inbox
 	try {
-		for case in ["empty", "partial", "unexpected", "hardlink", "readonly", "locked"] {
-			directory := inbox "\.receiving-" Format("{:032x}", A_Index)
+		for index, scenario in ["empty", "partial", "unexpected", "hardlink", "readonly", "locked"] {
+			directory := inbox "\.receiving-" Format("{:032x}", index)
 			DirCreate directory
 			file := directory "\payload.partial", held := 0
-			if case != "empty" && case != "hardlink"
+			if scenario != "empty" && scenario != "hardlink"
 				FileAppend "partial", file
-			if case = "unexpected"
+			if scenario = "unexpected"
 				FileAppend "keep", directory "\personal.txt"
-			if case = "hardlink" {
+			if scenario = "hardlink" {
 				FileAppend "keep", root "\original.txt"
 				RequireProcess(DllCall("CreateHardLinkW", "Str", file, "Str", root "\original.txt", "Ptr", 0), "Create disposable hardlink fixture")
 			}
-			if case = "readonly"
+			if scenario = "readonly"
 				FileSetAttrib "+R", file
-			if case = "locked"
+			if scenario = "locked"
 				held := FileOpen(file, "r-wd")
 			try {
 				ok := RunReceivingCleanup(directory)
-				RequireProcess(ok = (case = "empty" || case = "partial"), "Cleanup result matches owned-file policy: " case)
+				RequireProcess(ok = (scenario = "empty" || scenario = "partial"), "Cleanup result matches owned-file policy: " scenario)
 				if ok
 					RequireProcess(!DirExist(directory), "Successful receiving cleanup removes the empty folder")
 				else
 					RequireProcess(DirExist(directory), "Rejected receiving cleanup retains the folder")
-				if case = "unexpected"
+				if scenario = "unexpected"
 					RequireProcess(FileRead(directory "\personal.txt") = "keep", "Unknown contents are preserved")
-				if case = "hardlink"
+				if scenario = "hardlink"
 					RequireProcess(FileRead(root "\original.txt") = "keep" && FileExist(file), "Hardlinked content is preserved")
 			} finally {
 				if held
 					held.Close()
-				if case = "readonly"
+				if scenario = "readonly"
 					FileSetAttrib "-R", file
 			}
 		}

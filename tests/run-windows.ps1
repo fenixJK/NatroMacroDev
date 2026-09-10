@@ -90,6 +90,10 @@ try {
         }
         # The suite includes a real child-worker watchdog (45 seconds) alongside
         # the other regressions. Individual script validation stays at 60 seconds.
+        foreach ($entryPoint in @('RunTests.ahk', 'GeometryWindows.ahk', 'ProcessWindows.ahk', 'EmitWorkers.ahk')) {
+            Write-Host "Validate test entry point $entryPoint ($bits-bit)"
+            Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', '/Validate', (Join-Path $PSScriptRoot $entryPoint))
+        }
         Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'RunTests.ahk'), $fixturePort, "$readyFile.$bits") -TimeoutMs 90000
         Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'GeometryWindows.ahk'))
         Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'ProcessWindows.ahk')) -TimeoutMs 90000
