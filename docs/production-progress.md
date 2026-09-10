@@ -1964,3 +1964,37 @@ synchronous native calls, partial pixels after drawing errors, full hourly-repor
 failure propagation/rendering and other GDI+ paths remain work. No Windows/Roblox
 machine is available. The full production goal remains active; no merge,
 deployment or release is claimed.
+
+## Menu navigation checkpoint
+
+Code checkpoint: `e50b08b3538c242498e5f6594e875372b3729352`.
+[Windows run 34469827181](https://github.com/fenixJK/NatroMacroDev/actions/runs/34469827181)
+passed **71 regression groups on both AHK architectures**, native menu capture,
+input, cancellation and window guards, and the existing native suites. It also
+passed **nine production-script, four test-entry and seven emitted-worker
+validations** per architecture, plus **eight file-channel checks, 43 attachment
+checks and 35 updater scenarios** per PowerShell version. No AHK warnings occurred;
+the checkout Node runtime deprecation notice remains.
+
+Menu navigation now confirms the selected tab from a fresh capture, returns
+explicit success or uncertainty, and uses one shared five-second deadline. Each
+attempt sends at most one tab click. The old cached state and repeated toggle
+loop are removed. Input requires the same foreground window and client geometry;
+cancellation invalidates preparation and observation waits as well as held input.
+The pointer lease restores coordinate mode and releases owned button presses.
+
+The main program and two inventory workers share all six menu assets. Inventory
+searches stop before reading or scrolling if opening fails. Twelve previously
+unchecked named-menu calls now stop their dependent workflow on failure,
+including all six quest readers. Native fixtures exercise opening and closing
+all six tabs, an unresponsive menu receiving only one click, and rejection after
+movement, focus loss, cancellation, identity changes and frame expiry. Separate
+renderer checks cover the actual bundled templates.
+
+[Menu navigation verification](menu-navigation-verification.md) records the
+contract, integration corrections and final evidence. Selected-header detection
+does not prove contents have loaded; occlusion and overlays can defeat the
+closed-state inference. Close-only callers and later quest, item and planter
+actions still need failure propagation and freshness review. No Windows/Roblox
+machine is available. The full production goal remains active; no merge,
+deployment or release is claimed.

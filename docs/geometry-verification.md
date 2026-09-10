@@ -84,3 +84,13 @@ Remaining F22 work and live checks:
 
 Live Roblox verification remains unavailable and open. The larger recovery plan
 and planter acceptance/reconciliation gates remain active.
+
+## Menu navigation follow-up
+
+Shared menu opening now uses an anchored foreground client, fresh frame checks,
+a single guarded click and observed success/failure. It publishes verified client
+geometry for legacy callers and shares cancellation/pointer ownership with
+inventory drags. Inventory searches stop before reading or scrolling when the
+menu cannot be confirmed. [Menu navigation verification](menu-navigation-verification.md)
+records native input/geometry tests and the remaining occlusion, close-caller and
+downstream gameplay limitations.

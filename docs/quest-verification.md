@@ -92,3 +92,12 @@ F20 remains open for these checks and improvements:
   multiple enabled quest families have explicit scheduling and retry reasons.
 
 No live Roblox verification or complete quest-system rewrite is claimed.
+
+## Initial menu guard follow-up
+
+All six quest readers now check the result of opening the quest log before
+entering their legacy scanning/scrolling loops. Rejection returns through each
+reader's existing finally recovery and unknown-publication path. The shared
+[menu navigation contract](menu-navigation-verification.md) verifies selected-tab
+state and input ownership. Quest acquisition, subsequent scrolling and reward
+confirmation still require the work listed above.
