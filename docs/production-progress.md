@@ -1339,3 +1339,53 @@ than recovering pending commands, and game actions lack transactional receipts.
 Live Discord permissions/content intent/backlog behavior, resource soaks, durable
 action recovery, the synchronous pre-shutdown notification and the full production
 plan remain active. No merge, deployment or production release is claimed.
+
+## Startup ownership and explicit settings override checkpoint
+
+Code checkpoint: `0c09bd55faa057da44f7c9db035f35036f5409a9`.
+[Windows run 34448291521](https://github.com/fenixJK/NatroMacroDev/actions/runs/34448291521)
+passed **61 regression groups on each AHK architecture**, the native Windows
+suites including real startup settings dialogs, seven production-script and four
+emitted-worker validations per architecture, **43 attachment checks** and **35
+updater scenarios** on each PowerShell version. No AHK warnings occurred. The
+checkout Node runtime deprecation notice remains.
+
+Each scheduled start now owns its mode and session until rejection, cancellation
+or the running loop ends. Duplicate requests cannot overwrite automatic/remote/
+local intent. Rejected preflight restores Start controls once; cancelled timers
+and late callbacks cannot start or release a newer session. Automatic and remote
+starts retain the installation, settings, window/offset and input-message access
+checks while avoiding modal prerequisite dialogs. Returning from the main loop
+unexpectedly enters the fault path.
+
+Closing the incorrect-settings warning no longer grants an override. Explicit
+session Ignore changes memory only. Remembering the override requires a checkbox,
+confirmation and a successful INI write before changing memory. Replaced dialogs
+cannot apply old choices, including replacement during confirmation. Persistence
+failure leaves the warning open. Existing persisted preferences remain honored.
+
+Pause and the main background action callback require running session ownership;
+background work also requires running MacroState. Running state publication now
+follows initialization and required helper launch requests. A background helper
+launch error propagates rather than disappearing. Stop cancels startup ownership,
+publishes stopped state and exits with a diagnostic if Reload leaves the old
+instance alive after its ten-second grace period.
+
+Tests exercise all start modes, duplicate/reentrant starts, exceptions, real timer
+cancellation, stale callbacks, loop return and cancellation without re-enabling
+controls. Real temporary INI writes verify session-only and remembered overrides,
+including a write failure. Native GUI fixtures click Close/Ignore and exercise
+confirmation, replacement and failed-save paths on both architectures. Initial
+CI exposed a callback-binding error and fixture variable-shadowing warnings;
+both were corrected without relaxing checks. Run 34447782857 also had a 32-bit
+attachment worker timeout; both architectures passed that unchanged worker check
+in the following run and this checkpoint. Its intermittent timeout cause remains
+unresolved, and no additional retry or relaxed deadline was added.
+
+[Startup verification](startup-verification.md) records the contract and limits.
+The full main GUI/game flow, forced reload failure, live input acceptance and
+helper readiness are unverified. Existing settings XML substring checks and
+missing-file acceptance remain. Helper initialization lacks a readiness handshake;
+main-process background gating is not complete cross-process input ownership.
+F18 and the full production plan remain active. No merge, deployment or production
+release is claimed.
