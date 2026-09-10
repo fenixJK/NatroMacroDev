@@ -34,7 +34,12 @@ TestNativeGeneratedGuis() {
 	iniFixture := "[bees]`nBomber=1`nresources=0`nw=1`n[extrasettings]`nmythicStop=1`n[unknown]`nselectAll=1`n"
 	FileAppend iniFixture, directory "\settings\mutations.ini", "UTF-8"
 	try {
-		for kind in ["discord", "priority", "bee"] {
+		; Exhaustive assets and interactive GUI checks each retain the 20-second
+		; worker limit. Keep all comparisons, split asset work into disjoint halves.
+		for probe in [["discord", 0], ["priority", 0], ["bee", 1], ["bee", 2], ["bee", 0]] {
+			kind := probe[1], assetBatch := probe[2]
+			if FileExist(directory "\probe-phase.txt")
+				FileDelete directory "\probe-phase.txt"
 			config := nm_GuiScripts.Defaults(kind)
 			if kind = "discord"
 				config["webhook"] := 'Unicode Ω "quoted" `` data`nsecond line'
@@ -46,7 +51,7 @@ TestNativeGeneratedGuis() {
 				. ' global guiReady, resources, config, Bomber, mythicStop, selectAll, priorityState`n'
 				. ' if !IsSet(guiReady) || !guiReady {`n SetTimer nm_ProbeGui, -50`n return`n }`n'
 				. ' Critical "On"`n try {`n'
-				. (kind = "bee" ? ' nm_ProbePhase("assets")`n nm_ProbeBeeAssets()`n nm_ProbePhase("preflight")`n nm_ProbeBeePreflight()`n nm_ProbePhase("mouse")`n nm_ProbeBeeMouse()`n nm_ProbePhase("limits")`n nm_ProbeBeeLimits()`n nm_ProbePhase("redraw")`n' : "")
+				. (assetBatch ? ' nm_ProbePhase("assets")`n nm_ProbeBeeAssets(' assetBatch ')`n nm_ProbePhase("redraw")`n' : kind = "bee" ? ' nm_ProbePhase("preflight")`n nm_ProbeBeePreflight()`n nm_ProbePhase("mouse")`n nm_ProbeBeeMouse()`n nm_ProbePhase("limits")`n nm_ProbeBeeLimits()`n nm_ProbePhase("redraw")`n' : "")
 				. (kind = "priority" ? ' if A_CoordModeMouse != "Screen"`n throw Error("Priority drag uses screen coordinates")`n if !nm_SavePriority(87654321) || priorityState.Order != 87654321 || nm_PrioritySettings.Read().Order != 87654321`n throw Error("Priority editor failed to save and publish order")`n if !nm_SavePriority(12345678) || priorityState.Order != 12345678`n throw Error("Priority editor failed to reset")`n' : "")
 				. (kind = "bee" ? ' if Bomber != 1 || mythicStop != 1 || selectAll != 0 || FileRead("settings\mutations.ini") != ' nm_GuiScripts.Literal(iniFixture) '`n throw Error("Auto-Jelly settings validation or read-only startup failed")`n' : "")
 				. ' before := DllCall("GetGuiResources", "Ptr", -1, "UInt", 0, "UInt")`n'

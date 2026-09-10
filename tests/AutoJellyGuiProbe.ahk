@@ -2,9 +2,14 @@
 nm_ProbePhase(phase) {
 	FileAppend DllCall("GetTickCount64", "UInt64") " " phase "`n", "probe-phase.txt"
 }
-nm_ProbeBeeAssets() {
+nm_ProbeBeeAssets(batch) {
 	global bitmaps, beeArr
-	for bee in beeArr {
+	if batch != 1 && batch != 2
+		throw Error("Unknown bee asset fixture batch")
+	checked := 0, midpoint := beeArr.Length // 2
+	for index, bee in beeArr {
+		if (batch = 1 && index > midpoint) || (batch = 2 && index <= midpoint)
+			continue
 		for prefix in ["-", "+"] {
 			capture := Gdip_CreateBitmap(320, 140), graphics := 0
 			try {
@@ -15,6 +20,7 @@ nm_ProbeBeeAssets() {
 				result := nm_AutoJellyObservation.Identify((key) => Gdip_ImageSearch(capture, bitmaps[key]), beeArr)
 				if result.bee != bee || result.gifted != (prefix = "+")
 					throw Error("Bee template fixture returned wrong identity: " prefix bee)
+				checked++
 			} finally {
 				if graphics
 					Gdip_DeleteGraphics(graphics)
@@ -23,6 +29,9 @@ nm_ProbeBeeAssets() {
 			}
 		}
 	}
+	if checked != 2 * (batch = 1 ? midpoint : beeArr.Length - midpoint)
+		throw Error("Bee asset fixture skipped a template")
+	nm_ProbePhase("asset batch " batch " checked " checked " templates against the full search set")
 }
 
 nm_ProbeBeeLimits() {
