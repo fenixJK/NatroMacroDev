@@ -187,3 +187,17 @@ nm_BrownQuest(){
 		}
 	}
 }
+
+nm_HoneyQuest() {
+	global HoneyQuestCheck, HoneyQuestComplete
+	if !HoneyQuestCheck
+		return
+	nm_HoneyQuestProg()
+	if HoneyQuestComplete = 1 {
+		nm_updateAction("Quest")
+		nm_gotoQuestgiver("Honey")
+		nm_HoneyQuestProg()
+		if HoneyQuestComplete = 0
+			nm_setStatus("Starting", "Honey Quest: Honey Hunt")
+	}
+}

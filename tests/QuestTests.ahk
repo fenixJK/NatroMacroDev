@@ -32,6 +32,19 @@ TestQuestFrames() {
 		AssertEqual(nm_QuestObservation.Aggregate(nm_QuestObservation.Frame(capture, 3, [title], anchor), 3), -1, "Clipped quest is unknown")
 		AssertEqual(nm_QuestObservation.Aggregate(nm_QuestObservation.Frame(capture, 2, [], anchor), 2), -1, "Unknown title is unknown")
 		AssertEqual(nm_QuestObservation.Aggregate(nm_QuestObservation.Frame(capture, 2, [title], anchor, 16, 50, 10, ["unknown", "unknown"], Map()), 2), -1, "Unknown Brown objectives cannot be completed by color alone")
+		brown := Gdip_CreateBitmap(306, 180), bg := Gdip_GraphicsFromImage(brown)
+		try {
+			Gdip_GraphicsClear(bg, 0xFF96D88D)
+			Gdip_DrawImage(bg, title, 100, 10, 5, 5)
+			Gdip_DrawImage(bg, anchor, 0, 40, 3, 25), Gdip_DrawImage(bg, anchor, 0, 90, 3, 25)
+			Gdip_DrawImage(bg, title, 70, 50, 5, 5), Gdip_DrawImage(bg, title, 70, 100, 5, 5)
+			assets := Map("s16blueflower", title, "questbartitle", title)
+			AssertEqual(nm_QuestObservation.Aggregate(nm_QuestObservation.Frame(brown, 2, [title], anchor, 16, 50, 10, ["blueflower", "blueflower"], assets), 2), -1, "Dynamic quest without current endpoint is unknown")
+			Gdip_DrawImage(bg, title, 0, 140, 5, 5)
+			AssertEqual(nm_QuestObservation.Aggregate(nm_QuestObservation.Frame(brown, 2, [title], anchor, 16, 50, 10, ["blueflower", "blueflower"], assets), 2), 1, "Dynamic rows and endpoint verified in one frame")
+		} finally {
+			Gdip_DeleteGraphics(bg), Gdip_DisposeImage(brown)
+		}
 		brush := Gdip_BrushCreateSolid(0xFFF46C55)
 		try Gdip_FillRectangle(graphics, brush, 16, 90, 288, 40)
 		finally Gdip_DeleteBrush(brush)
@@ -51,18 +64,18 @@ TestQuestFrames() {
 	}
 }
 
-; Execute the real five action consumers with controlled reader results. No input,
+; Execute the real six action consumers with controlled reader results. No input,
 ; travel, game capture or external reporting is allowed in these fixtures.
 TestQuestActions() {
 	global
-	PolarQuestCheck := RileyQuestCheck := BuckoQuestCheck := BlackQuestCheck := BrownQuestCheck := 0
-	PolarQuestComplete := RileyQuestComplete := BuckoQuestComplete := BlackQuestComplete := BrownQuestComplete := -1
+	HoneyQuestCheck := PolarQuestCheck := RileyQuestCheck := BuckoQuestCheck := BlackQuestCheck := BrownQuestCheck := 0
+	HoneyQuestComplete := PolarQuestComplete := RileyQuestComplete := BuckoQuestComplete := BlackQuestComplete := BrownQuestComplete := -1
 	PolarQuest := RileyQuest := BuckoQuest := BlackQuest := BrownQuest := ""
 	LastBugrunLadybugs := LastBugrunRhinoBeetles := LastBugrunSpider := LastBugrunMantis := LastBugrunScorpions := LastBugrunWerewolf := 0
 	MonsterRespawnTime := 0, QuestBarSize := 50, QuestBarGapSize := 10, QuestBarInset := 16
 	TestQuestMode := true
 	try {
-		for family in ["Polar", "Riley", "Bucko", "Black", "Brown"] {
+		for family in ["Honey", "Polar", "Riley", "Bucko", "Black", "Brown"] {
 			%family%QuestCheck := 1
 			%family%Quest := "fixture"
 			for readings in [[-1], [0], [2], [1, -1], [1, 0]] {
@@ -74,7 +87,7 @@ TestQuestActions() {
 				QuestAnt := QuestRedBoost := QuestBlueBoost := 0, QuestFeed := QuestGatherField := "None"
 				nm_%family%Quest()
 				expectedVisit := readings[1] = 1 ? 1 : 0
-				expectedCount := readings.Length = 2 && readings[2] = 0 ? 1 : 0
+				expectedCount := family != "Honey" && readings.Length = 2 && readings[2] = 0 ? 1 : 0
 				AssertEqual(TestQuestVisits, expectedVisit, family " turns in only a positively complete quest")
 				AssertEqual(TotalQuestsComplete, expectedCount, family " does not count unreadable post-visit state")
 				AssertEqual(SessionQuestsComplete, expectedCount, family " session count requires observed new incomplete progress")
@@ -91,6 +104,7 @@ TestReadQuest(family) {
 		return UnexpectedObservation()
 	%family%QuestComplete := TestQuestReadings.Length ? TestQuestReadings.RemoveAt(1) : -1
 }
+nm_HoneyQuestProg() => TestReadQuest("Honey")
 nm_PolarQuestProg() => TestReadQuest("Polar")
 nm_RileyQuestProg() => TestReadQuest("Riley")
 nm_BuckoQuestProg() => TestReadQuest("Bucko")

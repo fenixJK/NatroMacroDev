@@ -17590,7 +17590,7 @@ nm_QuestRotate(){
 	;honey bee quest
 	nm_HoneyQuest()
 }
-nm_HoneyQuest(){
+nm_HoneyQuestProg(){
 	global HoneyStart
 	global HoneyQuestCheck
 	global HoneyQuestProgress
@@ -17692,12 +17692,6 @@ nm_HoneyQuest(){
 			honeyProgress:=("Honey Tokens: " . completeness)
 			IniWrite honeyProgress, "settings\nm_config.ini", "Quests", "HoneyQuestProgress"
 			MainGui["HoneyQuestProgress"].Text := StrReplace(honeyProgress, "|", "`n")
-		}
-		if(HoneyQuestComplete = 1)
-		{
-			nm_updateAction("Quest")
-			nm_gotoQuestgiver("Honey")
-			nm_setStatus("Starting", "Honey Quest: Honey Hunt")
 		}
 	} finally {
 		if HoneyQuestComplete = -1
