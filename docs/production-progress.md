@@ -1627,3 +1627,37 @@ fix for the intermittent PowerShell timeout. Crash-left file reconciliation,
 durable completion receipts, live main/Status shutdown and Discord delivery,
 concurrent hostile filesystem mutation and resource/performance soaks remain open.
 The full production goal remains active. No merge, deployment or release is claimed.
+
+## Generated settings GUI graphics checkpoint
+
+Code checkpoint: `ca48cec25707e7a174988c3bb2d3a2f211e8bc58`.
+[Windows run 34457096449](https://github.com/fenixJK/NatroMacroDev/actions/runs/34457096449)
+passed **62 regression groups on both AHK architectures**, native process/GUI
+suites, **nine production-script, four test-entry and seven emitted-worker
+validations** per architecture, plus **eight file-channel checks, 43 attachment
+checks and 35 updater scenarios** per PowerShell version. No AHK warnings occurred;
+the checkout Node runtime deprecation notice remains.
+
+The Discord settings, task priority and Auto-Jelly windows now live in separate
+source templates. Main passes configuration as JSON inside an escaped AHK literal,
+preserving quotes, backticks, newlines and Unicode as data. Each GUI has an explicit
+owner for its drawing surface, image assets and GDI+ startup token, with ordered,
+checked and repeatable cleanup. Discord no longer invokes unrelated planter
+cleanup when closing. The existing contained worker roles remain responsible for
+process ownership.
+
+Native tests exercise 100 surface allocation/close cycles, duplicate bitmap aliases,
+and each actual generated GUI's startup, 50 redraws and repeated close handler.
+Both architectures recorded GDI counts of 32 before and 33 after the surface loop.
+An initial GetObjectType-after-delete assertion was invalid because Windows may
+retain queryable cached handles; verification now uses checked release calls,
+cleared ownership and repeated resource counts. Initial test variable-shadowing
+warnings were also corrected.
+
+[GUI graphics verification](gui-graphics-verification.md) records the contract
+and limits. This does not close all F21 resource work: longer soaks, OCR/COM
+lifetimes and interrupted game actions remain. Malformed Auto-Jelly INI handling,
+priority validation and IPC, complete settings interactions, full main start/stop
+and live DPI/game behavior are still open. No Windows/Roblox machine is available;
+code and CI work continue. The full production goal remains active. No merge,
+deployment, release or measured whole-program performance improvement is claimed.

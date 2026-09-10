@@ -66,3 +66,14 @@ still need work. Full start/stop/pause and watchdog restart flows, movement key
 release in Roblox, resource soaks, and the additional supervisor's startup and
 memory cost have not been measured in a live game. No performance improvement
 or complete production recovery is claimed.
+
+## Generated GUI lifecycle follow-up
+
+The Discord, priority and Auto-Jelly sources are now separate templates launched
+through the same contained inline roles. Configuration is encoded as JSON data.
+Each template explicitly owns and releases its drawing surface and decoded assets
+before GDI+ shutdown. [GUI graphics verification](gui-graphics-verification.md)
+records Windows run 34457096449, including 100 surface cycles and 50 redraws of
+each real GUI on both architectures. Seven emitted workers are now validated.
+This adds bounded native GUI coverage; full helper readiness, main start/stop,
+settings interaction and game behavior remain separate work.
