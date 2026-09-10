@@ -11,6 +11,44 @@ TestDiscordPayload() {
 	AssertEqual(nm_DiscordTextLimit("abc🐝", 4), "abc", "Truncation preserves Unicode pairs")
 }
 
+class TestDiscordReplies extends discord {
+	static Sent := []
+	static SendMessageAPI(postdata, contentType := "application/json", channel := "", url := "") {
+		this.Sent.Push({data: postdata, kind: contentType, channel: channel})
+		return "fixture-response"
+	}
+}
+
+TestDiscordRepliesEncoding() {
+	TestDiscordReplies.Sent := []
+	message := 'Window "quoted" C:\new\file literal \n' "`n" Chr(1) "🐝"
+	AssertEqual(TestDiscordReplies.SendEmbed(message, 123, 'content "quoted"', 0, "fixture-channel", "123456789012345678"),
+		"fixture-response", "SendEmbed preserves its synchronous response contract")
+	sent := TestDiscordReplies.Sent[1], parsed := JSON.parse(sent.data)
+	AssertEqual(parsed["embeds"][1]["description"], message, "Production SendEmbed preserves raw text and literal backslash-n")
+	AssertEqual(parsed["content"], 'content "quoted"', "Content serialized once")
+	AssertEqual(parsed["embeds"][1]["color"], 123, "Reply color is numeric")
+	AssertEqual(sent.channel, "fixture-channel", "Explicit reply channel retained")
+	AssertEqual(parsed["message_reference"]["message_id"], "123456789012345678", "Reply ID retained as a string")
+	AssertEqual(parsed["allowed_mentions"]["parse"].Length, 0, "Reply does not enable parsed mentions")
+	Assert(InStr(sent.data, '"fail_if_not_exists":false'), "Missing original message uses a JSON boolean")
+	AssertThrows(() => nm_DiscordEmbedPayload("reply",,,, 'bad"id'), "Malformed reply ID rejected")
+	AssertThrows(() => nm_DiscordEmbedPayload("reply",,,, "123456789012345678901"), "Oversized reply ID rejected")
+	Assert(!JSON.parse(nm_DiscordEmbedPayload("ordinary" )).Has("message_reference"), "Ordinary messages have no reply reference")
+	parsed := JSON.parse(nm_DiscordEmbedPayload("image",,, "ss.png", "123"))
+	AssertEqual(parsed["embeds"][1]["image"]["url"], "attachment://ss.png", "Image attachment survives reply serialization")
+	parsed := JSON.parse(nm_DiscordSettingPayload('a"key', message, "123"))
+	AssertEqual(parsed["embeds"][1]["fields"][1]["name"], 'a"key', "Setting field name is serialized")
+	AssertEqual(parsed["embeds"][1]["fields"][1]["value"], message, "Setting field value is serialized")
+	AssertEqual(JSON.parse(nm_DiscordSettingPayload("empty", "", "123"))["embeds"][1]["fields"][1]["value"], "<blank>", "Blank setting remains visible")
+	long := StrReplace(Format("{:1023}", ""), " ", "x") "🐝"
+	AssertEqual(StrLen(JSON.parse(nm_DiscordSettingPayload("long", long, "123"))["embeds"][1]["fields"][1]["value"]), 1023,
+		"Setting value length limit preserves Unicode pairs")
+	TestDiscordReplies.SendFile('missing "quoted" file.txt', "123")
+	AssertEqual(JSON.parse(TestDiscordReplies.Sent[2].data)["embeds"][1]["description"],
+		Chr(96) 'missing "quoted" file.txt' Chr(96) ' does not exist or could not be read!', "File-error caller passes raw text")
+}
+
 class TestDeliveryFixture {
 	__New(results) {
 		this.results := results, this.tick := 1000, this.started := 0, this.aborted := 0

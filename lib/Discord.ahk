@@ -66,20 +66,7 @@ class discord
 
 	static SendEmbed(message, color:=3223350, content:="", pBitmap:=0, channel:="", replyID:=0)
 	{
-		payload_json :=
-		(
-		'
-		{
-			"content": "' content '",
-			"embeds": [{
-				"description": "' message '",
-				"color": "' color '"
-				' (pBitmap ? (',"image": {"url": "attachment://ss.png"}') : '') '
-			}]
-			' (replyID ? (',"allowed_mentions": {"parse": []}, "message_reference": {"message_id": "' replyID '", "fail_if_not_exists": false}') : '') '
-		}
-		'
-		)
+		payload_json := nm_DiscordEmbedPayload(message, color, content, pBitmap > 0 ? "ss.png" : "", replyID)
 
 		if pBitmap
 			this.CreateFormData(&postdata, &contentType, [Map("name","payload_json","content-type","application/json","content",payload_json), Map("name","files[0]","filename","ss.png","content-type","image/png","pBitmap",pBitmap)])
@@ -114,27 +101,27 @@ class discord
 				}
 				catch
 				{
-					this.SendEmbed('The folder ``' StrReplace(StrReplace(filepath, "\", "\\"), '"', '\"') '`` could not be zipped!`nThis function is only supported on Windows 10 or higher.', 16711731, , , , replyID)
+					this.SendEmbed('The folder ``' filepath '`` could not be zipped!`nThis function is only supported on Windows 10 or higher.', 16711731, , , , replyID)
 					return -3
 				}
 			}
 			size := FileGetSize(filepath)
 			if (size > 10485760)
 			{
-				this.SendEmbed('``' StrReplace(StrReplace(filepath, "\", "\\"), '"', '\"') '`` is above the Discord file size limit of 10MiB!', 16711731, , , , replyID)
+				this.SendEmbed('``' filepath '`` is above the Discord file size limit of 10MiB!', 16711731, , , , replyID)
 				return -1
 			}
 		}
 		else
 		{
-			this.SendEmbed('``' StrReplace(StrReplace(filepath, "\", "\\"), '"', '\"') '`` does not exist or could not be read!', 16711731, , , , replyID)
+			this.SendEmbed('``' filepath '`` does not exist or could not be read!', 16711731, , , , replyID)
 			return -2
 		}
 
 		SplitPath filepath, &filename, , &ext
 		ext := StrUpper(ext)
 		params := []
-		(replyID > 0) && params.Push(Map("name","payload_json","content-type","application/json","content",'{"allowed_mentions": {"parse": []}, "message_reference": {"message_id": "' replyID '", "fail_if_not_exists": false}}'))
+		(replyID > 0) && params.Push(Map("name","payload_json","content-type","application/json","content",JSON.stringify(nm_DiscordReplyObject(replyID))))
 		params.Push(Map("name","files[0]","filename",filename,"content-type",MimeTypes.Has(ext) ? MimeTypes[ext] : "application/octet-stream","file",filepath))
 		this.CreateFormData(&postdata, &contentType, params)
 		this.SendMessageAPI(postdata, contentType)
@@ -147,7 +134,7 @@ class discord
 	static SendImage(pBitmap, imgname:="image.png", replyID:=0)
 	{
 		params := []
-		(replyID > 0) && params.Push(Map("name","payload_json","content-type","application/json","content",'{"allowed_mentions": {"parse": []}, "message_reference": {"message_id": "' replyID '", "fail_if_not_exists": false}}'))
+		(replyID > 0) && params.Push(Map("name","payload_json","content-type","application/json","content",JSON.stringify(nm_DiscordReplyObject(replyID))))
 		params.Push(Map("name","files[0]","filename",imgname,"content-type","image/png","pBitmap",pBitmap))
 		this.CreateFormData(&postdata, &contentType, params)
 		this.SendMessageAPI(postdata, contentType)
