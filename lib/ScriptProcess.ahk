@@ -88,11 +88,11 @@ class nm_ScriptProcess {
 		} finally DetectHiddenWindows hiddenBefore
 	}
 	static FullPath(path) {
-		buffer := Buffer(65536)
-		length := DllCall("GetFullPathNameW", "Str", path, "UInt", 32768, "Ptr", buffer, "Ptr", 0, "UInt")
+		pathBuffer := Buffer(65536)
+		length := DllCall("GetFullPathNameW", "Str", path, "UInt", 32768, "Ptr", pathBuffer, "Ptr", 0, "UInt")
 		if !length || length >= 32768
 			throw Error("Could not resolve script identity")
-		return StrGet(buffer)
+		return StrGet(pathBuffer)
 	}
 	static Stop(script, executable) {
 		instances := this.Find(script, executable)
