@@ -1498,3 +1498,46 @@ Heartbeat/main restart, helper readiness, cross-instance IPC, main's separate
 legacy CloseScripts ownership, live Roblox/Discord behavior, crash-state
 reconciliation, resource soaks and the complete production plan remain open.
 No merge, deployment or production release is claimed.
+
+## Main helper cleanup and generated-worker ownership checkpoint
+
+Code checkpoint: `b637951af5cc5120aa0b508995a81c0e2ca34d8a`.
+[Windows run 34453130252](https://github.com/fenixJK/NatroMacroDev/actions/runs/34453130252)
+passed all three jobs: **62 regression groups per AHK architecture**, native
+process/GUI suites, **eight production-script and four emitted-worker validations**
+per architecture, and **eight file-channel checks, 43 attachment checks and 35
+updater scenarios** on each PowerShell version. No AHK warnings occurred. The
+checkout Node runtime deprecation notice remains.
+
+Main's broad bundled-runtime window cleanup is replaced with a fixed helper-name
+allowlist under this installation, using verified script/runtime/user/session
+identity and retained process handles. Its watchdog heartbeat exception requires
+the matching verified window. Generated movement, Discord/bee/priority GUIs,
+bitterberry/basic-egg tools and pattern validation now use owned supervisor jobs,
+bounded shared-memory requests/results and explicit UTF-8 pipes. Descendants are
+contained through parent crashes. Graceful cleanup runs exit handlers before a
+bounded forced job stop. Movement has a parent key-release fallback. Failed
+movement is surfaced before replacement; other completed worker errors are logged.
+
+Native fixtures prove opposite-architecture Unicode/source-directory behavior,
+parse-only validation, output overflow rejection, graceful and forced cleanup,
+replacement, movement failure propagation, cancelled result polling, request/role
+bounds, abrupt owner death and preservation of personal/other-installation scripts.
+The existing stronger file-worker descendant checks continue to pass through the
+extracted shared contained-job base. Review additionally guards startup cancellation
+and prevents an unverified child handle from becoming a graceful-close target.
+
+CI caught a working-directory regression introduced by the supervisor: Unicode
+survived but stdin scripts resolved from submacros. Explicit root setup corrected
+it. An earlier run, 34452874376, also reproduced the intermittent native attachment
+timeout on 32-bit (approximately 61.8 seconds) with shared-memory transport. This
+confirms that replacing WScript pipes did not eliminate every timeout. The cause
+and cooperative-deadline overrun remain unresolved; later passes are not a fix.
+
+[Helper ownership verification](helper-ownership-verification.md) records the
+contracts and remaining limits. Old unowned stdin workers cannot safely be found
+by runtime alone. Live movement/key release, whole start/stop/pause and watchdog
+flows, helper readiness, cross-instance IPC, resource soaks, supervisor cost and
+crash-state reconciliation remain open. No Windows/Roblox machine is currently
+available; work continues through code fixes and CI. The full production plan
+remains active. No merge, deployment or production release is claimed.

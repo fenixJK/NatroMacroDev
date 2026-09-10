@@ -85,8 +85,9 @@ increase is retained initialization or repeated growth; resource soaks remain op
 The complete Heartbeat-to-main restart flow, real hangs, game reconnection, helper
 initialization and automatic startup after replacement still need live Windows
 verification. Source validation plus isolated native fixtures do not prove that
-whole sequence. Main's separate legacy CloseScripts routine still uses broad
-runtime-window enumeration and needs its own ownership work. Several helper
+whole sequence. Main's cleanup now uses the fixed helper identity policy and
+owned generated workers described in [helper ownership](helper-ownership-verification.md).
+Older unowned stdin remnants cannot safely be selected by runtime alone. Several helper
 responses still use legacy title-based IPC; cross-instance IPC and readiness
 acknowledgements remain open.
 
