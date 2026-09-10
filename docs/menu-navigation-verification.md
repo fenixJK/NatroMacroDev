@@ -110,3 +110,7 @@ its tab directly, and Glue Dispenser checks every menu result before continuing
 or retrying. [Glue Dispenser verification](glue-dispenser-verification.md) records
 the workflow, recovery and spending-attempt limits. Remaining reset, gathering,
 Mondo and final cleanup callers have not been declared verified by these changes.
+
+The subsequent [reset recovery checkpoint](reset-verification.md) also requires
+menu closure before reset preparation. It removes the unbounded character-reset
+loop while retaining explicit live hive/template and legacy input limitations.

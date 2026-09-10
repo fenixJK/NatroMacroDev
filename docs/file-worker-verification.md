@@ -143,3 +143,23 @@ before notification remains uncertain. Mapping state and notifications are not
 durable. Local files can change during archiving, and source paths are not a
 filesystem snapshot or reparse-point sandbox. Windows 10 / Server 2016 or newer
 and available Windows PowerShell are required; there is no unowned-worker fallback.
+
+## Startup delay recurrence during reset verification
+
+The 32-bit first attempt of
+[run 34534199478](https://github.com/fenixJK/NatroMacroDev/actions/runs/34534199478)
+again failed the native URL-rejection fixture because worker lifetime reached
+45 seconds before completion was accepted. Native process creation took 15 ms;
+channel connection, parsed request, returned action and written result were
+observed at 34562, 40359, 44437 and 44953 ms. Final diagnostics showed 859 ms CPU,
+45046 ms owner elapsed, confirmed process cleanup and 47 ms directory cleanup.
+
+The result was correctly reported as timeout, but the fixture expected the worker
+to finish and return its URL rejection. This is an unresolved startup/lifecycle
+latency failure. A single failed-job rerun was requested with the existing deadline
+and assertion unchanged. These timings do not identify the cause, and a passing
+retry must not be used to claim the intermittent failure is repaired.
+
+The requested 32-bit rerun passed, returning its expected URL rejection after
+36297 ms. The original successful 64-bit job took 9797 ms. The final CI run is green,
+but the startup latency and its cause remain unresolved.

@@ -7,15 +7,15 @@ Baseline: `66648fd6a290d472dacc45e9407e4c0ca4fa744a`.
 ## Implementation batches
 
 - In progress: contain reconnect, update, AFB, planter-state, remote-control, screenshot, and exception-handling failures (F01–F09), plus startup gating.
-- Pending: feature correctness (Vicious Bee, Blender, nectar order, collections, conversion/pause, priorities, quests, resources, geometry, reporting; F10–F25 and the smaller follow-ups).
+- In progress: feature correctness. Targeted fixes for F10–F25 are implemented in the checkpoints below; complete game outcomes and the smaller follow-ups remain open.
 - In progress: automation-free AHK tests using the bundled 2.0.12 runtimes, Windows CI, and packaging/migration checks.
 - Pending: measured optimization and incremental configuration/state/detection/action refactoring.
 - Pending after stabilization: the audit's proposed diagnostic, recovery, budget, profile, recorded-image, route, scheduling, and release improvements.
 
 ## Verification gates
 
-- Passed for checkpoint `548a617`: actual AHK tests on both bundled architectures; additional tests remain required as the remaining features change.
-- Pending: failure-injection tests for updates, interrupted actions, consumable limits, and permissions.
+- Passing Windows checkpoints cover both bundled AHK architectures, real native fixtures, generated scripts and failure injection. The latest evidence is recorded in the final checkpoint below; the earlier entries are historical.
+- Implemented: fault tests for updates, interrupted actions, consumable limits and permissions. Further feature-specific cases remain required as implementation continues.
 - Pending: live Windows/Roblox scenario matrix from the audit (including routes, game images, UI timing, pause/stop, reconnect, and mixed overnight run).
 - Pending: measured baseline and comparison for performance changes.
 
@@ -2032,3 +2032,45 @@ consumption and reward receipts remain open. Other reset, gathering, Mondo and
 final cleanup menu callers still need review. No Windows/Roblox machine is
 available. The full production goal remains active; no merge, deployment or
 release is claimed.
+
+## Bounded character reset and hive observation checkpoint
+
+Code checkpoint: `74703e501909d856718bf147e832b3c220de6c40`.
+[Windows run 34534199478](https://github.com/fenixJK/NatroMacroDev/actions/runs/34534199478)
+finished successfully after one failed-job rerun. Both architectures passed
+**73 regression groups**, including reset attempt/time/cleanup limits, plus native
+hive prompt/alignment, geometry, input, graphics, OCR and process suites. Validation
+covered **nine production scripts, four test entrypoints and seven emitted workers**
+per architecture. Both PowerShell versions passed **eight file-channel checks,
+43 attachment checks and 35 updater scenarios**. No AHK warnings occurred; the
+checkout Node runtime deprecation notice remains.
+
+Character/hive recovery no longer loops indefinitely or restarts Roblox every
+tenth iteration. Five attempts share a three-minute cooperative budget, including
+waits and cleanup. A non-forced reset first checks fresh hive prompt and camera
+alignment evidence before sending reset input. Explicit force behavior remains.
+Unknown hive observations and invalid image searches stop the workflow instead of
+becoming retryable misses. Every attempt releases owned captures and stops its
+walk worker; key delay/duration are restored on exit. Menu closure and HUD offset
+must be confirmed before reset preparation, and spawn movement must start and
+finish within its waits.
+
+The deadline applies to the character/hive recovery phase after preliminary
+checks and high-priority interrupts; it cannot preempt blocking native calls,
+reconnect or legacy helpers. Other HiveConfirmed writers, current game template
+accuracy, spawn routes and remaining raw modal/input paths still need work. The
+[reset verification record](reset-verification.md) states the exact scope and the
+new [upstream report tracking](upstream-issue-triage.md) maps six inspected reports
+to implementation and missing reproductions. None is declared resolved.
+
+The first attempt of the final CI run passed reset tests but failed the existing
+32-bit attachment URL-rejection fixture at its 45-second lifetime. Diagnostics
+showed 34.6 seconds before channel connection. A single rerun, without changing
+assertions or deadlines, passed with the expected URL rejection after 36.3 seconds.
+This is a recurrence of the known worker startup latency, not a repaired issue;
+[file-worker verification](file-worker-verification.md) preserves its timings.
+
+No Windows/Roblox machine is available. Positive planter harvest/placement
+confirmation, remaining reset/input integration, state reconciliation, measured
+optimization and live acceptance remain open. The full production goal stays
+active; no merge, deployment or release is claimed.
