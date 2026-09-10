@@ -36,7 +36,7 @@ try {
                 switch ($context.Request.Url.AbsolutePath) {
                     '/inbox/channels/100000000000000001/messages' {
                         $id = if ($context.Request.QueryString['limit'] -eq '1') { '100000000000000010' } elseif ($context.Request.QueryString['after'] -eq '100000000000000010') { '100000000000000011' } else { '' }
-                        $payload = if ($id) { '[{"id":"' + $id + '","channel_id":"100000000000000001","author":{"id":"200000000000000002"},"content":"!pause","attachments":[],"type":0}]' } else { '[]' }
+                        $payload = if ($id) { '[{"id":"' + $id + '","channel_id":"100000000000000001","author":{"id":"200000000000000002"},"content":"!pause","attachments":[],"type":0,"timestamp":"' + [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ') + '"}]' } else { '[]' }
                     }
                     '/inbox/channels/100000000000000001' { $payload = '{"id":"100000000000000001","guild_id":"400000000000000004"}' }
                     '/inbox/guilds/400000000000000004/members/200000000000000002' { $payload = '{"user":{"id":"200000000000000002"},"roles":["300000000000000003"]}' }

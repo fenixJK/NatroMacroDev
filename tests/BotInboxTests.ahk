@@ -16,7 +16,8 @@ class TestBotFixture {
 		this.inbox.Pump(), this.inbox.Pump()
 	}
 	static Message(id, content := "!pause", author := "200000000000000002") {
-		return Map("id", id, "channel_id", "100000000000000001", "author", Map("id", author), "content", content, "attachments", [], "type", 0)
+		return Map("id", id, "channel_id", "100000000000000001", "author", Map("id", author), "content", content, "attachments", [], "type", 0,
+			"timestamp", FormatTime(A_NowUTC, "yyyy-MM-dd'T'HH:mm:ss") "+00:00")
 	}
 }
 
@@ -62,6 +63,17 @@ TestBotInbox() {
 	f.inbox.Pump()
 	AssertEqual(f.commands.Length, 0, "Commands expire before delayed dispatch")
 	Assert(f.logs.Length, "Expiry is recorded locally")
+	f.inbox.Close()
+
+	f := TestBotFixture(), f.inbox.Cursor := baseline
+	stale := TestBotFixture.Message(first, "!restart"), stale["timestamp"] := "2000-01-01T00:00:00Z"
+	future := TestBotFixture.Message(last, "!restart"), future["timestamp"] := "2099-01-01T00:00:00Z"
+	f.inbox.Messages([stale, future])
+	AssertEqual(f.commands.Length, 0, "Outage backlog and future-dated commands cannot trigger delayed actions")
+	AssertEqual(f.inbox.Cursor, last, "Ignored stale commands do not stall later polling")
+	f.inbox.Completed(f.inbox.Owner, "messages", 0, true, {bodyValid: false})
+	AssertEqual(f.inbox.PageLimit, 50, "Unavailable large response reduces page size without losing cursor")
+	Assert(!f.inbox.Blocked && f.inbox.Cursor = last, "Adaptive page retry preserves progress")
 	f.inbox.Close()
 }
 

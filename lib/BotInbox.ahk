@@ -11,7 +11,7 @@ class nm_BotInbox {
 		this.Log := IsSet(log) ? log : ((message) => nm_Failures.Write(Error(message), "Discord commands"))
 		this.BaseURL := baseURL, this.Config := 0, this.Owner := 0, this.Pending := false
 		this.Closed := false, this.Busy := false, this.Blocked := false
-		this.Next := 0, this.Cursor := "", this.Guild := "", this.Failures := 0, this.Invalid := 0
+		this.Next := 0, this.Cursor := "", this.Guild := "", this.Failures := 0, this.Invalid := 0, this.PageLimit := 100
 		this.CommandAge := 60000, this.RoleAge := 5000
 		this.Queue.Limit := 1, this.Queue.MaxAge := 20000, this.Queue.Timeout := 10000, this.Queue.MaxAttempts := 3
 	}
@@ -33,7 +33,7 @@ class nm_BotInbox {
 			this.Queue.Cancel(this.Owner)
 		this.Config := IsObject(config) ? config.Clone() : 0, this.Owner := {}
 		this.Commands.Length := 0, this.Cursor := "", this.Guild := "", this.Pending := false
-		this.Next := 0, this.Failures := 0, this.Invalid := 0, this.Blocked := false
+		this.Next := 0, this.Failures := 0, this.Invalid := 0, this.Blocked := false, this.PageLimit := 100
 	}
 	Ready(command) {
 		if !IsObject(this.Config) || this.Blocked
@@ -76,7 +76,7 @@ class nm_BotInbox {
 				else
 					this.Read("channel", "channels/" this.Config.channel, command)
 			} else
-				this.Read("messages", "channels/" this.Config.channel "/messages" (this.Cursor = "" ? "?limit=1" : "?after=" this.Cursor "&limit=100"))
+				this.Read("messages", "channels/" this.Config.channel "/messages" (this.Cursor = "" ? "?limit=1" : "?after=" this.Cursor "&limit=" this.PageLimit))
 		} finally this.Busy := false
 	}
 	Read(kind, path, command := 0) {
@@ -95,6 +95,11 @@ class nm_BotInbox {
 			return
 		}
 		try {
+			if kind = "messages" && this.Cursor != "" && this.PageLimit > 1 && response.HasOwnProp("bodyValid") && !response.bodyValid {
+				this.PageLimit := Max(1, this.PageLimit // 2), this.Next := this.Clock.Call() + 1000
+				this.Log.Call("Discord message page unavailable; retrying a smaller page")
+				return
+			}
 			if !response.HasOwnProp("bodyValid") || !response.bodyValid
 				throw Error("Missing or oversized response")
 			body := JSON.parse(response.text)
@@ -133,6 +138,15 @@ class nm_BotInbox {
 		}
 	}
 	static CompareID(a, b) => StrLen(a) != StrLen(b) ? StrLen(a) - StrLen(b) : StrCompare(a, b, true)
+	static Fresh(stamp) {
+		if Type(stamp) != "String" || !RegExMatch(stamp, "^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|\+00:00)$", &parts)
+			return false
+		try {
+			age := DateDiff(A_NowUTC, parts[1] parts[2] parts[3] parts[4] parts[5] parts[6], "Seconds")
+			return age >= -60 && age <= 300
+		} catch
+			return false
+	}
 	Messages(body) {
 		if !(body is Array) || body.Length > 100 || (this.Cursor = "" && body.Length > 1)
 			throw Error("Invalid message page")
@@ -155,6 +169,7 @@ class nm_BotInbox {
 			}
 			entry := {id: id, content: Trim(content), user_id: author["id"], url: url, owner: this.Owner, received: this.Clock.Call(),
 				eligible: !author.Get("bot", false) && !message.Has("webhook_id") && (message.Get("type", 0) = 0 || message.Get("type", 0) = 19)}
+			entry.fresh := nm_BotInbox.Fresh(message.Get("timestamp", ""))
 			position := 1
 			while position <= ordered.Length && nm_BotInbox.CompareID(ordered[position].id, id) < 0
 				position++
@@ -169,6 +184,11 @@ class nm_BotInbox {
 			if nm_BotInbox.CompareID(entry.id, this.Cursor) <= 0
 				continue
 			if entry.eligible && SubStr(entry.content, 1, StrLen(this.Config.prefix)) = this.Config.prefix {
+				if !entry.fresh {
+					this.Log.Call("Ignored command with an old, future or invalid timestamp")
+					this.Cursor := entry.id
+					continue
+				}
 				if this.Commands.Length >= 100
 					break ; leave the cursor before the first unadmitted command
 				this.Commands.Push(entry)
