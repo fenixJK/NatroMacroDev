@@ -2285,13 +2285,16 @@ nm_MsgBoxIncorrectRobloxSettings(interactive := true)
 		)
 	)
 
-	nm_StartupSettingsDialog.Close()
-	if IgnoreIncorrectRobloxSettings
+	if IgnoreIncorrectRobloxSettings {
+		nm_StartupSettingsDialog.Close()
 		return 0
+	}
 	robloxtype := nm_DetectRobloxType()
 	xmlpath := nm_LocateRobloxSettingsXML(robloxtype)
-	if !xmlpath
+	if !xmlpath {
+		nm_StartupSettingsDialog.Close()
 		return 0
+	}
 	xml := FileRead(xmlpath)
 	recommendations := []
 	for tier, tiermap in RecommendedRobloxSettings {
@@ -2312,13 +2315,8 @@ nm_MsgBoxIncorrectRobloxSettings(interactive := true)
 			nm_setStatus("Error", "Incorrect Roblox settings: " JoinArray(recommendations, " / "))
 		return 1
 	}
+	nm_StartupSettingsDialog.Close()
 	return 0
-}
-nm_IgnoreStartupSettings(remember) {
-	global IgnoreIncorrectRobloxSettings
-	if remember
-		IniWrite 1, "settings\nm_config.ini", "Settings", "IgnoreIncorrectRobloxSettings"
-	IgnoreIncorrectRobloxSettings := 1
 }
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; AUTO-UPDATE

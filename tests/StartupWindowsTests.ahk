@@ -22,6 +22,13 @@ TestNativeStartupDialogs(owner) {
 		ClickStartupButton(panel["IgnoreButton"], () => !nm_StartupSettingsDialog.Window)
 		Require(saved.Length = 2 && saved[2], "Confirmed remembered override reaches persistence callback")
 
+		panel := nm_StartupSettingsDialog.Show(recommendations, "Fixture Roblox", owner.Hwnd, save,
+			() => nm_StartupSettingsDialog.Show(recommendations, "New warning", owner.Hwnd, save))
+		panel["Remember"].Value := 1
+		Require(!nm_StartupSettingsDialog.Accept(panel) && nm_StartupSettingsDialog.Window != panel && saved.Length = 2,
+			"A warning replaced during confirmation cannot apply the old override")
+		nm_StartupSettingsDialog.Close()
+
 		panel := nm_StartupSettingsDialog.Show(recommendations, "Fixture Roblox", owner.Hwnd, StartupSaveFailure, () => true, () => failures.Push(1))
 		panel["Remember"].Value := 1
 		Require(!nm_StartupSettingsDialog.Accept(panel) && nm_StartupSettingsDialog.Window == panel, "Save failure leaves warning open without authorizing startup")

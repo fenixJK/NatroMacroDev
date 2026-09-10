@@ -80,6 +80,8 @@ class nm_StartupSettingsDialog {
 		remember := !!panel["Remember"].Value
 		if remember && !this.Confirm.Call()
 			return false
+		if this.Window != panel
+			return false
 		try this.Save.Call(remember)
 		catch {
 			this.Failure.Call()
@@ -94,4 +96,11 @@ class nm_StartupSettingsDialog {
 			this.Window := 0
 		}
 	}
+}
+
+nm_IgnoreStartupSettings(remember) {
+	global IgnoreIncorrectRobloxSettings
+	if remember
+		IniWrite 1, "settings\nm_config.ini", "Settings", "IgnoreIncorrectRobloxSettings"
+	IgnoreIncorrectRobloxSettings := 1
 }

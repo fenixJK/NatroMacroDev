@@ -1,4 +1,5 @@
 TestStartupControl() {
+	global IgnoreIncorrectRobloxSettings := 0
 	nm_StartSession.Cancel()
 	counts := {rejected: 0, unexpected: 0, ran: 0}
 	rejected := () => counts.rejected++, unexpected := (err) => counts.unexpected++
@@ -32,6 +33,25 @@ TestStartupControl() {
 		request.Execute((active) => nm_StartSession.Cancel(), rejected, unexpected)
 		AssertEqual(counts.rejected, 4, "Stop cancellation cannot re-enable controls through startup finally")
 		Assert(!nm_StartSession.Current, "Cancelled startup stays closed")
+
+		IniWrite 0, "settings\nm_config.ini", "Settings", "IgnoreIncorrectRobloxSettings"
+		nm_IgnoreStartupSettings(false)
+		Assert(IgnoreIncorrectRobloxSettings = 1 && IniRead("settings\nm_config.ini", "Settings", "IgnoreIncorrectRobloxSettings") = 0,
+			"Session override changes memory without silently remembering it")
+		IgnoreIncorrectRobloxSettings := 0
+		nm_IgnoreStartupSettings(true)
+		Assert(IgnoreIncorrectRobloxSettings = 1 && IniRead("settings\nm_config.ini", "Settings", "IgnoreIncorrectRobloxSettings") = 1,
+			"Remembered override persists before updating memory")
+		IgnoreIncorrectRobloxSettings := 0
+		FileMove "settings\nm_config.ini", "settings\startup-config-backup.ini"
+		try {
+			DirCreate "settings\nm_config.ini"
+			AssertDeliveryError(() => nm_IgnoreStartupSettings(true), "Real override persistence failure propagates")
+			AssertEqual(IgnoreIncorrectRobloxSettings, 0, "Failed remembered override cannot authorize the current session")
+		} finally {
+			DirDelete "settings\nm_config.ini"
+			FileMove "settings\startup-config-backup.ini", "settings\nm_config.ini"
+		}
 	} finally nm_StartSession.Cancel()
 }
 
