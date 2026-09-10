@@ -65,3 +65,12 @@ semantic priority validation, additional OCR/COM resource lifetimes, game action
 consumable budgets, full main start/stop and live display/DPI behavior remain open.
 No Windows/Roblox machine is currently available. No measured whole-program
 performance improvement or production release is claimed.
+
+## Auto-Jelly configuration follow-up
+
+Malformed INI loading is now covered by a fixed schema and bounded reader.
+Startup no longer rewrites the file, unknown keys cannot overwrite resource
+ownership, and rejected known values exit before GUI construction. The native
+GUI suite now checks both retained unknown keys and rejected selections. See
+[Auto-Jelly settings verification](auto-jelly-settings-verification.md) for
+Windows run 34457713047 and remaining persistence/game limits.

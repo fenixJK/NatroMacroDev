@@ -1661,3 +1661,34 @@ priority validation and IPC, complete settings interactions, full main start/sto
 and live DPI/game behavior are still open. No Windows/Roblox machine is available;
 code and CI work continue. The full production goal remains active. No merge,
 deployment, release or measured whole-program performance improvement is claimed.
+
+## Auto-Jelly settings validation checkpoint
+
+Code checkpoint: `00aff7f975ed0299134397ce178216db3560b840`.
+[Windows run 34457713047](https://github.com/fenixJK/NatroMacroDev/actions/runs/34457713047)
+passed **63 regression groups on both AHK architectures**, native process/GUI
+suites, **nine production-script, four test-entry and seven emitted-worker
+validations** per architecture, plus **eight file-channel checks, 43 attachment
+checks and 35 updater scenarios** per PowerShell version. No AHK warnings occurred;
+the checkout Node runtime deprecation notice remains.
+
+Auto-Jelly previously assigned every INI key into a global without respecting its
+section. Unknown keys could replace internal state, invalid strings could enable
+selections, and startup rewrote the entire file. Its loader now validates 48
+allowed fields in their expected sections before publishing any values. Unknown
+keys remain inert; duplicate or invalid known fields stop startup with an error
+and nonzero worker exit. Reads are bounded, and loading preserves the existing
+file. Checkbox toggles publish memory only after their IniWrite succeeds.
+
+Regression fixtures cover typed values, sections, duplicates, limits, file
+preservation and failed-write state retention. Native generated-worker fixtures
+prove that internal-looking unknown keys cannot overwrite resources, valid choices
+load without rewriting the file, and an invalid selection exits with its field-only
+error before opening the GUI. The initial test callback binding error was fixed.
+
+[Auto-Jelly settings verification](auto-jelly-settings-verification.md) records
+the contract and limitations. IniWrite is still not crash-atomic or a multiprocess
+transaction. Auto-Jelly OCR, consumption budgets, live stop behavior, additional
+COM/image lifetimes and the broader production plan remain open. No Windows/Roblox
+machine is available; work continues through code fixes and CI. No merge, deployment
+or release is claimed. The full production goal remains active.
