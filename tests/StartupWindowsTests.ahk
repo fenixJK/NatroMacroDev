@@ -2,11 +2,11 @@ TestNativeStartupDialogs(owner) {
 	saved := [], failures := [], recommendations := ["- Set Graphics Quality to LOWEST", "- Turn OFF Inverted Camera"]
 	save := (remember) => saved.Push(remember)
 	try {
-		first := nm_StartupSettingsDialog.Show(recommendations, "Fixture Roblox", owner.Hwnd, save)
-		Require(WinExist("ahk_id " first.Hwnd), "Settings warning opens a real owned GUI")
-		second := nm_StartupSettingsDialog.Show(recommendations, "Fixture Roblox", owner.Hwnd, save)
-		Require(!nm_StartupSettingsDialog.Accept(first), "A superseded dialog cannot save through a newer dialog's callbacks")
-		ClickStartupButton(second["CloseButton"], () => !nm_StartupSettingsDialog.Window)
+		originalPanel := nm_StartupSettingsDialog.Show(recommendations, "Fixture Roblox", owner.Hwnd, save)
+		Require(WinExist("ahk_id " originalPanel.Hwnd), "Settings warning opens a real owned GUI")
+		replacementPanel := nm_StartupSettingsDialog.Show(recommendations, "Fixture Roblox", owner.Hwnd, save)
+		Require(!nm_StartupSettingsDialog.Accept(originalPanel), "A superseded dialog cannot save through a newer dialog's callbacks")
+		ClickStartupButton(replacementPanel["CloseButton"], () => !nm_StartupSettingsDialog.Window)
 		Require(saved.Length = 0, "Closing the warning does not silently ignore settings")
 
 		panel := nm_StartupSettingsDialog.Show(recommendations, "Fixture Roblox", owner.Hwnd, save)
