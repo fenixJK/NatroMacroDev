@@ -3,8 +3,8 @@ TestAutoJellyOcr() {
 	AssertEqual(nm_OcrAsync.Wait(operation, fixture.Budget()), "recognized", "Completed OCR result returned")
 	AssertEqual(operation.Results, 1, "GetResults called once on completion")
 	AssertEqual(operation.Closed, 1, "Completed operation released once")
-	for state in [2, 3, 99] {
-		fixture := OcrWaitFixture(), operation := OcrWaitOperation(fixture, [state])
+	for asyncState in [2, 3, 99] {
+		fixture := OcrWaitFixture(), operation := OcrWaitOperation(fixture, [asyncState])
 		AutoJellyExpectFailure(() => nm_OcrAsync.Wait(operation, fixture.Budget()))
 		AssertEqual(operation.Results, 0, "Failed or invalid state never retrieves a result")
 		AssertEqual(operation.Closed, 1, "Failed operation released")

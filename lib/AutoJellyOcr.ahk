@@ -134,10 +134,10 @@ class nm_OcrCom {
 		output := Buffer(A_PtrSize, 0), args.Push("Ptr", output)
 		try {
 			ComCall(index, object, args*)
-			buffer := DllCall("Combase\WindowsGetStringRawBuffer", "Ptr", NumGet(output, "Ptr"), "UIntP", &length := 0, "Ptr")
+			textPointer := DllCall("Combase\WindowsGetStringRawBuffer", "Ptr", NumGet(output, "Ptr"), "UIntP", &length := 0, "Ptr")
 			if length > 65536
 				throw Error("Mutation OCR text exceeds its limit")
-			return length ? StrGet(buffer, length, "UTF-16") : ""
+			return length ? StrGet(textPointer, length, "UTF-16") : ""
 		} finally DllCall("Combase\WindowsDeleteString", "Ptr", NumGet(output, "Ptr"))
 	}
 	static Close(object) {
@@ -197,8 +197,10 @@ class nm_AutoJellyOcr {
 		this.Engine := this.DecoderFactory := this.Apartment := 0
 		try {
 			this.Apartment := nm_OcrApartment()
-			factory := this.EngineFactory()
+			factory := nm_AutoJellyOcr.EngineFactory()
 			ComCall(6, factory, "UIntP", &maximum := 0)
+			if maximum < 1
+				throw Error("Windows OCR returned an invalid image limit")
 			this.MaxDimension := maximum
 			languageFactory := nm_OcrCom.Factory("Windows.Globalization.Language", "{9B0252AC-0C27-44F8-B792-9793FB66C63E}")
 			tag := nm_OcrString(language), value := nm_OcrCom.Call(6, languageFactory, "Ptr", tag)
