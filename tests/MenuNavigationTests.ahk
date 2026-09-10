@@ -7,7 +7,8 @@ TestMenuNavigation() {
 		["itemmenu", 1, ["itemmenu", ""], 1, "closed"],
 		["", 0, [""], 0, "closed"]] {
 		surface := MenuNavigationFixture(sample[3]), engine := nm_MenuNavigation(surface)
-		AssertEqual(engine.Run(sample[1], sample[2]), 1, "Requested menu state confirmed")
+		result := engine.Run(sample[1], sample[2])
+		AssertEqual(result, 1, "Requested menu state confirmed: " sample[1] " refresh=" sample[2] " outcome=" engine.Outcome " cause=" engine.Failure)
 		AssertEqual(surface.Clicks.Length, sample[4], "Only the necessary click is sent")
 		AssertEqual(engine.Outcome, sample[5], "Successful menu outcome is explicit")
 		AssertEqual(surface.Closed, 1, "Menu input cleanup runs on success")

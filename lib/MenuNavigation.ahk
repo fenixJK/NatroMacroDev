@@ -4,7 +4,7 @@ class nm_MenuNavigation {
 	static Tabs := Map("itemmenu", 30, "questlog", 85, "beemenu", 140, "badgelist", 195, "settingsmenu", 250, "shopmenu", 305)
 	__New(surface) => this.Surface := surface
 	Run(target := "", refresh := 0, timeout := 5000) {
-		this.Outcome := "unknown", surface := this.Surface
+		this.Outcome := "unknown", this.Failure := "", surface := this.Surface
 		if (target != "" && !nm_MenuNavigation.Tabs.Has(target)) || (refresh != 0 && refresh != 1) || timeout <= 0 {
 			this.Outcome := "invalid"
 			return 0
@@ -40,8 +40,9 @@ class nm_MenuNavigation {
 					return 0 ; unexpected tab change is not permission to click again
 				surface.Wait(Min(100, Max(0, deadline - surface.Clock())))
 			}
-		} catch {
+		} catch as err {
 			this.Outcome := "unknown"
+			this.Failure := SubStr(err.Message, 1, 512)
 			return 0
 		} finally surface.Close()
 	}
