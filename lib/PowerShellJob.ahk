@@ -28,6 +28,12 @@ class nm_PowerShellJob extends nm_OwnedProcessJob {
 	CaptureMembers() {
 		if !this.HasOwnProp("Members")
 			this.Members := Map()
+		for pid, handle in this.Members.Clone() {
+			if DllCall("WaitForSingleObject", "Ptr", handle, "UInt", 0) = 0 {
+				DllCall("CloseHandle", "Ptr", handle)
+				this.Members.Delete(pid)
+			}
+		}
 		; Hold handles to observed members before termination. Accounting can
 		; reach zero before an exiting descendant's process handle is signaled.
 		list := Buffer(8 + 256 * A_PtrSize, 0)
@@ -40,6 +46,8 @@ class nm_PowerShellJob extends nm_OwnedProcessJob {
 			pid := NumGet(list, 8 + (A_Index - 1) * A_PtrSize, "UPtr")
 			if this.Members.Has(pid)
 				continue
+			if this.Members.Count >= 256
+				throw Error("Too many observed file worker descendants")
 			handle := DllCall("OpenProcess", "UInt", 0x101000, "Int", false, "UInt", pid, "Ptr")
 			if !handle {
 				if A_LastError = 87
