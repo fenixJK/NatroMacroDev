@@ -15,7 +15,7 @@ TestGatherProfiles() {
 		'{"schemaVersion":2,"Name":"Rose"}', '{"Name":"missing"}', '{"Pattern":"uninstalled"}', '{"Name":null}', '{"Name":["Rose"]}',
 		'{"UntilPack":7}', '{"RotateTimes":0}', '{"PatternReps":10}', '{"UntilMins":10000}', '{"UntilMins":true}', '{"UntilPack":5.5}',
 		'{"Name":"Rose",}', '{"Name":"Rose"} trailing', '{"Name":"Rose", /*comment*/ "Pattern":"Lines"}', '{"PatternSize":"XL' "`n" '"}']
-		AssertThrows(() => nm_GatherProfiles.Parse(bad, fields, patterns), "Invalid complete profile is rejected: " bad)
+		AssertThrows(ObjBindMethod(nm_GatherProfiles, "Parse", bad, fields, patterns), "Invalid complete profile is rejected: " bad)
 	AssertThrows(() => nm_GatherProfiles.Parse(StrReplace(Format("{:17000}", "x"), " ", "x"), fields, patterns), "Import text is bounded")
 	IniWrite "Sunflower", nm_GatherStore.Path, "Gather", "FieldName1"
 	IniWrite "Squares", nm_GatherStore.Path, "Gather", "FieldPattern1"
@@ -44,6 +44,60 @@ TestGatherProfiles() {
 		AssertEqual(FileRead(nm_GatherStore.Path), before, "Rejected native write leaves existing settings intact")
 	} finally FileSetAttrib "-R", nm_GatherStore.Path
 	TestGatherStoreProcesses()
+	TestGatherProfileControls()
+}
+
+; Only the surrounding tab-enable routine is substituted. The production copy /
+; paste handlers below operate real native controls and the real INI store.
+nm_TabGatherUnLock() {
+	global GatherRefreshes
+	GatherRefreshes++
+}
+
+TestGatherProfileControls() {
+	global
+	local savedGui := MainGui, savedClipboard := ClipboardAll(), controlsGui := Gui(), key, value, control, desired, initial
+	fieldnamelist := ["Sunflower", "Rose"], patternlist := ["Squares", "Lines"]
+	FieldPatternSizeArr := Map("XS",1,"S",2,"M",3,"L",4,"XL",5)
+	MacroState := 0, CurrentFieldNum := 3, GatherRefreshes := 0
+	initial := Map("Name","Sunflower","Pattern","Squares","DriftCheck",0,"PatternInvertFB",0,"PatternInvertLR",0,"PatternReps",2,"PatternShift",0,"PatternSize","M","ReturnType","Walk","RotateDirection","None","RotateTimes",1,"SprinklerDist",2,"SprinklerLoc","Center","UntilMins",10,"UntilPack",50)
+	try {
+		for key, value in initial {
+			Field%key%1 := value
+			if key = "Name" || key = "Pattern" {
+				control := controlsGui.AddDropDownList("vField" key "1", key = "Name" ? fieldnamelist : patternlist)
+				control.Text := value
+			} else if nm_GatherProfiles.Numbers.Has(key) && nm_GatherProfiles.Numbers[key][2] = 1
+				controlsGui.AddCheckbox("vField" key "1", key).Value := value
+			else if key = "UntilMins"
+				controlsGui.AddEdit("vField" key "1", value)
+			else if nm_GatherProfiles.Numbers.Has(key) && key != "UntilPack" {
+				controlsGui.AddText(, key)
+				controlsGui.AddUpDown("vField" key "1 Range" nm_GatherProfiles.Numbers[key][1] "-" nm_GatherProfiles.Numbers[key][2], value)
+			} else
+				controlsGui.AddText("vField" key "1", value)
+		}
+		controlsGui.AddText(, "size"), controlsGui.AddUpDown("vFieldPatternSize1UpDown Range1-5", 3)
+		controlsGui.AddText(, "pack"), controlsGui.AddUpDown("vFieldUntilPack1UpDown Range1-20", 10)
+		controlsGui.AddText("vCurrentField", "Sunflower")
+		MainGui := controlsGui
+		desired := initial.Clone()
+		desired["Name"] := "Rose", desired["Pattern"] := "Lines", desired["PatternSize"] := "XL", desired["UntilPack"] := 75, desired["PatternShift"] := 1
+		A_Clipboard := nm_GatherProfiles.Export(desired, fieldnamelist, patternlist)
+		nm_PasteGatherSettings({Name: "PasteGather1"})
+		AssertEqual(FieldName1, "Rose", "Actual paste handler publishes the selected field")
+		Assert(MainGui["FieldName1"].Text = "Rose" && FieldPattern1 = "Lines" && MainGui["FieldPattern1"].Text = "Lines", "Imported field does not reset the explicit pattern to defaults")
+		Assert(MainGui["FieldPatternSize1UpDown"].Value = 5 && MainGui["FieldUntilPack1UpDown"].Value = 15, "Native paired spinners agree with imported labels")
+		Assert(MainGui["FieldPatternShift1"].Value = 1 && FieldPatternShift1 = 1, "Native checkbox and global agree")
+		Assert(CurrentFieldNum = 1 && CurrentField = "Rose" && GatherRefreshes = 1, "Active-field display and tab refresh reflect committed import")
+		AssertEqual(IniRead(nm_GatherStore.Path, "Gather", "FieldPattern1"), "Lines", "Actual handler persists explicit pattern")
+		nm_CopyGatherSettings({Name: "CopyGather1"})
+		AssertEqual(nm_GatherProfiles.Parse(A_Clipboard, fieldnamelist, patternlist)["UntilPack"], 75, "Actual copy handler serializes the updated profile")
+	} finally {
+		MainGui := savedGui
+		controlsGui.Destroy()
+		A_Clipboard := savedClipboard
+	}
 }
 
 TestGatherStoreProcesses() {

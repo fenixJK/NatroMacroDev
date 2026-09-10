@@ -42,6 +42,7 @@
 #Include "%A_ScriptDir%\SupportReportTests.ahk"
 #Include "%A_ScriptDir%\..\lib\GatherProfiles.ahk"
 #Include "%A_ScriptDir%\GatherProfileTests.ahk"
+#Include "%A_ScriptDir%\..\lib\GatherProfileControls.ahk"
 
 ; No Roblox or external service is used. HTTP tests contact a loopback fixture.
 ; Unexpected game observation/input throws; native GUI checks run separately.

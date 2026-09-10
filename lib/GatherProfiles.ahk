@@ -93,8 +93,8 @@ class nm_GatherStore {
 		finally DllCall("CloseHandle", "Ptr", handle)
 	}
 	static ReadSection() {
-		buffer := Buffer(131072, 0)
-		length := DllCall("GetPrivateProfileSectionW", "Str", "Gather", "Ptr", buffer, "UInt", 65536, "Str", A_WorkingDir "\" this.Path, "UInt")
+		sectionBuffer := Buffer(131072, 0)
+		length := DllCall("GetPrivateProfileSectionW", "Str", "Gather", "Ptr", sectionBuffer, "UInt", 65536, "Str", A_WorkingDir "\" this.Path, "UInt")
 		if length >= 65534
 			throw Error("Gather settings section exceeds the read limit")
 		if !length
@@ -102,7 +102,7 @@ class nm_GatherStore {
 		section := Map(), position := 0
 		section.CaseSense := false
 		while position < length {
-			line := StrGet(buffer.Ptr + position * 2), position += StrLen(line) + 1
+			line := StrGet(sectionBuffer.Ptr + position * 2), position += StrLen(line) + 1
 			if !(equal := InStr(line, "="))
 				throw Error("Malformed existing Gather settings")
 			key := SubStr(line, 1, equal - 1)
@@ -127,11 +127,12 @@ class nm_GatherStore {
 				size += StrLen(key) + StrLen(value) + 2
 			if size > 65535
 				throw Error("Gather settings section exceeds the write limit")
-			buffer := Buffer(size * 2, 0), offset := 0
+			sectionBuffer := Buffer(size * 2, 0), offset := 0
 			for key, value in section
-				offset += StrPut(key "=" value, buffer.Ptr + offset * 2, "UTF-16")
-			if !DllCall("WritePrivateProfileSectionW", "Str", "Gather", "Ptr", buffer, "Str", A_WorkingDir "\" this.Path)
+				offset += StrPut(key "=" value, sectionBuffer.Ptr + offset * 2, "UTF-16")
+			if !DllCall("WritePrivateProfileSectionW", "Str", "Gather", "Ptr", sectionBuffer, "Str", A_WorkingDir "\" this.Path)
 				throw Error("Gather settings could not be saved")
 		} finally DllCall("CloseHandle", "Ptr", handle)
 	}
 }
+
