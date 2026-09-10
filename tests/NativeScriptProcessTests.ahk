@@ -18,6 +18,16 @@ TestNativeScriptProcesses() {
 		}
 		RequireProcess(!selected.Ready(), "Another process's matching GUI cannot satisfy startup readiness")
 		captured := nm_ScriptProcess.Find(selectedScript, A_AhkPath)
+		if captured.Length != 1 || captured[1].Pid != selected.Pid {
+			FileAppend "Script discovery count=" captured.Length " expected=" selectedScript " runtime=" A_AhkPath " version=" A_AhkVersion "`n", "*"
+			DetectHiddenWindows true
+			for process in processes {
+				imagePath := Buffer(65536), imageSize := 32768
+				DllCall("QueryFullProcessImageNameW", "Ptr", process.Handle, "UInt", 0, "Ptr", imagePath, "UIntP", &imageSize)
+				for hwnd in WinGetList("ahk_class AutoHotkey ahk_pid " process.Pid)
+					FileAppend "Fixture PID=" process.Pid " title=" WinGetTitle("ahk_id " hwnd) " runtime=" StrGet(imagePath) "`n", "*"
+			}
+		}
 		try RequireProcess(captured.Length = 1 && captured[1].Pid = selected.Pid, "Discovery requires exact script path and runtime image")
 		finally {
 			for item in captured
