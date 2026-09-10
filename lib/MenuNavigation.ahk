@@ -74,8 +74,8 @@ class nm_MenuSurface {
 	Wait(ms) => Sleep(ms)
 	Identity() => this.Hwnd && this.Hwnd = GetRobloxHWND()
 	Offset() {
-		value := GetYOffset(this.Hwnd, &failed, false)
-		return {valid: !failed, value: value}
+		value := GetYOffset(this.Hwnd, &menuOffsetFailed, false)
+		return {valid: !menuOffsetFailed, value: value}
 	}
 	Prepare(deadline) {
 		global bitmaps
