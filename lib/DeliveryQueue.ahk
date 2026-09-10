@@ -15,14 +15,17 @@ class nm_DeliveryQueue {
 	Enqueue(data, contentType, url, token := "", label := "Report", completed := unset, options := unset) {
 		options := IsSet(options) ? options : {}
 		method := options.HasOwnProp("method") ? options.method : "POST"
-		if method != "POST" && method != "PATCH"
+		if method != "POST" && method != "PATCH" && method != "GET"
 			throw ValueError("Unsupported queued HTTP method")
+		responseLimit := options.HasOwnProp("responseLimit") ? options.responseLimit : 0
+		if !IsInteger(responseLimit) || responseLimit < 0 || responseLimit > 1048576
+			throw ValueError("Invalid response text limit")
 		bytes := nm_DeliveryPayloadSize(data)
 		job := {data: data, contentType: contentType, url: url, token: token,
 			label: label, bytes: bytes, attempts: 0, created: this.Clock.Call(),
 			next: 0, request: 0, started: 0, completed: IsSet(completed) ? completed : 0, method: method,
 			result: options.HasOwnProp("result") ? options.result : 0, owner: options.HasOwnProp("owner") ? options.owner : 0,
-			maxAge: options.HasOwnProp("maxAge") ? options.maxAge : this.MaxAge, cancelled: false}
+			maxAge: options.HasOwnProp("maxAge") ? options.maxAge : this.MaxAge, cancelled: false, responseLimit: responseLimit}
 		if this.Closed || this.Items.Length >= this.Limit || bytes > this.ByteLimit - this.Bytes {
 			this.Failure.Call(job, "Queue capacity reached; report was not queued")
 			return false
@@ -149,13 +152,17 @@ class nm_HttpDelivery {
 		wr.Option[6] := false ; do not forward a bot credential through redirects
 		wr.SetTimeouts(5000, 5000, 10000, 10000)
 		this.WantResult := job.result
+		this.ResponseLimit := job.HasOwnProp("responseLimit") ? job.responseLimit : 0
 		wr.Open(job.method, job.url, true)
 		wr.SetRequestHeader("Content-Type", job.contentType)
 		if job.token {
 			wr.SetRequestHeader("User-Agent", "DiscordBot (AHK, " A_AhkVersion ")")
 			wr.SetRequestHeader("Authorization", "Bot " job.token)
 		}
-		wr.Send(job.data)
+		if job.method = "GET"
+			wr.Send()
+		else
+			wr.Send(job.data)
 	}
 
 	Poll() {
@@ -176,10 +183,12 @@ class nm_HttpDelivery {
 			if !delay
 				delay := 60
 		}
-		messageID := ""
+		messageID := "", responseText := "", bodyValid := false
 		if this.WantResult && this.Request.Status >= 200 && this.Request.Status < 300 {
 			try {
 				text := this.Request.ResponseText
+				if this.ResponseLimit && StrLen(text) <= this.ResponseLimit
+					responseText := text, bodyValid := true
 				if StrLen(text) <= 65536 {
 					body := JSON.parse(text)
 					if body is Map && body.Has("id") && Type(body["id"]) = "String" && RegExMatch(body["id"], "^[0-9]{1,20}$")
@@ -187,7 +196,7 @@ class nm_HttpDelivery {
 				}
 			}
 		}
-		return {status: this.Request.Status, retryAfter: delay, id: messageID}
+		return {status: this.Request.Status, retryAfter: delay, id: messageID, text: responseText, bodyValid: bodyValid}
 	}
 
 	Abort() => this.Request.Abort()

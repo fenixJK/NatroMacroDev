@@ -31,7 +31,23 @@ try {
                 continue
             }
             $body = $reader.ReadToEnd()
-            if ($context.Request.Url.AbsolutePath -eq '/rate') {
+            if ($context.Request.Url.AbsolutePath.StartsWith('/inbox/')) {
+                if ($context.Request.HttpMethod -ne 'GET' -or $body.Length -ne 0 -or $context.Request.Headers['Authorization'] -ne 'Bot native-inbox-fixture') { throw 'Invalid inbox request method/body/credential' }
+                switch ($context.Request.Url.AbsolutePath) {
+                    '/inbox/channels/100000000000000001/messages' {
+                        $id = if ($context.Request.QueryString['limit'] -eq '1') { '100000000000000010' } elseif ($context.Request.QueryString['after'] -eq '100000000000000010') { '100000000000000011' } else { '' }
+                        $payload = if ($id) { '[{"id":"' + $id + '","channel_id":"100000000000000001","author":{"id":"200000000000000002"},"content":"!pause","attachments":[],"type":0}]' } else { '[]' }
+                    }
+                    '/inbox/channels/100000000000000001' { $payload = '{"id":"100000000000000001","guild_id":"400000000000000004"}' }
+                    '/inbox/guilds/400000000000000004/members/200000000000000002' { $payload = '{"user":{"id":"200000000000000002"},"roles":["300000000000000003"]}' }
+                    default { throw 'Invalid inbox route' }
+                }
+                $bytes = [Text.Encoding]::UTF8.GetBytes($payload)
+                $context.Response.StatusCode = 200
+                $context.Response.ContentType = 'application/json'
+                $context.Response.ContentLength64 = $bytes.Length
+                $context.Response.OutputStream.Write($bytes, 0, $bytes.Length)
+            } elseif ($context.Request.Url.AbsolutePath -eq '/rate') {
                 $payload = ConvertFrom-Json -InputObject $body -ErrorAction Stop
                 $key = $context.Request.QueryString['fixture']
                 if ($key -notmatch '^(32|64)$') { throw 'Unknown rate fixture' }

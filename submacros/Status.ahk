@@ -24,6 +24,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "DiscordHelp.ahk"
 #Include "DiscordReports.ahk"
 #Include "LiveHoneyDelivery.ahk"
+#Include "BotInbox.ahk"
 #Include "DurationFromSeconds.ahk"
 #Include "Roblox.ahk"
 #Include "ErrorHandling.ahk"
@@ -102,7 +103,8 @@ OnMessage(0x5553, nm_setGlobalStr, 255)
 OnMessage(0x5556, nm_sendHeartbeat)
 OnMessage(0x5559, nm_sendItemPicture)
 
-nm_DiscordCommandReply.SendEmbed("Connected to Discord!", 5066239)
+if discordMode = 0
+	nm_DiscordCommandReply.SendEmbed("Connected to Discord!", 5066239)
 
 planters := Map(), planters.CaseSense := 0
 planters["blueclayplanter"] := {bitmap: Gdip_BitmapFromBase64("iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAMAAAC7IEhfAAAB2lBMVEUAAAAeHh42NjY1NTUyMjIoKCgkJCQaGho1NTU2NjYzMzM0NDQzMzMvLy8tLS0qKio2NjY2NjYzMzM0NDQxMTEuLi4uLi4qKio2NjY1NTU0NDQsLCwvLy8kJCQyMjIzMzMzMzMzMzMyMjI0NDQ1NTUyMjIyMjIxMTEvLy8wMDEtLS0tLS05WbpAZs8/UH82NjY2NjdAZs5NcddAZcw4WLZOctg2N0I1NjY5WrsyTqE4WLg3V7QyT6Q5Wrg1VLE/UIJMb9Y9Ycc6W70tSJU+UYRMb9NFadFCZ9BBZ85Mbco4VbEzUKc3UKYxTZ4sRpM3O0w1Nz01NztJbdVFaM1KacJBYLo2VrMwTKAuSpo/VJE3TJFAU403SYo/Uoc4R3s3RHA6QmQ3P2A2PVc2O1E2NjlNb9BHactBZMlGZ8ZFZL40VK40U6w3U6szUqpAWaQ2Tp88U5wwTJw1SY03Qmw2QGk2OkdGa9NHa9JJa88+ZMpKasg6XcBEYbU8W643VK1EXqo4U6Y3UaItSJc6To41RYs/Uok3RXg3PVtEZsJAYcI/YL4+XbdBXbFGYK9EXKM2TZo/VplBVpY3TJU7TIo7S4c4SIIyO1xKbM9CZMY8X8I4Va49UJIuQ4U1QYKebRTcAAAALHRSTlMABP33xTITCfH73sqGY0Ia6uK7tXtMLB3awKxGOyWwpZmTb9fQzoBsW1lZI7SYQXAAAANuSURBVDjLfdVnV9pQGMDxECxiAdFau/ceofdmEPaSpSAbyl6Ce++9q3bvPb5rb5KCKNj/i5wc7i95yD05J1i1ZuUjheJGE5dMDABoa2q6pLjcjB3rqvyOVAMAhGwgECj1FQulAAsBaGm/eUVUwx7fbAOh+YLjw9s30R5Uf79z6MWrqc/5+TIUXzpfdecuQPbJmxUnRanVFGV19vesDD1/8Z2m6ZdTsyHQpBSY6NQFWFhDxvptYGj49cT79J7DYbE4ssmJWPfC4BQLLgr/9JYUFqKUMxKbSO45LE9qs2xSVOQTFPPDr0qDuRVrZDOJTF3ZAbUzNo8rOHgK7EeskYknDUsuqRcHD8BZHmo+dbvpZEOXfq6m3HShAr/QKvK1o05Z9t5GKcqlomfBPQHmaZWKjL1PZy0CcGSz6fSHzWg/2ioXqSJzQCbiYXFQhepe6okOD6+txYaHBgaWnJSasi64uAXyMzzNwXMtgZc8DFspCi2r+ajwoptEd+PgrgCbb7OvOIio2+1aCIfDiy6Xu1t12C8BYnfL66qGkSqhXY0AZXCXbKyE6DwQ4Fm8OPgfSK6zsAPjOi8OTdHkSdOXuw6guJWHzTLIrp8EbV0eFl5vrr6O+zYVeYygaNuqltgKwU7sX514ybBqs9F8JIkOy8s2249VrZYgiMlyS2sFSqTBbcJEaLXaLi5unSNCKdimrEBRB8gQJ/R0JoTfxyopYF5fb7ifGKP9K7hWha0tfRtmhl98ahZOmFGj0WvWj0/7v4KOKryM9037vHo0yDid8BnN6ILxhN/u03l99t8suH54Rzw4s7MzQph1dr8/odONGrwJf3x0XKfz2UsacWcVSmQgN2JPGOM7du+IwaxDwB9n0IDRke2gRi7Camcbxqd18biZf1Kv0WhEjusdxK9ihymlwS1Cb2CIujKgXVIDRWfgDNGwHDiD1SYHc3pTA8fMHYOdOLtNHMZfM+Yhenv7wI0jUHIRzDFEr8FEML0MQuhgmpkkNj4GwQPsSK3i0EfTs0kt4fnjQROf/UR4TD9W1IivHIWia+DAMDbJGY8J7YoBnW1kShrNJRF2tHNt5RSDCMFvEuPZSs3OQ4CfkWDHkwN2bnb/SyaVyuTyxQBb1kC8/Wy9w863AwAgH+BqEV98qMQadaoDB5Wk8ltXJLXfjr8sUSDBBtdhwQAAAABJRU5ErkJggg==")
@@ -660,14 +662,19 @@ bitmaps := Map()
 bitmaps["moon"] := Gdip_BitmapFromBase64("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")
 #Include "%A_ScriptDir%\..\nm_image_assets\offset\bitmaps.ahk"
 
-discordUIDCommands_is_role := strlen(discordUIDCommands) && SubStr(discordUIDCommands, 1, 1) == "&"
+botInbox := nm_BotInbox(command_buffer), botReadyOwner := 0
 
 Loop
 {
 	nm_AttachmentDownloads.Pump((message, ok, id) => nm_DiscordCommandReply.SendEmbed(message, ok ? 5066239 : 16711731,,,,id))
 	(status_buffer.Length > 0) && nm_status(status_buffer[1])
-	(Mod(A_Index, 5) = 0) && discord.GetCommands(MainChannelID)
-	(command_buffer.Length > 0) && nm_command(command_buffer[1])
+	botInbox.Configure(nm_BotCommandConfig())
+	botInbox.Pump()
+	if IsObject(botInbox.Config) && botInbox.Cursor != "" && !botInbox.Blocked && botReadyOwner != botInbox.Owner {
+		nm_DiscordCommandReply.SendEmbed("Connected to Discord! Ready for new commands.", 5066239)
+		botReadyOwner := botInbox.Owner
+	}
+	(command_buffer.Length > 0 && botInbox.Ready(command_buffer[1])) && nm_command(command_buffer[1])
 	(Mod(A_Index, 10) = 0) && nm_honey()
 	((DebugLogEnabled = 1) && (logsize > 8000000)) && nm_TrimLog(4194304) ; trim to 4MiB
 	Sleep 100
@@ -828,29 +835,17 @@ CreateHoneyBitmap(honey := 1, backpack := 1)
 
 nm_command(command)
 {
-	global commandPrefix, MacroState, planters, timers, settings, blender, shrine, priorityListNumeric
+	global commandPrefix, MacroState, planters, timers, settings, blender, shrine, priorityListNumeric, botInbox
 	static ssmode := "Roblox"
 	, defaultPriorityList := ["Night", "Mondo", "Planter", "Bugrun", "Collect", "QuestRotate", "Boost", "GoGather"]
 
 	id := command.id, params := [], user_id := command.user_id
 
-	if !UserHasPermission() {
+	if !botInbox.Authorized(command, nm_BotCommandConfig()) {
 		nm_DiscordCommandReply.SendEmbed("Remote command denied. Configure an authorized user or role in Natro before using commands.", 16711731,,,,id)
 		return command_buffer.RemoveAt(1)
 	}
 
-
-	UserHasPermission() {
-		roles := 0
-		if discordUIDCommands_is_role {
-			try roles := getUserRoles(user_id)
-			catch as err {
-				nm_Failures.Write(err, "Command role lookup failed")
-				return false
-			}
-		}
-		return nm_CommandAuthorized(discordUIDCommands, user_id, roles)
-	}
 
 	Loop Parse SubStr(command.content, StrLen(commandPrefix)+1), A_Space
 		if (A_LoopField != "")
@@ -1839,12 +1834,10 @@ nm_command(command)
 	}
 }
 
-getUserRoles(user_id) {
-	if (res := discord.GetChannel(MainChannelID)) = -1
-		return -1
-	channel := JSON.parse(res, false, false)
-	member := JSON.parse(discord.GetMember(channel.guild_id, user_id), false, false)
-	return member.roles
+nm_BotCommandConfig() {
+	global discordMode, bottoken, MainChannelID, commandPrefix, discordUIDCommands
+	return discordMode = 1
+		? {token: bottoken, channel: MainChannelID, prefix: commandPrefix, allowed: discordUIDCommands} : 0
 }
 
 nm_TrimLog(size)
@@ -1931,17 +1924,7 @@ nm_setGlobalStr(wParam, lParam, *)
 	var := arr[wParam], section := sections[lParam]
 	%var% := IniRead(A_ScriptDir "\..\settings\nm_config.ini", section, var)
 
-	UpdateStrActions(var)
 	return 0
-}
-
-UpdateStrActions(var){
-	global
-	
-	switch {
-		case "discordUIDCommands":
-			discordUIDCommands_is_role := StrLen(discordUIDCommands) && SubStr(discordUIDCommands, 1, 1) == "&"
-	}
 }
 
 nm_sendHeartbeat(*)
@@ -1976,7 +1959,10 @@ nm_sendItemPicture(wParam, lParam,*) {
 
 ExitFunc(*)
 {
+	global botInbox
 	Critical
+	if IsSet(botInbox)
+		botInbox.Close()
 	nm_AttachmentDownloads.Close()
 	global status_buffer
 	arr := []
