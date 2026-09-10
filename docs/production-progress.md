@@ -1059,3 +1059,54 @@ timer/planter/shrine/blender/memory-match builders, live honey edits, synchronou
 command delivery, rate-limit/outage recovery, durable outbox and full end-to-end
 report verification remain work. F23 and the full production plan remain active.
 No real Discord/Roblox verification, deployment, merge or release is claimed.
+
+## Structured operational reports checkpoint
+
+Code checkpoint: `9717bf8bd7af8af5a5a928e4dcab2d052d2e0b6a`.
+[Windows run 34432410363](https://github.com/fenixJK/NatroMacroDev/actions/runs/34432410363)
+passed **50 regression groups on each AHK architecture**, the existing native
+Windows integration suites, seven production-script and four emitted-worker
+validations per architecture, **43 attachment checks** and **35 updater scenarios**
+on each PowerShell version. No AHK warnings occurred. The checkout Node runtime
+deprecation notice remains. Initial report migration run 34432302092 also passed.
+
+Planter, timer, blender, shrine and memory-match displays now use structured report
+builders instead of concatenated JSON. The remaining live-honey payload was also
+migrated, preserving its explicit replacement attachment list and synchronous
+post/edit behavior. Names, prefixes, field values, colors, boolean inline flags
+and reply metadata serialize through the shared contract. Several blender catalog
+colors exceeded 24 bits; those now use the normal report color instead of sending
+an invalid embed value. The underlying catalog palette itself is not recalibrated.
+
+Report builders consume a supplied snapshot/timestamp and do not edit state.
+Planter hold/smoking precedence, future growth, automatic-mode Ready, finite and
+Infinite blender rotations, enabled timer groups and memory-game ignore masks are
+covered. Invalid timestamps display Unknown. Monster respawn modifiers apply only
+to mobs; a corrupt modifier cannot invalidate unrelated machine/event timers.
+Shrine display now reads its rotation from the snapshot instead of an unrelated
+variable and wraps over the main macro's two-slot model. Remote shrine ready/clear
+commands reject slot three and no longer fall through to an unset report-body send.
+Existing three-slot planter/blender commands retain their scope.
+
+Attachments now use generated unique filenames and consecutive indexes, without
+empty-slot gaps or duplicate filenames for repeated items. A shared bitmap is
+attached once and reused by each corresponding embed. Catalog bitmaps remain
+borrowed, and the native multipart encoder copies their data. Text-only reports
+use ordinary JSON. This is encoding/resource ownership work, not a measured
+performance improvement or an atomic settings snapshot.
+
+Regression coverage invokes all five report builders, parses raw quote/backslash/
+Unicode data, verifies sparse/repeated slots and matching attachment references,
+checks times and rotation/masks, and runs the real Windows multipart encoder with
+fixture GDI bitmaps. The source bitmap must remain usable afterward. Honey tests
+verify serialization and replacement metadata. Only HTTP transport is replaced;
+no Discord message or real game action is sent. Current bundled memory-match data
+has 37 items (462 characters if all display names are joined); arbitrary future
+field lengths remain bounded rather than fully paginated.
+
+[Reporting verification](reporting-verification.md) records the remaining limits.
+F23 still requires command/honey delivery migration, shared rate-limit coordination,
+durable outbox/recovery, current-artwork/live rendering checks and full end-to-end
+report verification. Positive game receipts, crash-consistent state and the rest
+of the production plan remain active. No live verification, deployment, merge or
+production release is claimed.

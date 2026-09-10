@@ -65,10 +65,9 @@ bitmap has been disposed. No test contacts Discord or uses real credentials.
 
 Still required for F23 and the broader production plan:
 
-- Migrate the remaining structured command payload builders (timer,
-  planter, shrine, blender and memory-match displays) and live honey edits to the
-  raw-text serializer and common delivery contract. Simple `SendEmbed` callers
-  and the setting-value reply now use serialization, as do all help variants.
+- Move synchronous command replies and live honey edits onto the common delivery
+  contract. Their payload builders now serialize objects, including the structured
+  timer, planter, shrine, blender and memory-match displays.
 - Coordinate rate limits and dispatch across helpers, commands and bot polling;
   persist ordinary queued reports with explicit destination identity and recovery.
 - Add user-visible pending/failed report management and controlled resend; verify
@@ -101,8 +100,8 @@ Windows regression tests invoke the actual `SendEmbed` and missing-file caller
 with only HTTP transport replaced. They check quotes, backslashes, actual and
 literal newlines, control characters, Unicode, explicit channel, reply metadata,
 setting fields and invalid IDs. Existing multipart/loopback tests still cover the
-shared encoder and queued transport. Live Discord behavior, structured command
-templates and delivery coordination remain open.
+shared encoder and queued transport. Live Discord behavior and delivery
+coordination remain open.
 
 Useful, advanced, priority and settings help now build objects and serialize them.
 All aliases use the current prefix, including prefixes with quotes/backslashes.
@@ -116,6 +115,34 @@ pages disable parsed mentions. Regression tests cover more than ten pages and
 verify every eligible setting appears exactly once, including the last page.
 Delivery still uses the existing synchronous API, so these tests do not prove
 multi-page delivery through a Discord outage or rate limit.
+
+Planter, timer, blender, shrine and memory-match displays now use shared report
+builders. They accept one supplied settings snapshot and timestamp without writing
+state. Dynamic names, fields and prefixes are serialized; numeric catalog colors
+outside the valid 24-bit range use the normal report color. Missing/invalid timer
+values display Unknown rather than silently becoming Ready. Monster respawn
+modifiers apply only to mobs. Planter hold/smoking states apply only in manual mode,
+after the recorded growth timer expires. Shrine reports read the current rotation
+from the supplied snapshot and wrap across its two slots. Remote shrine ready/clear
+commands now reject a nonexistent third slot; they no longer fall through into an
+unset report-body send after their simple reply.
+
+Reports reuse one attachment for a shared catalog bitmap and generate unique
+filenames with consecutive file indexes, independent of empty slots or repeated
+item names. The shared multipart encoder copies the borrowed images; the report
+does not dispose catalog bitmaps. Reports without icons use a JSON body. Live honey
+updates now serialize their image/color and explicit empty attachment list, while
+retaining their existing synchronous post/edit behavior.
+
+Regression tests cover sparse/repeated planter slots, hold/smoking/ready timing,
+blender Infinite/exhausted slots and invalid colors, shrine rotation, enabled timer
+groups and mob modifiers, missing timer values, memory-match ignore masks, raw
+quoted/Unicode values, attachment references and live-honey payload metadata.
+The real Windows multipart encoder runs on fixture GDI bitmaps, whose continued
+validity is checked afterward. HTTP transport is replaced; live game accuracy,
+current artwork, Discord rendering and delivery remain unverified. Structured
+field text is bounded to platform-sized fields; this is not arbitrary-size report
+pagination or an atomic cross-process settings snapshot.
 
 ## Counter consistency
 
