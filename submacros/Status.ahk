@@ -25,6 +25,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "Roblox.ahk"
 #Include "ErrorHandling.ahk"
 #Include "RuntimePolicy.ahk"
+#Include "RemoteCapabilities.ahk"
 
 SetWorkingDir A_ScriptDir "\.."
 CoordMode "Mouse", "Client"
@@ -820,7 +821,7 @@ CreateHoneyBitmap(honey := 1, backpack := 1)
 nm_command(command)
 {
 	global commandPrefix, MacroState, planters, timers, settings, blender, shrine, priorityListNumeric
-	static ssmode := "All"
+	static ssmode := "Roblox"
 	, defaultPriorityList := ["Night", "Mondo", "Planter", "Bugrun", "Collect", "QuestRotate", "Boost", "GoGather"]
 
 	id := command.id, params := [], user_id := command.user_id
@@ -847,6 +848,11 @@ nm_command(command)
 		if (A_LoopField != "")
 			params.Push(A_LoopField)
 	params.Length := 10, params.Default := ""
+	if (denied := nm_RemoteCapabilities.Denied(params, ssmode)) {
+		discord.SendEmbed("Remote permission disabled: " denied ". Enable it locally in Status > Permissions if needed.", 16711731,,,,id)
+		return command_buffer.RemoveAt(1)
+	}
+
 
 	switch (name := params[1]), 0
 	{
@@ -943,8 +949,8 @@ nm_command(command)
 						"inline": true
 					},
 					{
-						"name": "' commandPrefix 'download [directory]",
-						"value": "Downloads the attached file to ``directory``",
+						"name": "' commandPrefix 'download [attach a file]",
+						"value": "Saves the attached file in settings/remote-inbox (FileReceive permission)",
 						"inline": true
 					},
 					{
@@ -1102,33 +1108,22 @@ nm_command(command)
 		switch params[2], 0
 		{
 			case "mode":
-			if ((params[3] = "all") || (params[3] = "window") || (params[3] = "screen"))
+			if ((params[3] = "roblox") || (params[3] = "all") || (params[3] = "window") || (params[3] = "screen"))
 			{
 				ssmode := RegExReplace(params[3], "(?:^|\.|\R)[- 0-9\*\(]*\K(.)([^\.\r\n]*)", "$U1$L2")
 				discord.SendEmbed("Set screenshot mode to " ssmode "!", 5066239, , , , id)
 			}
 			else
-				discord.SendEmbed("Invalid ``Mode``!\nMust be either ``All``, ``Window``, or ``Screen``", 16711731, , , , id)
+				discord.SendEmbed("Invalid ``Mode``!\nMust be ``Roblox``, ``All``, ``Window``, or ``Screen``", 16711731, , , , id)
 
 			default:
-			switch ssmode, 0
-			{
-				case "all":
-				pBM := Gdip_BitmapFromScreen()
-
-				case "window":
-				WinGetClientPos &x, &y, &w, &h, "A"
-				pBM := Gdip_BitmapFromScreen((w > 0) ? (x "|" y "|" w "|" h) : 0)
-
-				case "screen":
-				pBM := Gdip_BitmapFromScreen(1)
-
-				default:
-				discord.SendEmbed("Error: Invalid screenshot mode!", 16711731, , , , id)
-				pBM := Gdip_BitmapFromScreen()
+			pBM := nm_RemoteCapture(ssmode)
+			if pBM <= 0
+				discord.SendEmbed("Screenshot unavailable. Roblox must be visible and focused, or the selected desktop capture permission must be enabled.", 16711731,,,,id)
+			else {
+				try discord.SendImage(pBM, "ss.png", id)
+				finally Gdip_DisposeImage(pBM)
 			}
-			discord.SendImage(pBM, "ss.png", id)
-			Gdip_DisposeImage(pBM)
 		}
 
 
@@ -1922,7 +1917,7 @@ nm_command(command)
 
 			default:
 			k := StrReplace(Trim(SubStr(command.content, InStr(command.content, name)+StrLen(name))), " ")
-			if RegExMatch(k, "i)(token|webhook|privserver|fallbackserver|password|secret)") {
+			if nm_RemoteCapabilities.PrivateSetting(k) {
 				discord.SendEmbed("This setting is private and cannot be returned by remote commands.", 16711731,,,,id)
 				return command_buffer.RemoveAt(1)
 			}
@@ -1979,40 +1974,21 @@ nm_command(command)
 
 
 		case "upload":
-		discord.SendFile(Trim(SubStr(command.content, InStr(command.content, name)+StrLen(name))), id)
+		try discord.SendFile(nm_RemoteUploadPath(Trim(SubStr(command.content, InStr(command.content, name)+StrLen(name)))), id)
+		catch as err
+			discord.SendEmbed(err.Message, 16711731,,,,id)
 
 
 		case "download":
-		if (url := command.url)
-		{
-			path := StrReplace(RTrim(StrReplace(Trim(SubStr(command.content, InStr(command.content, name)+StrLen(name))), "/", "\"), "\"), "\\", "\"), message := ""
-			if (StrLen(path) > 0)
-			{
-				if !FileExist(path)
-				{
-					try
-						DirCreate(path), message .= 'Created folder ``' StrReplace(StrReplace(path, "\", "\\"), '"', '\"') '``\n'
-					catch as e
-						message .= "DirCreate Error:\n" e.Message " " e.What "\n\n"
-				}
-				if InStr(FileExist(path), "D")
-				{
-					SplitPath url, &filename
-					(pos := InStr(filename, "?")) && (filename := SubStr(filename, 1, pos-1))
-					try
-					{
-						Download url, (path .= "\" filename)
-						discord.SendEmbed(message .= 'Downloaded ``' StrReplace(StrReplace(path, "\", "\\"), '"', '\"') '``', 5066239, , , , id)
-					}
-					catch as e
-						discord.SendEmbed(message .= "Download Error:\n" e.Message " " e.What, 16711731, , , , id)
-				}
-			}
-			else
-				discord.SendEmbed("You must specify a valid directory!", 16711731, , , , id)
-		}
-		else
-			discord.SendEmbed("No attachment found to download!", 16711731, , , , id)
+		if command.url {
+			try {
+				path := nm_RemoteInboxPath(command.url)
+				Download command.url, path
+				discord.SendEmbed("Attachment saved in settings/remote-inbox. Files are not opened automatically.", 5066239,,,,id)
+			} catch as err
+				discord.SendEmbed("Attachment download failed: " err.Message, 16711731,,,,id)
+		} else
+			discord.SendEmbed("No attachment found to download!", 16711731,,,,id)
 
 
 		case "click":

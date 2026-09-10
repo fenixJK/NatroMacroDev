@@ -8,6 +8,7 @@
 #Include "%A_ScriptDir%\..\lib\nm_InventorySearch.ahk"
 #Include "%A_ScriptDir%\..\lib\HealthObservation.ahk"
 #Include "%A_ScriptDir%\..\lib\ImageObservation.ahk"
+#Include "%A_ScriptDir%\..\lib\RemoteCapabilities.ahk"
 
 bitmaps := Map(), windowX := windowY := windowWidth := windowHeight := 0
 fixture := Gui("-DPIScale", "Natro geometry fixture")
@@ -22,6 +23,7 @@ try {
 	Require(ActivateRoblox(fixture.Hwnd), "Explicit HWND activation")
 	TestNativePointer(fixture)
 	TestNativeHealth()
+	TestNativeRemotePermissions(fixture)
 	fixture.Minimize()
 	Require(!nm_ClientSnapshot(fixture.Hwnd), "Minimized client is unusable")
 	Require(ActivateRoblox(fixture.Hwnd), "Explicit activation restores minimized target")
@@ -39,6 +41,52 @@ ExitApp 0
 Require(condition, message) {
 	if !condition
 		throw Error(message)
+}
+
+TestNativeRemotePermissions(fixture) {
+	originalDirectory := A_WorkingDir
+	fixtureDirectory := A_Temp "\natro-remote-permissions-" DllCall("GetCurrentProcessId")
+	DirCreate fixtureDirectory "\settings"
+	token := Gdip_Startup(), panel := 0, bitmap := 0
+	try {
+		SetWorkingDir fixtureDirectory
+		nm_RemotePermissionsWindow.Open()
+		panel := nm_RemotePermissionsWindow.Window
+		Require(WinExist("ahk_id " panel.Hwnd), "Local permission window opens")
+		for key in nm_RemoteCapabilities.Flags
+			Require(!panel[key].Value, "Optional native checkbox starts disabled: " key)
+		panel["DesktopCapture"].Value := 1
+		panel["Diagnostics"].Value := 1
+		nm_RemotePermissionsWindow.Save(panel), panel := 0
+		Require(nm_RemoteCapabilities.Read() = 33 && !nm_RemotePermissionsWindow.Window, "Native save persists only selected permissions and closes")
+		nm_RemotePermissionsWindow.Open()
+		panel := nm_RemotePermissionsWindow.Window
+		Require(panel["DesktopCapture"].Value && panel["Diagnostics"].Value && !panel["DesktopControl"].Value, "Reopening reflects saved permissions")
+		panel["DesktopControl"].Value := 1
+		nm_RemotePermissionsWindow.Close(panel), panel := 0
+		Require(nm_RemoteCapabilities.Read() = 33, "Cancel discards unsaved permissions")
+		Require(ActivateRoblox(fixture.Hwnd), "Capture fixture owns focus")
+		bitmap := nm_RemoteCapture("Window")
+		snapshot := nm_ClientSnapshot(fixture.Hwnd)
+		Require(bitmap > 0 && Gdip_GetImageWidth(bitmap) = snapshot.width && Gdip_GetImageHeight(bitmap) = snapshot.height, "Granted active-window screenshot captures exact client dimensions")
+		Gdip_DisposeImage(bitmap), bitmap := 0
+		Require(!nm_RemoteCapture("invalid"), "Invalid mode cannot fall back to desktop even when granted")
+		Require(!GetRobloxHWND() && !nm_RemoteCapture(), "Missing Roblox does not capture active fixture or desktop")
+		nm_RemotePermissionsWindow.Open()
+		panel := nm_RemotePermissionsWindow.Window
+		panel["DesktopCapture"].Value := 0
+		nm_RemotePermissionsWindow.Save(panel), panel := 0
+		Require(!nm_RemoteCapture("Window") && !nm_RemoteCapture("All") && !nm_RemoteCapture("Screen"), "Local revocation immediately prevents all desktop modes")
+		FileAppend "PASS Windows remote permissions integration (" A_PtrSize * 8 "-bit)`n", "*"
+	} finally {
+		if bitmap > 0
+			Gdip_DisposeImage(bitmap)
+		if panel
+			nm_RemotePermissionsWindow.Close(panel)
+		Gdip_Shutdown(token)
+		SetWorkingDir originalDirectory
+		DirDelete fixtureDirectory, true
+	}
 }
 
 class FixturePointerSurface {
