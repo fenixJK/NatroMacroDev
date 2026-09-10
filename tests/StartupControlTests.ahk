@@ -7,7 +7,7 @@ TestStartupControl() {
 			request := nm_StartSession.Reserve(mode)
 			Assert(request && request.Mode = mode, "Start attempt captures its own mode")
 			Assert(!nm_StartSession.Reserve("local") && !nm_StartSession.Running(), "Scheduled request rejects duplicate start and cannot pause/run background actions")
-			request.Execute((active) => TestStartupReject(active, mode), rejected, unexpected)
+			request.Execute(TestStartupReject.Bind(mode), rejected, unexpected)
 			Assert(!nm_StartSession.Current, "Rejected startup releases ownership")
 		}
 		AssertEqual(counts.rejected, 3, "Every rejected attempt restores controls once")
@@ -35,7 +35,7 @@ TestStartupControl() {
 	} finally nm_StartSession.Cancel()
 }
 
-TestStartupReject(request, mode) {
+TestStartupReject(mode, request) {
 	AssertEqual(request.Mode, mode, "Scheduled mode survives until callback execution")
 	AssertEqual(request.Phase, "starting", "Preflight owns starting phase")
 	Assert(!nm_StartSession.Running() && !nm_StartSession.Reserve("remote"), "Starting phase rejects pause/background work and reentrant starts")
