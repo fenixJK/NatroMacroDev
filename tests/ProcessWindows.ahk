@@ -41,6 +41,17 @@ ProcessTests() {
 		DllCall("GetProcessHandleCount", "Ptr", -1, "UIntP", &after := 0)
 		RequireProcess(after <= before + 2 && nm_OwnedProcessJob.Jobs.Count = 0, "Worker handles/mappings released across repeated completion")
 
+		DllCall("GetProcessHandleCount", "Ptr", -1, "UIntP", &before := 0)
+		Loop 3 {
+			creationRejected := false
+			try nm_OwnedProcessJob(Map("mode", "idle"), A_ScriptDir "\ProcessFixture.ahk", directory "\missing-runtime.exe")
+			catch nm_ProcessJobError
+				creationRejected := true
+			RequireProcess(creationRejected, "Failed process creation propagates")
+		}
+		DllCall("GetProcessHandleCount", "Ptr", -1, "UIntP", &after := 0)
+		RequireProcess(after <= before + 2 && nm_OwnedProcessJob.Jobs.Count = 0, "Failed creation releases job and mapping handles")
+
 		job := nm_OwnedProcessJob(Map("kind", "browser", "type", "LinkCode", "code", "invalid"))
 		try {
 			try job.Wait()
@@ -90,7 +101,7 @@ ProcessTests() {
 	}
 }
 TestProcessCrashOwnership() {
-	parent := 0, childHandle := 0
+	parent := 0, childHandle := 0, initialJobs := nm_OwnedProcessJob.Jobs.Count
 	try {
 		parent := nm_OwnedProcessJob(Map("mode", "owner"), A_ScriptDir "\ProcessFixture.ahk")
 		WaitProcessReady(parent)
@@ -125,7 +136,7 @@ TestProcessCrashOwnership() {
 			survivorHandle := DllCall("OpenProcess", "UInt", 0x101001, "Int", false, "UInt", pid, "Ptr")
 			RequireProcess(survivorHandle && DllCall("IsProcessInJob", "Ptr", survivorHandle, "Ptr", launcher.Job, "IntP", &owned := 0) && !owned, "Launched application breaks away from helper job")
 			launcher.Close()
-			RequireProcess(DllCall("WaitForSingleObject", "Ptr", survivorHandle, "UInt", 0) = 258, "Launched application survives normal or forced helper cleanup")
+			RequireProcess(DllCall("WaitForSingleObject", "Ptr", survivorHandle, "UInt", 200) = 258, "Launched application survives normal or forced helper cleanup")
 		} finally {
 			if survivorHandle {
 				DllCall("TerminateProcess", "Ptr", survivorHandle, "UInt", 1)
@@ -136,8 +147,7 @@ TestProcessCrashOwnership() {
 				launcher.Close()
 		}
 	}
-	; Remaining jobs belong to the surrounding player/decoy fixture and are
-	; released by its own finally block.
+	RequireProcess(nm_OwnedProcessJob.Jobs.Count = initialJobs, "Crash fixtures release their owned jobs without changing surrounding jobs")
 	FileAppend "PASS Windows crash ownership and application survival (" A_PtrSize * 8 "-bit)`n", "*"
 }
 RequireProcess(condition, message) {

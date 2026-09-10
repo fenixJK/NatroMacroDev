@@ -47,6 +47,18 @@ in temporary request files. Browser/deeplink targets are reconstructed from the
 fixed Bee Swarm place and validated server code; arbitrary launch targets and
 extra URL parameters are not forwarded.
 
+Each helper is assigned to an unnamed Windows job as part of CreateProcessW,
+using the JOB_LIST startup attribute. The job has kill-on-close enabled and its
+handle is not inherited. If the parent is forcibly terminated, Windows closes
+that handle and terminates the helper even though AHK exit callbacks never ran.
+Assignment is part of process creation, so there is no unowned interval before a
+later assignment call. This path requires Windows 10 / Server 2016 or newer; if
+job setup or creation fails, the macro does not fall back to an unowned helper.
+
+Silent breakaway lets applications launched by the helper leave its job. Thus
+closing the helper's job does not kill an already launched browser/game. Helpers
+created by another helper receive their own independently owned jobs.
+
 The parent keeps the process handle returned by CreateProcessW. Each helper has
 20 seconds, also subject to the remaining overall reconnect budget. On failure,
 timeout or parent exit, the parent terminates the owned helper if needed and waits
@@ -80,18 +92,21 @@ deadlines and native search result classification. Gate tests cover nested
 ownership, release after errors and suppressed background callbacks.
 
 Native process fixtures exercise shared-memory Unicode/quoted requests, repeated
-handle cleanup, invalid production launch requests, timeout and terminal-state
-confirmation, and the production close helper against an exact-name disposable
+handle cleanup, failed process creation, invalid production launch requests,
+timeout and terminal-state confirmation, and the production close helper against an exact-name disposable
 player and a Roblox-named Studio decoy. These fixtures contain no game and issue
 no real browser/deeplink launch. Tests refuse to proceed if a real player is
-already running. Other-user/session exclusions still require multi-session Windows
+already running. Further native fixtures forcibly terminate a parent while its
+owned helper is alive and require the helper to become terminal without parent
+cleanup. Disposable applications must survive both normal and forced launch-helper
+cleanup; job-membership checks verify their breakaway. Other-user/session exclusions still require multi-session Windows
 verification.
 
 Browser/game processes intentionally survive helper completion. Timing out after
 a successful external launch can leave its outcome unknown; terminating the
 helper does not undo a browser tab, protocol dispatch or process already created.
-A hard parent crash can bypass its exit cleanup and leave a helper alive;
-OS-enforced job ownership and crash cancellation remain open. The parent still
+Kernel job ownership covers abrupt parent termination; whole-system power loss
+still cannot provide a durable receipt of an external launch. The parent still
 depends on short native startup/poll/termination calls returning, and main-thread
 scheduling can delay polling. This is not a hard real-time bound
 on every OS operation. Positive hive receipts, full input coordination, live
@@ -107,3 +122,7 @@ credited in the original main program. The native lifecycle follows Microsoft's 
 [CreateProcessW](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw),
 [process handles](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-process_information)
 and [image-name verification](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-queryfullprocessimagenamew).
+
+Crash ownership uses Microsoft's documented
+[creation-time job list](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-updateprocthreadattribute)
+and [kill-on-close / breakaway job behavior](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects).
