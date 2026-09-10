@@ -22,6 +22,7 @@ CoordMode('Mouse', 'Screen')
 #Include "%A_ScriptDir%\lib\GuiGraphics.ahk"
 #Include "%A_ScriptDir%\lib\AutoJellySafety.ahk"
 #Include "%A_ScriptDir%\lib\AutoJellyOcr.ahk"
+#Include "%A_ScriptDir%\lib\AutoJellyMouse.ahk"
 resources := nm_GuiGraphics()
 OnExit((*) => (closefunction()), -1)
 stopToggle(*) {
@@ -115,6 +116,10 @@ startGui() {
 	DrawGUI()
 }
 startGUI()
+mouseUI := nm_AutoJellyMouse(mgui, nm_AutoJellyHover, beeArr)
+OnMessage(0x202, (w, l, m, hwnd) => mouseUI.EndClose(hwnd))
+OnMessage(0x215, (w, l, m, hwnd) => mouseUI.CaptureChanged(hwnd))
+OnMessage(0x20, (w, l, m, hwnd) => mouseUI.Owns(hwnd) ? mouseUI.Cursor(w, l) : "")
 OnMessage(0x201, WM_LBUTTONDOWN)
 OnMessage(0x200, WM_MOUSEMOVE)
 guiReady := true
@@ -202,24 +207,21 @@ WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
 	, Riley, Shocked, Baby, Carpenter, Demon, Diamond, Lion, Music, Ninja, Shy, Buoyant
 	, Fuzzy, Precise, Spicy, Tadpole, Vector, SelectAll, Ability, Gather, Convert, Energy
 	, Movespeed, Crit, Instant, Attack, mythicStop, giftedStop
-	MouseGetPos(,,,&ctrl,2)
-	if !ctrl
+	control := mouseUI.Control(hwnd)
+	if !control
 		return
-	switch mgui[ctrl].name, 0 {
+	ctrl := control.Hwnd
+	switch control.Name, 0 {
 		case "move":
-			PostMessage(0x00A1,2)
+			PostMessage 0x00A1, 2, 0,, "ahk_id " mgui.Hwnd
 		case "close":
-			while GetKeyState("LButton", "P")
-				sleep -1
-			mousegetpos ,,, &ctrl2, 2
-			if ctrl = ctrl2
-				PostMessage(0x0112,0xF060)
+			mouseUI.BeginClose(hwnd)
 		case "roll":
-			ReplaceSystemCursors()
-			blc_start()
+			mouseUI.Stop()
+			SetTimer blc_start, -1
 		case "help":
-			ReplaceSystemCursors()	
-			Msgbox("This feature allows you to roll royal jellies until you obtain your specified bees and/or mutations!`n`nTo use:`n- Select the bees and mutations you want`n- Make sure your in-game Auto-Jelly settings are right`n- Put a neonberry on the bee you want to change (if trying `n  to obtain a mutated bee) `n- Use one royal jelly on the bee and click Yes`n- Click on Roll.`n`nTo stop: `n- Press the escape key`n`nAdditional options:`n- Stop on Gifteds stops on any gifted bee, `n  ignoring the mutation and your bee selection`n- Stop on Mythics stops on any mythic bee, `n  ignoring the mutation and your bee selection", "Auto-Jelly Help", "0x40040")
+			mouseUI.Stop()
+			SetTimer nm_AutoJellyHelp, -1
 		case "selectAll":
 			%mgui[ctrl].name% := nm_AutoJellySettings.Toggle(mgui[ctrl].name, %mgui[ctrl].name%)
 		case "Bomber", "Brave", "Bumble", "Cool", "Hasty", "Looker", "Rad", "Rascal", "Stubborn", "Bubble", "Bucko", "Commander", "Demo", "Exhausted", "Fire", "Frosty", "Honey", "Rage", "Riley":
@@ -239,53 +241,15 @@ WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
 	DrawGUI()
 }
 WM_MOUSEMOVE(wParam, lParam, msg, hwnd) {
-	global
-	local ctrl, hover_ctrl, tt := 0
-	MouseGetPos(,,,&ctrl,2)
-	if !ctrl || mgui["move"].hwnd = ctrl || mgui["close"].hwnd = ctrl
-		return
-	ReplaceSystemCursors("IDC_HAND")
-	hovercontrol := mgui[ctrl].name
-	hover_ctrl := mgui[ctrl].hwnd
-	DrawGUI()
-	while ctrl = hover_ctrl {
-		sleep(20),MouseGetPos(,,,&ctrl,2)
-		if A_Index > 120 && beeArr.includes(hovercontrol) && !tt
-			tt:=1,ToolTip(hovercontrol . " Bee")
-	}
-	hovercontrol := ""
-	ToolTip()
-	ReplaceSystemCursors()
+	if mouseUI.Owns(hwnd)
+		mouseUI.Move(hwnd)
+}
+nm_AutoJellyHover(name) {
+	global hovercontrol := name
 	DrawGUI()
 }
-ReplaceSystemCursors(IDC := "")
-{
-	static IMAGE_CURSOR := 2, SPI_SETCURSORS := 0x57
-		, SysCursors := Map(  "IDC_APPSTARTING", 32650
-							, "IDC_ARROW"      , 32512
-							, "IDC_CROSS"      , 32515
-							, "IDC_HAND"       , 32649
-							, "IDC_HELP"       , 32651
-							, "IDC_IBEAM"      , 32513
-							, "IDC_NO"         , 32648
-							, "IDC_SIZEALL"    , 32646
-							, "IDC_SIZENESW"   , 32643
-							, "IDC_SIZENWSE"   , 32642
-							, "IDC_SIZEWE"     , 32644
-							, "IDC_SIZENS"     , 32645
-							, "IDC_UPARROW"    , 32516
-							, "IDC_WAIT"       , 32514 )
-	if !IDC
-		DllCall("SystemParametersInfo", "UInt", SPI_SETCURSORS, "UInt", 0, "UInt", 0, "UInt", 0)
-	else
-	{
-		hCursor := DllCall("LoadCursor", "Ptr", 0, "UInt", SysCursors[IDC], "Ptr")
-		for k, v in SysCursors
-		{
-			hCopy := DllCall("CopyImage", "Ptr", hCursor, "UInt", IMAGE_CURSOR, "Int", 0, "Int", 0, "UInt", 0, "Ptr")
-			DllCall("SetSystemCursor", "Ptr", hCopy, "UInt", v)
-		}
-	}
+nm_AutoJellyHelp() {
+	Msgbox("This feature allows you to roll royal jellies until you obtain your specified bees and/or mutations!`n`nTo use:`n- Select the bees and mutations you want`n- Make sure your in-game Auto-Jelly settings are right`n- Put a neonberry on the bee you want to change (if trying `n  to obtain a mutated bee) `n- Use one royal jelly on the bee and click Yes`n- Click on Roll.`n`nTo stop: `n- Press the escape key`n`nAdditional options:`n- Stop on Gifteds stops on any gifted bee, `n  ignoring the mutation and your bee selection`n- Stop on Mythics stops on any mythic bee, `n  ignoring the mutation and your bee selection", "Auto-Jelly Help", "0x40040")
 }
 blc_start() {
 	global stopping
@@ -402,8 +366,9 @@ closeFunction(*) {
 		IniWrite(xpos, ".\settings\mutations.ini", "GUI", "xpos")
 		IniWrite(ypos, ".\settings\mutations.ini", "GUI", "ypos")
 	}
+	if IsSet(mouseUI)
+		mouseUI.Close()
 	if IsSet(mgui)
 		try mgui.Destroy()
 	try resources.Close()
-	finally ReplaceSystemCursors()
 }

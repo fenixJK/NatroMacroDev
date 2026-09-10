@@ -21,6 +21,93 @@ nm_ProbeBeeAssets() {
 		}
 	}
 }
+
+nm_ProbeBeeMouse() {
+	global mgui, mouseUI, hovercontrol
+	criticalBefore := A_IsCritical, foreign := Gui("-DPIScale", "Foreign mouse fixture"), closes := 0
+	foreignControl := foreign.AddText("w100 h40", "Foreign")
+	MouseGetPos &oldX, &oldY
+	OnClose(w, l, message, hwnd) {
+		if hwnd = mgui.Hwnd && (w & 0xfff0) = 0xF060 {
+			closes++
+			return 0
+		}
+	}
+	Place(control) {
+		control.GetPos(&x, &y, &width, &height)
+		WinGetClientPos &originX, &originY,,, "ahk_id " mgui.Hwnd
+		MouseMove originX + x + width//2, originY + y + height//2, 0
+	}
+	Check(value, message) {
+		if !value
+			throw Error(message)
+	}
+	Critical "Off"
+	try {
+		foreign.Show("x650 y30 w140 h70"), mgui.Move(30, 30)
+		WinActivate "ahk_id " mgui.Hwnd
+		WinWaitActive "ahk_id " mgui.Hwnd,, 2
+		Place(mgui["Bomber"])
+		WM_MOUSEMOVE(0, 0, 0x200, mgui.Hwnd)
+		Check(mouseUI.Hover = "Bomber" && hovercontrol = "Bomber", "Owned hover is drawn and message returns")
+		mouseUI.Since := DllCall("GetTickCount64", "UInt64") - 2401
+		mouseUI.Tick()
+		Check(mouseUI.Tip, "Bee tooltip appears after hover delay")
+		Check(mouseUI.Cursor(mgui.Hwnd, 1) = 1, "Owned client cursor is handled")
+		Check(!mouseUI.Cursor(foreign.Hwnd, 1) && !mouseUI.Cursor(mgui.Hwnd, 2), "Foreign and non-client cursors are left to Windows")
+		before := FileRead("settings\mutations.ini")
+		WM_LBUTTONDOWN(1, 0, 0x201, foreignControl.Hwnd)
+		Check(FileRead("settings\mutations.ini") = before, "Foreign message cannot toggle the bee under the pointer")
+		Place(mgui["move"]), mouseUI.Tick()
+		Check(!mouseUI.Hover && !mouseUI.Tip, "Moving onto title clears highlight and tooltip")
+		Place(mgui["Bomber"]), mouseUI.Move(mgui.Hwnd)
+		WinActivate "ahk_id " foreign.Hwnd
+		WinWaitActive "ahk_id " foreign.Hwnd,, 2
+		mouseUI.Tick()
+		WM_MOUSEMOVE(0, 0, 0x200, foreignControl.Hwnd)
+		Check(!mouseUI.Hover, "Focus loss and foreign messages clear hover without indexing foreign controls")
+		WinActivate "ahk_id " mgui.Hwnd
+		WinWaitActive "ahk_id " mgui.Hwnd,, 2
+		; Prevent the deferred action from running: the message handler must return
+		; before it starts OCR/game preflight or opens the help modal.
+		Critical "On"
+		Place(mgui["roll"]), WM_LBUTTONDOWN(1, 0, 0x201, mgui.Hwnd)
+		SetTimer blc_start, 0
+		Place(mgui["help"]), WM_LBUTTONDOWN(1, 0, 0x201, mgui.Hwnd)
+		SetTimer nm_AutoJellyHelp, 0
+		OnMessage(0x112, OnClose)
+		Place(mgui["close"]), mouseUI.BeginClose(mgui.Hwnd)
+		Check(mouseUI.Pressed && DllCall("GetCapture", "Ptr") = mgui.Hwnd, "Close press owns capture without waiting")
+		Place(mgui["move"]), mouseUI.EndClose(mgui.Hwnd)
+		Check(!mouseUI.Pressed && !DllCall("GetCapture", "Ptr"), "Release outside close cancels and releases capture")
+		Place(mgui["close"]), mouseUI.BeginClose(mgui.Hwnd)
+		mouseUI.CloseDeadline := 0, mouseUI.Tick()
+		Check(!mouseUI.Pressed && !DllCall("GetCapture", "Ptr"), "Abandoned close press expires")
+		mouseUI.BeginClose(mgui.Hwnd)
+		DllCall("SetCapture", "Ptr", foreign.Hwnd)
+		mouseUI.CaptureChanged(mgui.Hwnd), mouseUI.Release()
+		Check(!mouseUI.Pressed && DllCall("GetCapture", "Ptr") = foreign.Hwnd, "Capture transfer cancels close without releasing the new owner")
+		mouseUI.BeginClose(mgui.Hwnd)
+		Check(!mouseUI.Pressed && DllCall("GetCapture", "Ptr") = foreign.Hwnd, "Existing capture is never stolen")
+		DllCall("ReleaseCapture")
+		mouseUI.BeginClose(mgui.Hwnd), mouseUI.EndClose(mgui.Hwnd)
+		Critical "Off"
+		Sleep 100
+		Check(closes = 1, "Only release on close posts one command to this GUI")
+		mouseUI.Stop(), mouseUI.Stop()
+		Check(!mouseUI.Hover && !mouseUI.Pressed && !mouseUI.Tip, "Mouse teardown is idempotent")
+	} finally {
+		SetTimer blc_start, 0
+		SetTimer nm_AutoJellyHelp, 0
+		OnMessage(0x112, OnClose, 0)
+		mouseUI.Stop()
+		if DllCall("GetCapture", "Ptr") = foreign.Hwnd
+			DllCall("ReleaseCapture")
+		foreign.Destroy()
+		MouseMove oldX, oldY, 0
+		Critical criticalBefore
+	}
+}
 nm_ProbeBeePreflight() {
 	global
 	local saved := Map(), bee, dismissed := 0, index
