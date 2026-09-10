@@ -107,6 +107,11 @@ nm_HealthDetection(w := 0) {
 	hwnd := GetRobloxHWND()
 	if !ActivateRoblox(hwnd)
 		throw Error("Combat health observation requires the Roblox window")
+	return nm_ReadHealthWindow(hwnd, w)
+}
+
+; Explicit HWND boundary is also exercised against an owned Windows test GUI.
+nm_ReadHealthWindow(hwnd, w := 0) {
 	snapshot := nm_ClientSnapshot(hwnd)
 	if !snapshot || !nm_WindowOwnsFocus(hwnd)
 		throw Error("Combat health window is unavailable")

@@ -20,8 +20,10 @@ conservative behavior currently requires restarting after the problem is correct
 a recoverable combat action boundary remains future work.
 
 Automated fixtures exercise real GDI bitmaps: independent partial/full/zero-health
-bars, a two-pixel edge case, untouched caller-owned images, locked source/template
-errors, rebuilding cached resources, repeated scans and the 100-bar limit. Synthetic
+bars, a two-pixel edge case, untouched caller-owned images (including a locked
+source), locked-template search errors, rebuilding cached resources, repeated scans
+and the 100-bar limit. A separate Windows GUI fixture exercises actual full-client
+and right-half screen capture and rejection of a hidden client. Synthetic
 images do not establish that these colors uniquely identify current game enemies.
 
 Remaining gates:

@@ -26,8 +26,8 @@ TestHealthObservation() {
 		try AssertEqual(nm_HealthBarReader.Read(narrow)[1], 50, "Both edge pixels belong in the denominator")
 		finally Gdip_DisposeImage(narrow)
 		AssertHealthReadFails(0, "Missing capture is not an empty successful frame")
-		AssertEqual(Gdip_LockBits(bitmap, 0, 0, 120, 70, &stride, &scan, &locked), 0, "Lock source to exercise native read failure")
-		try AssertHealthReadFails(bitmap, "Locked capture must fail explicitly")
+		AssertEqual(Gdip_LockBits(bitmap, 0, 0, 120, 70, &stride, &scan, &locked), 0, "Lock caller-owned source")
+		try AssertEqual(nm_HealthBarReader.Read(bitmap).Length, 4, "Owned clone can be read without changing the locked source")
 		finally Gdip_UnlockBits(bitmap, &locked)
 		; Image-search failure after a successful clone must also propagate.
 		needle := nm_HealthBarReader.Needles[1]

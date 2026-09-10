@@ -6,6 +6,7 @@
 #Include "%A_ScriptDir%\..\lib\Roblox.ahk"
 #Include "%A_ScriptDir%\..\lib\nm_OpenMenu.ahk"
 #Include "%A_ScriptDir%\..\lib\nm_InventorySearch.ahk"
+#Include "%A_ScriptDir%\..\lib\HealthObservation.ahk"
 
 bitmaps := Map(), windowX := windowY := windowWidth := windowHeight := 0
 fixture := Gui("-DPIScale", "Natro geometry fixture")
@@ -19,6 +20,7 @@ try {
 	Require(!nm_SameClient(first, second) && second.width > first.width, "Real move/resize invalidates snapshot")
 	Require(ActivateRoblox(fixture.Hwnd), "Explicit HWND activation")
 	TestNativePointer(fixture)
+	TestNativeHealth()
 	fixture.Minimize()
 	Require(!nm_ClientSnapshot(fixture.Hwnd), "Minimized client is unusable")
 	Require(ActivateRoblox(fixture.Hwnd), "Explicit activation restores minimized target")
@@ -70,4 +72,33 @@ TestNativePointer(fixture) {
 	}
 	Require(!GetKeyState("LButton"), "Native interruption cleanup releases button")
 	FileAppend "PASS Windows pointer integration (" A_PtrSize * 8 "-bit)`n", "*"
+}
+
+TestNativeHealth() {
+	capturedGui := Gui("-DPIScale +AlwaysOnTop", "Natro health observation fixture")
+	token := Gdip_Startup()
+	try {
+		capturedGui.BackColor := "000000"
+		for spec in [[10, 25, "1FE744"], [35, 75, "6B131A"], [200, 20, "1FE744"], [220, 20, "6B131A"]]
+			capturedGui.AddText("x" spec[1] " y30 w" spec[2] " h8 Background" spec[3], "")
+		capturedGui.Show("x60 y60 w301 h120")
+		Require(ActivateRoblox(capturedGui.Hwnd), "Health fixture owns focus")
+		Sleep 150
+		DllCall("dwmapi\DwmFlush")
+		bars := nm_ReadHealthWindow(capturedGui.Hwnd)
+		Require(bars.Length = 2 && bars[1] = 25 && bars[2] = 50, "Actual client capture finds both painted health bars")
+		bars := nm_ReadHealthWindow(capturedGui.Hwnd, 1)
+		Require(bars.Length = 1 && bars[1] = 50, "Right-half capture excludes the left health bar")
+		capturedGui.Hide()
+		observationFailed := false
+		try nm_ReadHealthWindow(capturedGui.Hwnd)
+		catch Error
+			observationFailed := true
+		Require(observationFailed, "Hidden client fails explicitly instead of returning no bars")
+		FileAppend "PASS Windows health capture integration (" A_PtrSize * 8 "-bit)`n", "*"
+	} finally {
+		capturedGui.Destroy()
+		nm_HealthBarReader.Release()
+		Gdip_Shutdown(token)
+	}
 }
