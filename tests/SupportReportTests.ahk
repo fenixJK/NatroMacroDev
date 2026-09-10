@@ -1,4 +1,5 @@
 TestSupportReport() {
+	local file
 	; Use fake secrets, including regex metacharacters and unlabeled occurrences.
 	IniWrite "opaque+value.[abc]", "settings\nm_config.ini", "Status", "bottoken"
 	IniWrite "123456789012345678", "settings\nm_config.ini", "Status", "MainChannelID"
@@ -32,6 +33,8 @@ TestSupportReport() {
 	Assert(!InStr(report, "numbered") && InStr(report, "Recent issues: excluded"), "Default report excludes log contents")
 	Assert(InStr(nm_SupportReport.Build(true), "numbered 14"), "Explicit recent-issue request includes sanitized excerpt")
 	Assert(!InStr(report, A_WorkingDir), "Report does not reveal the installation path")
+	report := nm_SupportReport.Build(false, Map("offsetFailed", 1, "latestVersion", "2.0.0"))
+	Assert(InStr(report, "recent failed y-offset") && InStr(report, "newer version"), "Local report retains main-process offset and update observations")
 	; Exercise native preview behavior. Opening/closing must not touch the clipboard.
 	clipboard := ClipboardAll()
 	try {
@@ -59,5 +62,13 @@ TestSupportReport() {
 		Assert(nm_SendSupportReport("123456789012345678", true), "Remote diagnostic builds an owned queued text attachment")
 		AssertEqual(A_Clipboard, clipboard, "Remote diagnostics never use the clipboard")
 		Assert(fixture.queue.Items.Length = 1 && nm_DeliveryPayloadSize(fixture.queue.Items[1].data) > 200, "Encoded support report is handed to the delivery queue")
+		bytes := fixture.queue.Items[1].data
+		body := StrGet(NumGet(ComObjValue(bytes), 8 + A_PtrSize, "Ptr"), nm_DeliveryPayloadSize(bytes), "UTF-8")
+		Assert(RegExMatch(body, 's)name="payload_json"\r\nContent-Type: application/json\r\n\r\n(.*?)\r\n--', &match), "Remote attachment contains a JSON metadata part")
+		metadata := JSON.parse(match[1])
+		AssertEqual(metadata["message_reference"]["message_id"], "123456789012345678", "Reply ID is serialized as text")
+		Assert(metadata["allowed_mentions"]["parse"].Length = 0, "Support metadata disables incidental mentions")
+		Assert(InStr(body, 'filename="natro-support.txt"') && InStr(body, "numbered 14"), "Queued multipart contains the actual report")
+		Assert(!InStr(body, "opaque+value.[abc]") && !InStr(body, "OLD_SECRET"), "Encoded attachment contains no fixture secrets or discarded old data")
 	} finally discord.Outbox := 0
 }

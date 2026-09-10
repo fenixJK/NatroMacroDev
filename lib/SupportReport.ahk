@@ -1,7 +1,8 @@
 #Include "RobloxInstallation.ahk"
 
 class nm_SupportReport {
-	static Build(includeIssues := false) {
+	static Build(includeIssues := false, context := 0) {
+		local file
 		version := "Unavailable"
 		try {
 			file := FileOpen("submacros\natro_macro.ahk", "r", "UTF-8")
@@ -25,6 +26,14 @@ class nm_SupportReport {
 			report .= "Roblox installation needs a local setup check.`r`n"
 		if app = RobloxTypes.Bootstrapper
 			report .= "Custom bootstrapper detected; check its settings.`r`n"
+		if DllCall("GetSystemMetrics", "Int", 94) & 0x40 && DllCall("GetSystemMetrics", "Int", 95) >= 2
+			report .= "Touchscreen is enabled; check the macro's supported input setup.`r`n"
+		if context is Map {
+			if context.Get("offsetFailed", 0) = 1
+				report .= "The main macro reported a recent failed y-offset check.`r`n"
+			if RegExMatch(latest := context.Get("latestVersion", ""), "^\d+(\.\d+){1,3}$") && version != "Unavailable" && VerCompare(version, latest) < 0
+				report .= "A newer version was found by the main macro's existing update check.`r`n"
+		}
 		if InStr(EnvGet("SESSIONNAME"), "RDP") {
 			minimize := "Unknown"
 			try minimize := RegRead("HKLM\Software\Microsoft\Terminal Server Client", "RemoteDesktop_SuppressWhenMinimized")
@@ -35,6 +44,7 @@ class nm_SupportReport {
 		return this.Redact(report)
 	}
 	static Secrets() {
+		local file
 		values := []
 		for path in ["settings\nm_config.ini", "settings\BotAuth.ini"] {
 			try {
@@ -72,6 +82,7 @@ class nm_SupportReport {
 		return text
 	}
 	static RecentIssues(path := "settings\debug_log.txt") {
+		local file
 		try {
 			file := FileOpen(path, "r", "UTF-8")
 			try {
@@ -100,16 +111,17 @@ class nm_SupportReport {
 
 class nm_SupportPreview {
 	static Window := 0
-	static Open(*) {
+	static Open(context := 0) {
 		if this.Window {
 			this.Window.Show()
 			return
 		}
 		panel := Gui(, "Support report preview")
+		panel.ReportContext := context
 		panel.SetFont("s10", "Segoe UI")
 		panel.AddText("w700", "Known credentials and local identifiers are removed. Review the text before sharing. Nothing is sent automatically.")
 		panel.AddCheckbox("w700 vIssues", "Include redacted recent issues").OnEvent("Click", (*) => this.Refresh(panel))
-		panel.AddEdit("w700 r22 ReadOnly -Wrap vReport", nm_SupportReport.Build())
+		panel.AddEdit("w700 r22 ReadOnly -Wrap vReport", nm_SupportReport.Build(false, context))
 		panel.AddButton("w130", "Copy report").OnEvent("Click", (*) => this.Copy(panel))
 		panel.AddButton("x+12 w130", "Save as text").OnEvent("Click", (*) => this.Save(panel))
 		panel.AddButton("x+12 w130", "Close").OnEvent("Click", (*) => this.Close(panel))
@@ -119,12 +131,13 @@ class nm_SupportPreview {
 		this.Window := panel
 		panel.Show()
 	}
-	static Refresh(panel) => panel["Report"].Value := nm_SupportReport.Build(!!panel["Issues"].Value)
+	static Refresh(panel) => panel["Report"].Value := nm_SupportReport.Build(!!panel["Issues"].Value, panel.ReportContext)
 	static Copy(panel) {
 		A_Clipboard := panel["Report"].Value
 		panel["Result"].Text := "Copied the displayed report."
 	}
 	static Save(panel) {
+		local file
 		if !(path := FileSelect("S16", "natro-support.txt", "Save the displayed report", "Text (*.txt)"))
 			return
 		try {

@@ -10013,7 +10013,7 @@ nm_priorityListGui(*) {
 	return (PGUIPID := exec.ProcessID)
 }
 nm_copyDebugLog(*) {
-	nm_SupportPreview.Open()
+	nm_SupportPreview.Open(Map("offsetFailed", offsetfail ?? 0, "latestVersion", LatestVer ?? ""))
 }
 
 robloxFPSGui(*) {
