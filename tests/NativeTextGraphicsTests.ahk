@@ -11,12 +11,12 @@ TestNativeTextGraphics() {
 		for color in ["ff204060", "12345678", "00000000"] {
 			Gdip_GraphicsClear(graphics, 0xffffffff)
 			owned := Gdip_TextToGraphics(graphics, "Text 5", "x10 y10 s24 c" color, "Arial", 220, 80)
-			first := NativeTextPixels(bitmap)
+			colorPixels := NativeTextPixels(bitmap)
 			Gdip_GraphicsClear(graphics, 0xffffffff)
 			brush := Gdip_BrushCreateSolid(Integer("0x" color))
 			borrowed := Gdip_TextToGraphics(graphics, "Text 5", "x10 y10 s24", "Arial", 220, 80, 0, brush)
-			Require(owned = borrowed && NativeTextPixelsEqual(first, NativeTextPixels(bitmap)), "Explicit brush and ARGB colors render identically")
-			Require(NativeTextPixelsEqual(blank, first) = (color = "00000000"), "Visible colors draw, transparent black does not")
+			Require(owned = borrowed && NativeTextPixelsEqual(colorPixels, NativeTextPixels(bitmap)), "Explicit brush and ARGB colors render identically")
+			Require(NativeTextPixelsEqual(blank, colorPixels) = (color = "00000000"), "Visible colors draw, transparent black does not")
 			Require(Gdip_TextToGraphics(0, "Text", "", "Arial",,,, brush) = -2, "Missing graphics rejected without taking borrowed brush")
 			Require(Gdip_DeleteBrush(brush) = 0, "Caller still owns supplied brush"), brush := 0
 		}
