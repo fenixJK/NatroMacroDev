@@ -25,6 +25,16 @@ TestSupportReport() {
 	Assert(!InStr(issues, "OLD_SECRET") && !InStr(issues, "numbered 1`r"), "A bounded tail drops the partial first line and older matching issues")
 	Assert(InStr(issues, "numbered 14") && !InStr(issues, "opaque+value.[abc]"), "Newest useful issues survive redaction")
 	Assert(!InStr(issues, "ordinary status"), "Non-issue status chatter is excluded")
+	FileMove "settings\nm_config.ini", "settings\support-config-backup.ini"
+	try {
+		Assert(InStr(nm_SupportReport.RecentIssues("support-test-log.txt"), "redaction configuration"), "Missing main config excludes logs instead of exporting with incomplete redaction")
+		DirCreate "settings\nm_config.ini"
+		Assert(InStr(nm_SupportReport.RecentIssues("support-test-log.txt"), "redaction configuration"), "Unreadable main config excludes logs")
+	} finally {
+		if DirExist("settings\nm_config.ini")
+			DirDelete "settings\nm_config.ini"
+		FileMove "settings\support-config-backup.ini", "settings\nm_config.ini"
+	}
 	DirCreate "submacros"
 	FileAppend 'VersionID := "1.2.3"', "submacros\natro_macro.ahk", "UTF-8"
 	FileCopy "support-test-log.txt", "settings\debug_log.txt", 1

@@ -103,7 +103,49 @@ use loopback HTTP or reject the URL before any network request; live Discord
 attachment receipt remains unverified. Local execution policy or unavailable
 PowerShell can reject the worker and produce a download failure.
 
-A local preview of a redacted support export remains planned. Existing logs and
-debug output are explicitly gated, but are not yet a verified redacted support
-bundle. Command serialization, cancellation, legacy hand-built JSON and durable
-delivery remain part of the broader reporting recovery work.
+## Support reports
+
+The debug hotkey, tray entry **Preview Support Report**, and **Debug Options >
+Support Report** open a local preview. Opening it leaves the clipboard unchanged.
+**Copy report** copies the displayed text; **Save as text** saves that text to a
+locally chosen file. Nothing is sent automatically. Recent issues start excluded
+and require an explicit checkbox selection.
+
+The shared builder includes runtime versions, CPU/RAM, screen dimensions/scaling,
+registry-based Roblox installation detection, and basic setup observations.
+Local previews also retain the main macro's available recent offset failure and
+known newer-version observations. These are observations, not proof of a working
+game setup. Registry inspection is read-only and hardware metadata no longer
+requires a WMI query. Full installation paths and configuration dumps are omitted.
+
+With the Diagnostics permission enabled, remote `debug`/`debuglog` queue the
+default report as `natro-support.txt`. Remote `log` requests the same report with a
+redacted recent-issue excerpt. It no longer uploads the raw debug log. Reports
+are serialized and encoded in memory into an owned queue payload, with incidental
+mentions disabled and the original reply ID retained. The old main-process
+clipboard request/response handler is removed; remote reports neither read nor
+write the clipboard. These explicit remote commands do not open a local preview.
+
+Redaction replaces configured token/webhook/server/authentication and Discord ID
+values, removes entire credential-bearing lines, strips URLs, long numeric IDs,
+and drive/UNC paths, and masks the current user's profile/name and computer name.
+Optional logs use a bounded tail, discard a partial first line, retain at most ten
+matching issue lines, and omit oversized lines instead of truncating their
+contents. Missing, unreadable or oversized redaction configuration excludes the
+log excerpt. Missing log files produce an unavailable message instead of aborting
+the report.
+
+This is conservative filtering, not a guarantee that arbitrary free text contains
+no private information. Renamed/old/encoded secrets absent from configuration,
+unrecognized identifiers, and locally installed extensions still require review.
+Filtering can also remove useful context; local preview provides the opportunity
+to check what remains. FileRead remains a broader explicitly granted capability.
+Raw local logs are not rewritten by this change. A support report is not yet a
+comprehensive replay bundle with recovery journals, screenshots or route traces.
+
+Windows regression coverage exercises the redactor, configuration/log failure
+paths, bounded recent issues, native opt-in preview and exact clipboard copying,
+and the actual encoded remote attachment. Actual Save dialog interaction, visual
+layout at multiple DPI settings, live Discord receipt, and expanded diagnostic
+coverage remain open. Command cancellation, other legacy hand-built JSON and
+durable delivery remain part of the broader reporting recovery work.

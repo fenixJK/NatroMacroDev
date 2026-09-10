@@ -46,10 +46,20 @@ class nm_SupportReport {
 	static Secrets() {
 		local file
 		values := []
+		values.Complete := true
 		for path in ["settings\nm_config.ini", "settings\BotAuth.ini"] {
+			if !FileExist(path) {
+				if path = "settings\nm_config.ini"
+					values.Complete := false
+				continue
+			}
 			try {
 				file := FileOpen(path, "r", "UTF-8")
-				try data := file.Read(1048576)
+				try {
+					if file.Length > 1048576
+						throw Error("Redaction configuration exceeds read limit")
+					data := file.Read(1048576)
+				}
 				finally file.Close()
 				Loop Parse data, "`n", "`r" {
 					if RegExMatch(A_LoopField, "^\s*([^;\[=]+)=(.*)$", &match) && RegExMatch(match[1], "i)(token|webhook|server|password|secret|auth|discord.*id|channel.*id)") {
@@ -58,7 +68,8 @@ class nm_SupportReport {
 						values.Push(value)
 					}
 				}
-			}
+			} catch
+				values.Complete := false
 		}
 		return values
 	}
@@ -83,6 +94,9 @@ class nm_SupportReport {
 	}
 	static RecentIssues(path := "settings\debug_log.txt") {
 		local file
+		secrets := this.Secrets()
+		if !secrets.Complete
+			return "Recent issues excluded because redaction configuration could not be read completely.`r`n"
 		try {
 			file := FileOpen(path, "r", "UTF-8")
 			try {
@@ -95,7 +109,7 @@ class nm_SupportReport {
 		} catch
 			return "Recent log is unavailable.`r`n"
 		lines := []
-		Loop Parse this.Redact(data), "`n", "`r" {
+		Loop Parse this.Redact(data, secrets), "`n", "`r" {
 			if RegExMatch(A_LoopField, "i)(error|warning|failed|removed)") {
 				lines.Push(StrLen(A_LoopField) <= 1024 ? A_LoopField : "[oversized log line omitted]")
 				if lines.Length > 10
