@@ -468,3 +468,46 @@ health/time estimation and measured long-run resource/performance checks open.
 No live game verification or performance gain is claimed. The full production plan
 remains active, including the other feature, state, reporting, optimization, proposed
 feature and release gates already recorded above.
+
+
+## Boss health/time estimation checkpoint
+
+Code checkpoint: `88600d65d4dc461195dc797b0b15a04ba017bca2`.
+[Windows run 34421671246](https://github.com/fenixJK/NatroMacroDev/actions/runs/34421671246)
+passed **37 regression groups on each AHK architecture**, native geometry/pointer/
+health capture, six script validations, four emitted worker validations per
+architecture, and **35 updater scenarios on each PowerShell version**. No AHK
+warnings occurred. The checkout action's separate Node deprecation notice remains.
+
+Snail and Commando now use independent per-fight observation sessions. Five captures
+are separated by 100 milliseconds; at least three must agree within one percentage
+point of the median, and multiple damaged bars make a frame ambiguous. A new fight
+first establishes a fresh observed baseline rather than treating persisted or manual
+health as a measured starting point. Damage estimates require a positive monotonic
+interval and at least 2.5 percentage points of decrease. Unknown, inconsistent or
+small changes do not advance the baseline. Rising health establishes a new baseline.
+
+A five-second limit rejects interrupted/stale capture series. Failed persistence
+leaves the baseline and published health unchanged. Successful publication updates
+the INI, memory and GUI, and the report function returns explicit acceptance.
+Fight limits and report scheduling use monotonic milliseconds; reports consistently
+format seconds, minutes and hours. The real elapsed damage interval includes pause
+time because game health may continue changing; macro runtime accounting is separate.
+
+Commando startup now shares the existing maximum-health fallback used for levels
+absent from the bundled table, avoiding direct lookup failure for selectable levels
+20–25. Editing its level also updates the shared in-memory level. The table/fallback
+values are preserved, not certified against current game data.
+
+New tests exercise both actual reporting consumers with controlled frame series,
+independent/new/rebased sessions, ambiguous and inconsistent observations, elapsed
+intervals, rate/remaining-time calculations, stale commits, duration carries,
+settings/UI value publication, unsupported families, overlapping reports, long
+interruptions, native INI write failure and capture exceptions. GUI publication uses
+control fixtures; this does not replace live settings-window interaction.
+
+[Combat verification](combat-verification.md) retains current game identity/health
+evidence, live damage and pause scenarios, kill confirmation, recoverable action
+boundaries and long-run resource/performance measurements. Other feature, reporting,
+state, optimization, proposed-feature and release gates remain open. The full
+production objective remains active.

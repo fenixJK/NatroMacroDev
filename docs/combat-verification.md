@@ -60,6 +60,15 @@ bundled table (20–25). Previously startup indexed the partial table directly a
 could fail on those selectable levels. This preserves an existing estimate; it does
 not verify the table or fallback against current game values.
 
+Estimator code `88600d65d4dc461195dc797b0b15a04ba017bca2` passed
+[Windows run 34421671246](https://github.com/fenixJK/NatroMacroDev/actions/runs/34421671246):
+37 regression groups on each architecture, native geometry/pointer/health capture,
+six scripts and four emitted worker validations per architecture, plus 35 updater
+scenarios per PowerShell version. No AHK warnings occurred. Reporting tests call the
+actual production helper with injected frames/time and test control objects; they
+cover state/display publication, actual INI failure, capture exceptions and long
+interruptions. Real settings UI interaction remains a live verification gate.
+
 Remaining gates:
 
 
