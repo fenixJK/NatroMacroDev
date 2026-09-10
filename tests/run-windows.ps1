@@ -82,6 +82,12 @@ try {
         if ((Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant() -ne $runtimeHashes[$bits]) {
             throw "Bundled AHK $bits-bit runtime differs from the reviewed 2.0.12 binary."
         }
+        # /Validate exists in 2.0.12. It does not run auto-execute code or close an
+        # existing instance. Runtime behavior is covered separately by RunTests.
+        foreach ($script in Get-ChildItem (Join-Path $repoRoot 'submacros') -Filter '*.ahk') {
+            Write-Host "Validate $($script.Name) ($bits-bit)"
+            Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', '/Validate', $script.FullName)
+        }
         # The suite includes a real child-worker watchdog (45 seconds) alongside
         # the other regressions. Individual script validation stays at 60 seconds.
         Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'RunTests.ahk'), $fixturePort, "$readyFile.$bits") -TimeoutMs 90000
@@ -95,12 +101,7 @@ try {
             Write-Host "Validate emitted $($worker.Name) via root stdin ($bits-bit)"
             Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', '/script', '/Validate', '*') ([IO.File]::ReadAllText($worker.FullName))
         }
-        # /Validate exists in 2.0.12. It does not run auto-execute code or close an
-        # existing instance. Runtime behavior is covered separately by RunTests.
-        foreach ($script in Get-ChildItem (Join-Path $repoRoot 'submacros') -Filter '*.ahk') {
-            Write-Host "Validate $($script.Name) ($bits-bit)"
-            Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', '/Validate', $script.FullName)
-        }
+
     }
 
 } finally {

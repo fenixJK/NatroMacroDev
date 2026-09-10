@@ -8,6 +8,7 @@
 
 ProcessTests() {
 	root := A_ScriptDir "\..", directory := A_Temp "\Natro ROBLOXCORPORATION Ω-" DllCall("GetCurrentProcessId")
+	SetWorkingDir root
 	DirCreate directory
 	jobs := [], observed := 0
 	try {
@@ -45,7 +46,7 @@ ProcessTests() {
 			try job.Wait()
 			catch nm_ProcessJobError
 				failedAsExpected := true
-			RequireProcess(IsSet(failedAsExpected), "Production worker rejects invalid targets without launching")
+			RequireProcess(IsSet(failedAsExpected) && NumGet(job.View, 8, "Int") = 2 && NumGet(job.View, 12, "Int") > 0, "Production worker rejects invalid targets without launching")
 		} finally job.Close()
 
 		job := nm_OwnedProcessJob(Map("mode", "idle"), A_ScriptDir "\ProcessFixture.ahk")

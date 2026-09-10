@@ -126,7 +126,8 @@ class nm_ProcessChannel {
 	}
 	Complete(value := 0, ok := true) {
 		NumPut("Int", value, this.View, 12)
-		DllCall("InterlockedExchange", "Ptr", this.View + 8, "Int", ok ? 1 : 2, "Int")
+		; Parent consumes this result only after the process handle is signaled.
+		NumPut("Int", ok ? 1 : 2, this.View, 8)
 	}
 	Close() {
 		if this.View
