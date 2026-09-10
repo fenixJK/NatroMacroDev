@@ -8,6 +8,9 @@ TestNativeGuiGraphics() {
 			dib := surface.Bitmap, dc := surface.DC
 			Gdip_GraphicsClear(surface.Graphics, 0xFF445566)
 			surface.Close(), surface.Close()
+			DllCall("GdiFlush")
+			if DllCall("GetObjectType", "Ptr", dib) || DllCall("GetObjectType", "Ptr", dc)
+				FileAppend "Surface release types: bitmap=" DllCall("GetObjectType", "Ptr", dib) " dc=" DllCall("GetObjectType", "Ptr", dc) " handles=" dib "," dc "`n", "*"
 			Require(!DllCall("GetObjectType", "Ptr", dib) && !DllCall("GetObjectType", "Ptr", dc), "Closed surface releases its actual native objects")
 		}
 		after := DllCall("GetGuiResources", "Ptr", -1, "UInt", 0, "UInt")
@@ -45,6 +48,7 @@ TestNativeGeneratedGuis() {
 				. ' if after > before + 2`n throw Error("GDI objects grew during GUI redraw")`n'
 				. ' dib := resources.Surface.Bitmap, dc := resources.Surface.DC`n'
 				. close '()`n' close '()`n'
+				. ' DllCall("GdiFlush")`n'
 				. ' if resources.Token || resources.Surface || resources.Bitmaps.Count || DllCall("GetObjectType", "Ptr", dib) || DllCall("GetObjectType", "Ptr", dc)`n throw Error("GUI cleanup left owned graphics resources")`n'
 				. ' FileAppend "PASS ' kind ' redraw and close" (config.Has("webhook") ? "|" config["webhook"] : ""), "*", "UTF-8-RAW"`n'
 				. ' } catch as err {`n FileAppend "FAIL GUI probe: " err.Message, "*", "UTF-8-RAW"`n ExitApp 1`n }`n ExitApp 0`n}`n'
