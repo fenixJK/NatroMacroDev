@@ -9,6 +9,7 @@
 #Include "%A_ScriptDir%\..\lib\HealthObservation.ahk"
 #Include "%A_ScriptDir%\..\lib\ImageObservation.ahk"
 #Include "%A_ScriptDir%\..\lib\RemoteCapabilities.ahk"
+#Include "%A_ScriptDir%\..\lib\PlanterDialog.ahk"
 
 bitmaps := Map(), windowX := windowY := windowWidth := windowHeight := 0
 fixture := Gui("-DPIScale", "Natro geometry fixture")
@@ -21,6 +22,7 @@ try {
 	second := nm_ClientSnapshot(fixture.Hwnd)
 	Require(!nm_SameClient(first, second) && second.width > first.width, "Real move/resize invalidates snapshot")
 	Require(ActivateRoblox(fixture.Hwnd), "Explicit HWND activation")
+	TestNativePlanterInput()
 	TestNativePointer(fixture)
 	TestNativeHealth()
 	TestNativeRemotePermissions(fixture)
@@ -184,5 +186,34 @@ TestNativeSharedImage(capturedGui) {
 		SetWorkingDir originalDirectory
 		Gdip_DeleteGraphics(graphics), Gdip_DisposeImage(needle)
 		DirDelete fixtureDirectory, true
+	}
+}
+
+TestNativePlanterInput() {
+	panel := Gui("-DPIScale", "Planter input fixture"), other := Gui("-DPIScale", "Planter focus fixture"), clicks := 0
+	try {
+		button := panel.AddButton("x20 y20 w100 h30", "Fixture")
+		button.OnEvent("Click", (*) => clicks++)
+		panel.Show("w200 h100"), other.Show("NA x500 y500 w200 h100")
+		ActivateRoblox(panel.Hwnd)
+		surface := nm_PlanterDialogSurface("F13", panel.Hwnd)
+		frame := {valid: true, snapshot: nm_ClientSnapshot(panel.Hwnd), tick: surface.Clock(), yes: {x: 60, y: 35}}
+		Require(surface.Click(frame, "yes"), "Native current-frame planter click")
+		Sleep 50
+		Require(clicks = 1, "Native button received one click")
+		frame.tick := surface.Clock() - 500
+		Require(!surface.Click(frame, "yes") && clicks = 1, "Stale planter observation cannot click")
+		frame.tick := surface.Clock()
+		Require(surface.Press(frame) && !GetKeyState("F13"), "Native interaction releases its key")
+		frame.tick := surface.Clock()
+		SwitchFocus() => ActivateRoblox(other.Hwnd)
+		SetTimer SwitchFocus, -25
+		Require(!surface.Press(frame), "Focus change during held input is unconfirmed")
+		Require(!GetKeyState("F13") && nm_PlanterDialogSurface.HeldKey = "", "Focus loss releases held input")
+		Require(!surface.Click(frame, "yes") && clicks = 1, "Lost-focus planter observation cannot click")
+		FileAppend "PASS Windows planter input lifecycle (" A_PtrSize * 8 "-bit)`n", "*"
+	} finally {
+		nm_PlanterDialogSurface.Release()
+		panel.Destroy(), other.Destroy()
 	}
 }

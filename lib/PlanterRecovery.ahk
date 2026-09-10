@@ -38,6 +38,8 @@ class nm_PlanterRecovery {
 				this.Clear(key)
 				return result
 			}
+			if result = 3
+				break ; input may already have reached the game; do not repeat it
 		}
 		this.Defer(key, identity, nowUnix())
 		nm_setStatus("Unconfirmed", name " in " field ". Record retained; retry in 5 minutes. Use Planter Timers to reconcile if needed.")

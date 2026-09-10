@@ -40,6 +40,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "GatherProfiles.ahk"
 #Include "GatherProfileControls.ahk"
 #Include "PlanterRecovery.ahk"
+#Include "PlanterDialog.ahk"
 #Include "PlanterObservation.ahk"
 #Include "BlenderAccounting.ahk"
 #Include "TimeTracking.ahk"
@@ -19789,65 +19790,18 @@ ba_harvestPlanter(planterNum){
 			return 0
 	}
 	else {
-		SendInput "{" SC_E " down}"
-		Sleep 100
-		SendInput "{" SC_E " up}"
-
-		hwnd := GetRobloxHWND()
-		offsetY := GetYOffset(hwnd)
-		Loop 50
-		{
-			GetRobloxClientPos(hwnd)
-			pBMScreen := Gdip_BitmapFromScreen(windowX+windowWidth//2-200 "|" windowY+offsetY+36 "|200|120")
-			if (Gdip_ImageSearch(pBMScreen, bitmaps["e_button"], , , , , , 2, , 6) = 0) {
-				Gdip_DisposeImage(pBMScreen)
-				break
-			}
-			Gdip_DisposeImage(pBMScreen)
-
-			Sleep 100
-
-			if (A_Index = 50)
-				return 0
+		interaction := nm_PlanterDialog.Run(nm_PlanterDialogSurface(SC_E), HarvestFullGrown && !PlanterHarvestNow%planterNum%)
+		if interaction = "unconfirmed"
+			return 3 ; do not repeat input or clear records after uncertainty
+		if interaction = "declined" {
+			nm_PlanterTimeUpdate(fieldName)
+			return 2
 		}
+		; Legacy continuation for accepted/no-dialog interactions. These are not
+		; positive harvest receipts; post-action confirmation remains required.
 
-		Sleep 50 ; wait for game to update frame
-		GetRobloxClientPos(hwnd)
-		if ((HarvestFullGrown = 1) && !PlanterHarvestNow%planterNum%) {
-			loop 3 {
-				pBMScreen := Gdip_BitmapFromScreen(windowX+windowWidth//2-250 "|" windowY+windowHeight//2-52 "|500|150")
-				if (Gdip_ImageSearch(pBMScreen, bitmaps["no"], &pos, , , , , 2, , 3) = 1) {
-					MouseMove windowX+windowWidth//2-250+SubStr(pos, 1, InStr(pos, ",")-1), windowY+windowHeight//2-52+SubStr(pos, InStr(pos, ",")+1)
-					Sleep 150
-					Click
-					sleep 100
-					MouseMove windowX+350, windowY+offsetY+100
-					Gdip_DisposeImage(pBMScreen)
-					nm_PlanterTimeUpdate(FieldName)
-					return 1
-				}
-				Gdip_DisposeImage(pBMScreen)
-			}
-		}
-		else {
-			loop 3 {
-				pBMScreen := Gdip_BitmapFromScreen(windowX+windowWidth//2-250 "|" windowY+windowHeight//2-52 "|500|150")
-				if (Gdip_ImageSearch(pBMScreen, bitmaps["yes"], &pos, , , , , 2, , 2) = 1) {
-					MouseMove windowX+windowWidth//2-250+SubStr(pos, 1, InStr(pos, ",")-1), windowY+windowHeight//2-52+SubStr(pos, InStr(pos, ",")+1)
-					Sleep 150
-					Click
-					sleep 100
-					MouseMove windowX+350, windowY+offsetY+100
-					Gdip_DisposeImage(pBMScreen)
-					If PlanterHarvestNow%planterNum%
-						IniWrite 0, "settings\nm_config.ini", "Planters", "PlanterHarvestNow" planterNum
-					break
-				}
-				Gdip_DisposeImage(pBMScreen)
-				Sleep 50 ; delay in case of lag
-			}
-		}
-
+		PlanterHarvestNow%planterNum% := 0
+		IniWrite 0, "settings\nm_config.ini", "Planters", "PlanterHarvestNow" planterNum
 
 		;reset values
 		PlanterName%planterNum% := "None"
@@ -20432,65 +20386,14 @@ mp_HarvestPlanter(PlanterIndex) {
 		return 1
 	}
 	else {
-		sendinput "{" SC_E " down}"
-		Sleep 100
-		sendinput "{" SC_E " up}"
-
-		hwnd := GetRobloxHWND()
-		offsetY := GetYOffset(hwnd)
-		Loop 50
-		{
-			GetRobloxClientPos(hwnd)
-			pBMScreen := Gdip_BitmapFromScreen(windowX+windowWidth//2-200 "|" windowY+offsetY+36 "|200|120")
-			if (Gdip_ImageSearch(pBMScreen, bitmaps["e_button"], , , , , , 2, , 6) = 0) {
-				Gdip_DisposeImage(pBMScreen)
-				break
-			}
-			Gdip_DisposeImage(pBMScreen)
-
-			Sleep 100
-
-			if (A_Index = 50)
-				return 0
+		Local interaction := nm_PlanterDialog.Run(nm_PlanterDialogSurface(SC_E), PlanterHarvestFull%PlanterIndex% == "Full" && !PlanterHarvestNow%PlanterIndex%)
+		if interaction = "unconfirmed"
+			return 3
+		if interaction = "declined" {
+			nm_PlanterTimeUpdate(MFieldName)
+			return 2
 		}
-
-		Sleep 50 ; wait for game to update frame
-		GetRobloxClientPos(hwnd)
-		if ((PlanterHarvestFull%PlanterIndex% == "Full") && !PlanterHarvestNow%PlanterIndex%) {
-			loop 3 {
-				pBMScreen := Gdip_BitmapFromScreen(windowX+windowWidth//2-250 "|" windowY+windowHeight//2-52 "|500|150")
-				if (Gdip_ImageSearch(pBMScreen, bitmaps["no"], &pos, , , , , 2, , 3) = 1) {
-					MouseMove windowX+windowWidth//2-250+SubStr(pos, 1, InStr(pos, ",")-1), windowY+windowHeight//2-52+SubStr(pos, InStr(pos, ",")+1)
-					Sleep 150
-					Click
-					sleep 100
-					MouseMove windowX+350, windowY+offsetY+100
-					If PlanterHarvestNow%PlanterIndex%
-						IniWrite 0, "settings\nm_config.ini", "Planters", "PlanterHarvestNow" PlanterIndex
-					Gdip_DisposeImage(pBMScreen)
-					nm_PlanterTimeUpdate(MFieldName)
-					return 2
-				}
-				Gdip_DisposeImage(pBMScreen)
-				Sleep 50 ; delay in case of lag
-			}
-		}
-		else {
-			loop 3 {
-				pBMScreen := Gdip_BitmapFromScreen(windowX+windowWidth//2-250 "|" windowY+windowHeight//2-52 "|500|150")
-				if (Gdip_ImageSearch(pBMScreen, bitmaps["yes"], &pos, , , , , 2, , 2) = 1) {
-					MouseMove windowX+windowWidth//2-250+SubStr(pos, 1, InStr(pos, ",")-1), windowY+windowHeight//2-52+SubStr(pos, InStr(pos, ",")+1)
-					Sleep 150
-					Click
-					sleep 100
-					Gdip_DisposeImage(pBMScreen)
-					MouseMove windowX+350, windowY+offsetY+100
-					break
-				}
-				Gdip_DisposeImage(pBMScreen)
-				Sleep 50 ; delay in case of lag
-			}
-		}
+		; Legacy continuation only; accepted/no-dialog is not a harvest receipt.
 
 		PlanterHarvestNow%PlanterIndex% := 0
 		IniWrite PlanterHarvestNow%PlanterIndex%, "settings\nm_config.ini", "Planters", "PlanterHarvestNow" PlanterIndex
