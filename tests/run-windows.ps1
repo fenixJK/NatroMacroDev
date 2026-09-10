@@ -100,7 +100,7 @@ try {
         $workerOutput = Join-Path $workerDirectory $bits
         Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'EmitWorkers.ahk'), $workerOutput)
         $workers = @(Get-ChildItem $workerOutput -Filter '*.ahk')
-        if ($workers.Count -ne 4) { throw 'Expected four generated production workers' }
+        if ($workers.Count -ne 7) { throw 'Expected seven generated production workers' }
         foreach ($worker in $workers) {
             Write-Host "Validate emitted $($worker.Name) via root stdin ($bits-bit)"
             Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', '/script', '/Validate', '*') ([IO.File]::ReadAllText($worker.FullName))
