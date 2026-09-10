@@ -16,7 +16,7 @@ class nm_AttachmentDownloads {
 		if !DllCall("CreateDirectoryW", "Str", directory, "Ptr", 0)
 			throw Error("Could not create the attachment receiving directory")
 		try {
-			worker := ComObject("WScript.Shell").Exec('"' A_WinDir '\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' A_WorkingDir '\submacros\attachment-download.ps1"')
+			worker := ComObject("WScript.Shell").Exec('"' A_WinDir '\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "' A_WorkingDir '\submacros\attachment-download.ps1"')
 			this.Active := {worker: worker, directory: directory, id: messageId, tick: DllCall("GetTickCount64", "UInt64"), stopping: false}
 			; ASCII JSON survives the Windows PowerShell 5.1 pipe code page, including
 			; paths containing non-ASCII characters. No URL is put on the command line.

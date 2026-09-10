@@ -13,7 +13,7 @@ TestAttachmentWorker() {
 	try {
 		nm_AttachmentDownloads.Pump(notify)
 		AssertEqual(replies.Length, 0, "In-flight download does not block or report premature completion")
-		AssertThrows(() => nm_AttachmentDownloads.Start("https://cdn.discordapp.com/a", "43"), "Second download is rejected while the worker owns the inbox")
+		AssertDeliveryError(() => nm_AttachmentDownloads.Start("https://cdn.discordapp.com/a", "43"), "Second download is rejected while the worker owns the inbox")
 		worker.Status := 1
 		nm_AttachmentDownloads.Pump(notify), nm_AttachmentDownloads.Pump(notify)
 		Assert(replies.Length = 1 && replies[1][2] && replies[1][3] = "42", "Completed worker reports success exactly once to the original command")

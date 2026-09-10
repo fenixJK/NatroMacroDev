@@ -46,7 +46,9 @@ function Receive-NatroAttachment {
         $handler.UseCookies = $false
         $handler.UseDefaultCredentials = $false
         $client = [Net.Http.HttpClient]::new($handler)
-        $client.Timeout = [TimeSpan]::FromMilliseconds($TimeoutMs)
+        # One monotonic deadline covers headers and streamed body. HttpClient's
+        # own timeout covers only headers with ResponseHeadersRead.
+        $client.Timeout = [Threading.Timeout]::InfiniteTimeSpan
         $clock = [Diagnostics.Stopwatch]::StartNew()
         $reason = 'network'
         $task = $client.GetAsync($uri, [Net.Http.HttpCompletionOption]::ResponseHeadersRead)
