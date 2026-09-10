@@ -21217,9 +21217,13 @@ nm_setGlobalInt(wParam, lParam, *)
 
 	local var := arr[wParam]
 	if RegExMatch(var, "^Field(?:PatternReps|PatternShift|PatternInvertFB|PatternInvertLR|UntilMins|UntilPack|SprinklerDist|RotateTimes|DriftCheck)[1-3]$")
+	{
 		try %var% := IniRead("settings\nm_config.ini", "Gather", var)
+	}
 	else
+	{
 		try %var% := lParam
+	}
 	nm_UpdateGUIVar(var)
 	return 0
 }
