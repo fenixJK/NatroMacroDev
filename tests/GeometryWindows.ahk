@@ -18,6 +18,8 @@
 #Include "%A_ScriptDir%\NativeGuiGraphicsTests.ahk"
 #Include "%A_ScriptDir%\..\lib\AutoJellySafety.ahk"
 #Include "%A_ScriptDir%\NativeAutoJellyTests.ahk"
+#Include "%A_ScriptDir%\..\lib\AutoJellyOcr.ahk"
+#Include "%A_ScriptDir%\NativeAutoJellyOcrTests.ahk"
 
 bitmaps := Map(), windowX := windowY := windowWidth := windowHeight := 0
 fixture := Gui("-DPIScale", "Natro geometry fixture")
@@ -38,6 +40,7 @@ try {
 	TestNativeStartupDialogs(fixture)
 	TestNativeGuiGraphics()
 	TestNativeAutoJellySafety()
+	TestNativeAutoJellyOcr()
 	Require(ActivateRoblox(fixture.Hwnd), "Restore fixture focus after startup settings dialogs")
 	fixture.Minimize()
 	Require(!nm_ClientSnapshot(fixture.Hwnd), "Minimized client is unusable")
