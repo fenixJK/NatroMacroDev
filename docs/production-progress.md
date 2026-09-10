@@ -1161,3 +1161,42 @@ Durable receipts/outbox recovery, cross-helper rate coordination, remaining comm
 delivery migration, live capture/rendering and measured resource/performance effects
 remain open. F23 and the full production plan remain active. No live verification,
 merge, deployment or production release is claimed.
+
+## Upload source preservation checkpoint
+
+Code checkpoint: `559efb185efd5fdf82d23676bceb58a8ccaf665f`.
+[Windows run 34433794345](https://github.com/fenixJK/NatroMacroDev/actions/runs/34433794345)
+passed **53 regression groups on each AHK architecture**, the existing native
+Windows integration suites, seven production-script and four emitted-worker
+validations per architecture, **43 attachment checks** and **35 updater scenarios**
+on each PowerShell version. No AHK warnings occurred. The checkout Node runtime
+deprecation notice remains. The first run exposed test-only AHK syntax errors;
+this checkpoint corrects those and passed the full suite.
+
+File uploads no longer delete caller-owned files just because they are under
+`A_Temp`. Successful sends, oversized-file rejection, encoding failures and
+delivery failures preserve the source. Generated folder ZIPs have exclusively
+created GUID directories, and cleanup removes only those owned directories. The
+old predictable ZIP path is never overwritten or adopted for cleanup.
+
+Folder paths now travel as ASCII JSON on stdin to a fixed encoded PowerShell
+script. LiteralPath handles Unicode and shell metacharacters as data. Archive
+creation has a cooperative 45-second deadline and sampled output-size checks;
+the sender also checks final size. Cleanup stops an active worker before deleting
+its files and retains them if worker termination cannot be confirmed. Archives
+include the selected folder's root entry. Remote folder uploads remain disabled
+under the existing single-file permission policy.
+
+Tests run real PowerShell archive creation and multipart encoding with stubbed
+HTTP delivery. They check source retention, size rejection, failure cleanup,
+pre-existing ZIP preservation, literal Unicode/metacharacter paths and the ZIP
+signature. Both AHK architectures use the system Windows PowerShell executable.
+No Discord messages or game actions are sent.
+
+[Reporting verification](reporting-verification.md) records limits. Upload delivery
+and archive preparation remain synchronous; a hard parent crash can orphan the
+WScript archive worker or its temporary files. Sampled checks are not hard time or
+byte bounds, and archive contents are not an atomic filesystem snapshot. Kernel
+worker ownership, command delivery migration, shared rate limits, durable outbox
+recovery and the rest of the production plan remain active. No live verification,
+merge, deployment or production release is claimed.

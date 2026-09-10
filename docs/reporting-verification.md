@@ -187,6 +187,36 @@ make timing cooperative, and other synchronous commands can still delay work.
 Cross-helper rate coordination, durable receipts/recovery, live Discord behavior,
 game capture accuracy and measured resource/performance effects remain open.
 
+## Upload source ownership
+
+`SendFile` preserves caller-owned source files on success, rejection and preparation
+or delivery failure, including files under the Windows temp directory. Location
+alone no longer marks a source as disposable. Folder uploads create an exclusively
+owned GUID directory and remove only that directory after use. They cannot replace
+or delete an unrelated ZIP at the old predictable temp filename.
+
+The local folder archive helper runs a fixed encoded PowerShell script and passes
+source/destination paths as ASCII JSON on stdin. `Compress-Archive -LiteralPath`
+handles brackets, apostrophes, Unicode and PowerShell metacharacters as path data.
+It archives the folder, including its root entry. The helper observes a cooperative
+45-second deadline and polls output size while running; the sender checks the final
+10 MiB limit. Polling does not enforce a hard byte or time bound. Normal cleanup
+terminates a running worker before removing its owned files, retaining the directory
+if the worker cannot be confirmed stopped. Ordinary exit also attempts cleanup.
+
+Windows tests invoke actual archive creation and multipart preparation, replacing
+only HTTP delivery. They verify source preservation, oversized-file rejection,
+encoding/delivery failures, a pre-existing legacy ZIP collision, a literal path
+with Unicode/metacharacters, a ZIP signature, and cleanup after success and failure.
+Archive creation uses the system Windows PowerShell executable on both AHK
+architectures; no Discord request is sent.
+
+Remote upload permissions still permit individual files only. This helper retains
+the library's existing local folder capability. Delivery and archive preparation
+remain synchronous. Abrupt parent termination can orphan the WScript archive worker
+or its temporary files; kernel-owned worker migration remains work. Archive source
+contents are not a filesystem snapshot, and this is not a reparse-point sandbox.
+
 ## Counter consistency
 
 The main macro uses one increment helper for boss kills, Vicious kills, normal
