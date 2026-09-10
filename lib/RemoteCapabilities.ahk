@@ -97,19 +97,6 @@ nm_RemoteUploadPath(path) {
 	return path
 }
 
-nm_RemoteInboxPath(url) {
-	SplitPath StrSplit(url, "?")[1], &name
-	if !RegExMatch(name, "^[A-Za-z0-9][A-Za-z0-9._ -]{0,120}$")
-		name := "attachment.bin"
-	folder := A_WorkingDir "\settings\remote-inbox"
-	DirCreate folder
-	Loop {
-		path := folder "\" A_NowUTC "-" Random(100000, 999999) "-" name
-		if !FileExist(path)
-			return path
-	}
-}
-
 nm_RemoteCapture(mode := "Roblox") {
 	mode := StrLower(mode)
 	if mode != "roblox" && !(nm_RemoteCapabilities.Read() & nm_RemoteCapabilities.Flags["DesktopCapture"])

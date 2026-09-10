@@ -26,6 +26,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "ErrorHandling.ahk"
 #Include "RuntimePolicy.ahk"
 #Include "RemoteCapabilities.ahk"
+#Include "AttachmentDownload.ahk"
 
 SetWorkingDir A_ScriptDir "\.."
 CoordMode "Mouse", "Client"
@@ -658,6 +659,7 @@ discordUIDCommands_is_role := strlen(discordUIDCommands) && SubStr(discordUIDCom
 
 Loop
 {
+	nm_AttachmentDownloads.Pump((message, ok, id) => discord.SendEmbed(message, ok ? 5066239 : 16711731,,,,id))
 	(status_buffer.Length > 0) && nm_status(status_buffer[1])
 	(Mod(A_Index, 5) = 0) && discord.GetCommands(MainChannelID)
 	(command_buffer.Length > 0) && nm_command(command_buffer[1])
@@ -1982,9 +1984,8 @@ nm_command(command)
 		case "download":
 		if command.url {
 			try {
-				path := nm_RemoteInboxPath(command.url)
-				Download command.url, path
-				discord.SendEmbed("Attachment saved in settings/remote-inbox. Files are not opened automatically.", 5066239,,,,id)
+				nm_AttachmentDownloads.Start(command.url, id)
+				discord.SendEmbed("Attachment download started. Completion will be reported separately.", 5066239,,,,id)
 			} catch as err
 				discord.SendEmbed("Attachment download failed: " err.Message, 16711731,,,,id)
 		} else
@@ -2630,6 +2631,7 @@ nm_sendItemPicture(wParam, lParam,*) {
 ExitFunc(*)
 {
 	Critical
+	nm_AttachmentDownloads.Close()
 	global status_buffer
 	arr := []
 	for k,v in status_buffer

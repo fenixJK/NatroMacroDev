@@ -36,10 +36,5 @@ TestRemoteCapabilities() {
 	AssertEqual(nm_RemoteUploadPath("settings\upload-fixture.txt"), "settings\upload-fixture.txt", "Individual file upload stays available")
 	AssertThrows(nm_RemoteUploadPath.Bind("settings"), "Folder cannot reach shell archive path")
 	AssertThrows(nm_RemoteUploadPath.Bind("settings\nm_config.ini"), "Raw main settings cannot be uploaded")
-	for url in ["https://cdn.invalid/a.png?token=x", "https://cdn.invalid/%2e%2e.exe", "https://cdn.invalid/path/thing.ahk"] {
-		path := nm_RemoteInboxPath(url)
-		Assert(InStr(path, A_WorkingDir "\settings\remote-inbox\") = 1, "Attachments are contained in a dedicated inbox")
-		Assert(!FileExist(path), "Receiving a file does not overwrite an existing file")
-	}
 	nm_RemoteCapabilities.Save(0)
 }

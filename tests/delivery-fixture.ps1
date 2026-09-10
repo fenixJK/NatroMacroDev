@@ -13,6 +13,22 @@ try {
         $context = $listener.GetContext()
         $reader = [IO.StreamReader]::new($context.Request.InputStream)
         try {
+            if ($context.Request.Url.AbsolutePath.StartsWith('/download/')) {
+                $response = $context.Response
+                $response.StatusCode = 200
+                $bytes = [byte[]]@(0, 127, 128, 255)
+                switch ($context.Request.Url.AbsolutePath) {
+                    '/download/missing' { $response.StatusCode = 404 }
+                    '/download/redirect' { $response.StatusCode = 302; $response.RedirectLocation = '/download/file.bin' }
+                    '/download/large' { $response.ContentLength64 = 100000; $response.OutputStream.Flush() }
+                    '/download/chunked' { $response.SendChunked = $true; $response.OutputStream.Write(([byte[]]::new(10000)), 0, 10000) }
+                    '/download/short' { $response.ContentLength64 = 100; $response.OutputStream.Write($bytes, 0, 4) }
+                    '/download/slow' { $response.SendChunked = $true; $response.OutputStream.Write($bytes, 0, 1); $response.OutputStream.Flush(); Start-Sleep -Milliseconds 1500 }
+                    '/download/headers' { Start-Sleep -Milliseconds 1500 }
+                    default { $response.ContentLength64 = 4; $response.OutputStream.Write($bytes, 0, 4) }
+                }
+                continue
+            }
             $body = $reader.ReadToEnd()
             if ($context.Request.Url.AbsolutePath -eq '/multipart') {
                 if ($context.Request.ContentType -notmatch 'boundary=(.+)$') { throw 'Missing boundary' }
@@ -34,10 +50,10 @@ try {
             }
             $context.Response.StatusCode = 200
         } catch {
-            $context.Response.StatusCode = 400
+            try { $context.Response.StatusCode = 400 } catch {}
         } finally {
             $reader.Dispose()
-            $context.Response.Close()
+            try { $context.Response.Close() } catch {}
         }
     }
 } finally { $listener.Close() }

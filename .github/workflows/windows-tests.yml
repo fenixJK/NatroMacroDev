@@ -34,3 +34,9 @@ jobs:
       - name: Exercise updater failures and migration (PowerShell 7)
         shell: pwsh
         run: ./tests/UpdateTests.ps1
+      - name: Exercise attachment failures (Windows PowerShell 5.1)
+        shell: powershell
+        run: ./tests/AttachmentTests.ps1
+      - name: Exercise attachment failures (PowerShell 7)
+        shell: pwsh
+        run: ./tests/AttachmentTests.ps1
