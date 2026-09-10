@@ -50,6 +50,8 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "TimeTracking.ahk"
 #Include "IncrementStat.ahk"
 #Include "CollectionRecovery.ahk"
+#Include "GlueDispenser.ahk"
+#Include "GlueDispenserSurface.ahk"
 #Include "nm_OpenMenu.ahk"
 #Include "nm_InventorySearch.ahk"
 #Include "WorkerScripts.ahk"
@@ -7632,7 +7634,6 @@ nm_GenerateBeeList(*)
 	hwnd := GetRobloxHWND()
 	offsetY := GetYOffset(hwnd)
 	GetRobloxClientPos(hwnd)
-	nm_OpenMenu()
 	if !nm_OpenMenu("beemenu")
 		return 0
 	MouseMove windowX+30, windowY+offsetY+200, 5
@@ -9826,60 +9827,10 @@ nm_RoboPass(){
 #Include "%A_ScriptDir%\..\lib\DispenserCollection.ahk"
 nm_GlueDis(){
 	global GlueDisCheck, LastGlueDis
-	if (GlueDisCheck && (nowUnix()-LastGlueDis)>(79200)) { ;22 hours
-		if !nm_CollectionRecovery.Begin("LastGlueDis")
-			return
-		collected := false
-		Loop 2 {
-			hwnd := GetRobloxHWND()
-			offsetY := GetYOffset(hwnd)
-			GetRobloxClientPos(hwnd)
-			nm_updateAction("Collect")
-
-			nm_Reset()
-			if !nm_OpenMenu("itemmenu")
-				return 0
-
-			nm_setStatus("Traveling", "Glue Dispenser" ((A_Index > 1) ? " (Attempt 2)" : ""))
-
-			nm_gotoCollect("gluedis", 0) ; do not wait for end
-
-			; Finish travel before observing the item that will be dragged.
-			travelFinished := KeyWait("F14", "T120 L")
-			nm_endWalk()
-			if !travelFinished || !(gumdropPos := nm_InventorySearch("gumdrops")) {
-				nm_OpenMenu()
-				continue
-			}
-			client := gumdropPos.Context.snapshot
-			if !nm_DragInventoryItem(gumdropPos, client.width // 2, client.height // 2) {
-				nm_OpenMenu()
-				continue
-			}
-			;close inventory
-			nm_OpenMenu()
-			Sleep 500
-			;inside gummy lair
-			movement := nm_Walk(6, FwdKey)
-			nm_createWalk(movement)
-			KeyWait "F14", "D T5 L"
-			KeyWait "F14", "T20 L"
-			nm_endWalk()
-			Sleep 500
-			searchRet := nm_imgSearch("e_button.png",30,"high")
-			If (searchRet[1] = 0) {
-				sendinput "{" SC_E " down}"
-				Sleep 100
-				sendinput "{" SC_E " up}"
-				Sleep 1000
-				LastGlueDis := nm_CollectionRecovery.Interacted("LastGlueDis")
-				collected := true
-				nm_setStatus("Collected", "Glue Dispenser")
-				break
-			}
-		}
-		if !collected
-			nm_CollectionRecovery.Failed("LastGlueDis")
+	if GlueDisCheck && nowUnix() - LastGlueDis > 79200 {
+		stamp := nm_GlueDispenser.Run(nm_GlueDispenserSurface())
+		if stamp
+			LastGlueDis := stamp
 	}
 }
 nm_RoyalJellyDis(){
@@ -19077,7 +19028,7 @@ nm_UnexpectedStartupReturn(err) {
 
 nm_Startup(request) {
 	global
-	local ForceStart := request.Mode = "automatic", RemoteStart := request.Mode != "local"
+	local ForceStart := request.Mode = "automatic", RemoteStart := request.Mode != "local", startupMenuOutcome
 	SetKeyDelay 100+KeyDelay
 	nm_setStatus("Begin", "Macro")
 
@@ -19232,8 +19183,10 @@ nm_Startup(request) {
 		nm_setStatus("Error", "Roblox input access check failed")
 		return
 	}
-	nm_OpenMenu()
-	MouseMove windowX+350, windowY+offsetY+100
+	if !nm_OpenMenu("", 0, &startupMenuOutcome) {
+		nm_setStatus("Error", "Cannot start: menu closure was not confirmed (" startupMenuOutcome ")")
+		return
+	}
 
 	;set stats
 	nm_ResetSessionStats()

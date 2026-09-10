@@ -29,6 +29,8 @@
 #Include "%A_ScriptDir%\..\lib\IncrementStat.ahk"
 #Include "%A_ScriptDir%\StatCounterTests.ahk"
 #Include "%A_ScriptDir%\..\lib\CollectionRecovery.ahk"
+#Include "%A_ScriptDir%\..\lib\GlueDispenser.ahk"
+#Include "%A_ScriptDir%\GlueDispenserTests.ahk"
 #Include "%A_ScriptDir%\..\lib\DispenserCollection.ahk"
 #Include "%A_ScriptDir%\..\lib\CollectionInterrupts.ahk"
 #Include "%A_ScriptDir%\..\lib\Conversion.ahk"
@@ -122,7 +124,7 @@ DirCreate testDirectory "\settings"
 SetWorkingDir testDirectory
 passed := failed := 0
 try {
-	for test in [TestMenuNavigation, TestMenuTemplates, TestTextGraphics, TestScreenCapture, TestAutoJellyLimits, TestAutoJellyOcr, TestAutoJellySafety, TestPrioritySettings, TestAutoJellySettings, TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
+	for test in [TestGlueDispenser, TestMenuNavigation, TestMenuTemplates, TestTextGraphics, TestScreenCapture, TestAutoJellyLimits, TestAutoJellyOcr, TestAutoJellySafety, TestPrioritySettings, TestAutoJellySettings, TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
 		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures, TestCollectionInterrupts, TestDiscordPayload, TestDeliveryQueue, TestHourlyReportDelivery, TestLocalHttpDelivery, TestGeometryCache, TestInventoryEngine, TestInventoryReader, TestPointerLease, TestInventoryDrag, TestQuestObservation, TestQuestFrames, TestQuestActions, TestQuestUnknownPublication, TestQuestRecovery, TestQuestTurnInRecovery, TestHealthObservation, TestBossHealthEstimation, TestBossHealthReporting, TestImageObservation, TestCombatPresence, TestRemoteCapabilities, TestAttachmentWorker, TestSupportReport, TestGatherProfiles, TestReconnectSession, TestRecoveryActivity, TestPlanterDialog, TestStatCounters, TestDiscordRepliesEncoding, TestDiscordHelp, TestDiscordReports, TestLiveHoneyDelivery, TestLocalLiveHoney, TestUploadOwnership, TestCommandDelivery, TestDeliveryCooldown, TestLocalCooldown, TestBotInbox, TestBotRoles, TestBotRecovery, TestLocalBotInbox, TestStartupControl, TestWatchdogRecovery] {
 		try {
 			test.Call()
