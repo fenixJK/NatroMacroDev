@@ -6,19 +6,19 @@ TestNativeReceivingCleanup() {
 		for index, scenario in ["empty", "partial", "unexpected", "hardlink", "readonly", "locked"] {
 			directory := inbox "\.receiving-" Format("{:032x}", index)
 			DirCreate directory
-			file := directory "\payload.partial", held := 0
+			partialPath := directory "\payload.partial", held := 0
 			if scenario != "empty" && scenario != "hardlink"
-				FileAppend "partial", file
+				FileAppend "partial", partialPath
 			if scenario = "unexpected"
 				FileAppend "keep", directory "\personal.txt"
 			if scenario = "hardlink" {
 				FileAppend "keep", root "\original.txt"
-				RequireProcess(DllCall("CreateHardLinkW", "Str", file, "Str", root "\original.txt", "Ptr", 0), "Create disposable hardlink fixture")
+				RequireProcess(DllCall("CreateHardLinkW", "Str", partialPath, "Str", root "\original.txt", "Ptr", 0), "Create disposable hardlink fixture")
 			}
 			if scenario = "readonly"
-				FileSetAttrib "+R", file
+				FileSetAttrib "+R", partialPath
 			if scenario = "locked"
-				held := FileOpen(file, "r-wd")
+				held := FileOpen(partialPath, "r-wd")
 			try {
 				ok := RunReceivingCleanup(directory)
 				RequireProcess(ok = (scenario = "empty" || scenario = "partial"), "Cleanup result matches owned-file policy: " scenario)
@@ -29,12 +29,12 @@ TestNativeReceivingCleanup() {
 				if scenario = "unexpected"
 					RequireProcess(FileRead(directory "\personal.txt") = "keep", "Unknown contents are preserved")
 				if scenario = "hardlink"
-					RequireProcess(FileRead(root "\original.txt") = "keep" && FileExist(file), "Hardlinked content is preserved")
+					RequireProcess(FileRead(root "\original.txt") = "keep" && FileExist(partialPath), "Hardlinked content is preserved")
 			} finally {
 				if held
 					held.Close()
 				if scenario = "readonly"
-					FileSetAttrib "-R", file
+					FileSetAttrib "-R", partialPath
 			}
 		}
 		RequireProcess(!RunReceivingCleanup(root), "Ordinary folders cannot be cleanup targets")

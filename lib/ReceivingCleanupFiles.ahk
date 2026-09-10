@@ -10,7 +10,7 @@ class nm_ReceivingCleanupFiles {
 		for part in parts
 			if !part || part = "." || part = ".." || RegExMatch(part, '[<>:"/|?*]|[. ]$')
 				throw ValueError("Invalid receiving path component")
-		handles := [], file := 0
+		handles := [], partialHandle := 0
 		try {
 			path := SubStr(directory, 1, 3)
 			handles.Push(this.Open(path, false, true))
@@ -23,16 +23,16 @@ class nm_ReceivingCleanupFiles {
 				}
 				handles.Push(handle)
 			}
-			file := this.Open(directory "\payload.partial", true, false)
-			if file {
-				this.Delete(file)
-				DllCall("CloseHandle", "Ptr", file), file := 0
+			partialHandle := this.Open(directory "\payload.partial", true, false)
+			if partialHandle {
+				this.Delete(partialHandle)
+				DllCall("CloseHandle", "Ptr", partialHandle), partialHandle := 0
 			}
 			; Unknown files/subdirectories cause this to fail and remain intact.
 			this.Delete(handles[handles.Length])
 		} finally {
-			if file
-				DllCall("CloseHandle", "Ptr", file)
+			if partialHandle
+				DllCall("CloseHandle", "Ptr", partialHandle)
 			while handles.Length
 				DllCall("CloseHandle", "Ptr", handles.Pop())
 		}
