@@ -55,14 +55,20 @@ TestNativeScriptProcesses() {
 	} finally {
 		for process in processes {
 			process.Close()
+			releasedHandle := process.Handle
 			process.Release()
+			RequireProcess(!DllCall("GetHandleInformation", "Ptr", releasedHandle, "UIntP", &flags := 0), "Released creation handle is closed")
 		}
-		DirDelete directory, true
+		DllCall("GetProcessHandleCount", "Ptr", -1, "UIntP", &after := 0)
+		try {
+			if after > before + 2
+				FileAppend "Watchdog handles: " handleCounts " after process cleanup=" after "`n", "*"
+			RequireProcess(after <= before + 2, "Watchdog process handles released after discovery and failed launch")
+		} finally {
+			DirDelete directory, true
+			FileAppend "Watchdog handle accounting: before=" before " after process cleanup=" after " after filesystem cleanup=" WatchdogFixtureHandleCount() "`n", "*"
+		}
 	}
-	DllCall("GetProcessHandleCount", "Ptr", -1, "UIntP", &after := 0)
-	if after > before + 2
-		FileAppend "Watchdog handles: " handleCounts " after cleanup=" after "`n", "*"
-	RequireProcess(after <= before + 2, "Watchdog process handles released after discovery and failed launch")
 	FileAppend "PASS Windows watchdog script identity and readiness (" A_PtrSize * 8 "-bit)`n", "*"
 }
 WatchdogFixtureHandleCount() {
