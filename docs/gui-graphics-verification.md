@@ -130,3 +130,12 @@ checks. The fixture now splits those template inputs into two disjoint workers
 and runs interactions separately. Each template still searches the complete
 asset set; input counts, interaction assertions and per-worker deadlines remain.
 The test logs bounded stage timings to explain future delays.
+
+## Text drawing ownership follow-up
+
+The shared text helper now releases font families, fonts, formats and owned
+brushes on partial failure, and checks native measurement/drawing statuses.
+Color options no longer double as guessed brush pointers. Auto-Jelly and dynamic
+StatMonitor labels use explicit brush ownership. [Text graphics verification](text-graphics-verification.md)
+records the calling convention, native pixel comparisons and matching GDI+
+creation/deletion checks; these are distinct from the GUI's GDI handle counts.

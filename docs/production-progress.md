@@ -1925,3 +1925,42 @@ Persistent native cleanup failures, hard native-call timeouts, occlusion/freshne
 the separate PrintWindow helper and other GDI+/font/icon resource paths remain
 outside this checkpoint. No Windows/Roblox machine is available. The full
 production goal remains active; no merge, deployment or release is claimed.
+
+## Shared text drawing checkpoint
+
+Code checkpoint: `1426fafd6ed4a2856335022175642d4052b1c06f`.
+[Windows run 34467862555](https://github.com/fenixJK/NatroMacroDev/actions/runs/34467862555)
+passed **69 regression groups on both AHK architectures**, native pixel/brush and
+**350 tracked GDI+ lifecycle cases** per architecture, existing process/GUI/input/
+OCR suites, **nine production-script, four test-entry and seven emitted-worker
+validations**, plus **eight file-channel checks, 43 attachment checks and 35 updater
+scenarios** per PowerShell version. No AHK warnings occurred; the checkout Node
+runtime deprecation notice remains.
+
+Text rendering now releases font families, fonts, string formats and internally
+created brushes on partial failure. Allocation stops at a failed dependency,
+and native alignment, rendering, measurement and drawing results are checked.
+Every owned release is attempted even after another release fails. Failed native
+measurements return zero rather than formatting an uninitialized rectangle.
+
+Color options always represent hexadecimal ARGB values. Digit-only colors no
+longer get probed as brush pointers; transparent black is preserved. Supplied
+brushes use an explicit eighth argument and remain caller-owned, with no clone
+probe. Auto-Jelly and the five dynamic StatMonitor label call sites are migrated.
+External custom callers using implicit `"c" brush` arguments require the same
+migration. The successful six-field bounds and existing layout options remain.
+
+Fault fixtures cover allocation through both measurement passes, drawing and
+cleanup. Native pixel comparisons cover owned/borrowed colors, transparency,
+measure-only behavior and a borrowed gradient. Tracked real GDI+ allocations
+each receive a successful matching release across 350 normal/failure cases.
+This is stronger evidence for this resource boundary than GDI handle counts,
+but it is not a heap profile or long-duration soak. The initial fixture naming
+warning was corrected without weakening the CI warning gate.
+
+[Text graphics verification](text-graphics-verification.md) records the contract,
+calling-convention migration and evidence. Persistent native release failures,
+synchronous native calls, partial pixels after drawing errors, full hourly-report
+failure propagation/rendering and other GDI+ paths remain work. No Windows/Roblox
+machine is available. The full production goal remains active; no merge,
+deployment or release is claimed.
