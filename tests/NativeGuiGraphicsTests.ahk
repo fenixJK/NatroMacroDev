@@ -6,11 +6,12 @@ TestNativeGuiGraphics() {
 		Loop 100 {
 			surface := owner.CreateSurface(96, 64)
 			dib := surface.Bitmap, dc := surface.DC
+			Require(DllCall("GetObjectW", "Ptr", dib, "Int", 0, "Ptr", 0) > 0 && DllCall("GetCurrentObject", "Ptr", dc, "UInt", 7, "Ptr"), "Live surface supports native object queries")
 			Gdip_GraphicsClear(surface.Graphics, 0xFF445566)
 			surface.Close(), surface.Close()
 			DllCall("GdiFlush")
 			if DllCall("GetObjectType", "Ptr", dib) || DllCall("GetObjectType", "Ptr", dc)
-				FileAppend "Surface release types: bitmap=" DllCall("GetObjectType", "Ptr", dib) " dc=" DllCall("GetObjectType", "Ptr", dc) " handles=" dib "," dc "`n", "*"
+				FileAppend "Surface release types: bitmap=" DllCall("GetObjectType", "Ptr", dib) " dc=" DllCall("GetObjectType", "Ptr", dc) " handles=" dib "," dc " objectBytes=" DllCall("GetObjectW", "Ptr", dib, "Int", 0, "Ptr", 0) " selected=" DllCall("GetCurrentObject", "Ptr", dc, "UInt", 7, "Ptr") " gdiBefore=" before " gdiAfter=" DllCall("GetGuiResources", "Ptr", -1, "UInt", 0, "UInt") "`n", "*"
 			Require(!DllCall("GetObjectType", "Ptr", dib) && !DllCall("GetObjectType", "Ptr", dc), "Closed surface releases its actual native objects")
 		}
 		after := DllCall("GetGuiResources", "Ptr", -1, "UInt", 0, "UInt")
