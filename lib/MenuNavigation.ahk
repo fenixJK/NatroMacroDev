@@ -93,6 +93,7 @@ class nm_MenuSurface {
 	}
 	Current(snapshot) => this.Cancellation = nm_InventoryPointer.Cancellation && this.Clock() < this.Deadline && this.Identity() && nm_WindowOwnsFocus(this.Hwnd)
 		&& nm_SameClient(this.Anchor, snapshot) && nm_SameClient(snapshot, nm_ClientSnapshot(this.Hwnd))
+		&& nm_PublishClientSnapshot(snapshot)
 	Fresh(frame) => frame.valid && this.Clock() >= frame.tick && this.Clock() - frame.tick <= 250 && this.Current(frame.snapshot)
 	Observe() {
 		global bitmaps

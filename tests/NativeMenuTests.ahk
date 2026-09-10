@@ -1,5 +1,5 @@
 TestNativeMenus() {
-	global bitmaps
+	global bitmaps, windowX, windowY, windowWidth, windowHeight
 	savedBitmaps := bitmaps, bitmaps := Map(), colors := Map("itemmenu", 0x406080, "questlog", 0x804060,
 		"beemenu", 0x608040, "badgelist", 0x2080c0, "settingsmenu", 0xc02080, "shopmenu", 0x80c020)
 	token := Gdip_Startup(), panel := Gui("-Caption -DPIScale", "Menu fixture"), foreign := Gui("-DPIScale", "Foreign menu fixture")
@@ -34,6 +34,8 @@ TestNativeMenus() {
 			countBefore := clicks
 			Require(nm_MenuNavigation(NativeMenuSurface(panel.Hwnd)).Run(tab), "Native menu open verified after click")
 			Require(activeTab = tab && clicks = countBefore + 1, "Exactly one native click opens requested tab")
+			currentClient := nm_ClientSnapshot(panel.Hwnd)
+			Require(windowX = currentClient.x && windowY = currentClient.y && windowWidth = currentClient.width && windowHeight = currentClient.height, "Verified menu geometry remains available to legacy callers")
 			Require(nm_MenuNavigation(NativeMenuSurface(panel.Hwnd)).Run(tab) && clicks = countBefore + 1, "Already selected tab is not toggled")
 			Require(nm_MenuNavigation(NativeMenuSurface(panel.Hwnd)).Run() && activeTab = "" && clicks = countBefore + 2, "Native menu close verified after click")
 			Require(A_CoordModeMouse = "Client" && !GetKeyState("LButton") && !nm_InventoryPointer.Gate.Active, "Menu restores coordinate mode and pointer ownership")

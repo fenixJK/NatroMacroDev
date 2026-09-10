@@ -50,6 +50,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "TimeTracking.ahk"
 #Include "IncrementStat.ahk"
 #Include "CollectionRecovery.ahk"
+#Include "nm_OpenMenu.ahk"
 #Include "nm_InventorySearch.ahk"
 #Include "WorkerScripts.ahk"
 #Include "GuiScripts.ahk"
@@ -8684,7 +8685,6 @@ nm_Start(){
 ; FUNCTIONS
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 #Include "%A_ScriptDir%\..\lib"
-#Include "nm_OpenMenu.ahk"
 ;interrupts
 nm_MondoInterrupt() => (utc_min := FormatTime(A_NowUTC, "m"), now := nowUnix(),
 	((MondoBuffCheck = 1) && nm_BossVisit.Ready("LastMondoBuff") && ((utc_min<14 && (now-LastMondoBuff)>960 && MondoAction="Kill")
