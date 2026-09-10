@@ -86,6 +86,7 @@ try {
         # the other regressions. Individual script validation stays at 60 seconds.
         Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'RunTests.ahk'), $fixturePort, "$readyFile.$bits") -TimeoutMs 90000
         Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'GeometryWindows.ahk'))
+        Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'ProcessWindows.ahk')) -TimeoutMs 90000
         $workerOutput = Join-Path $workerDirectory $bits
         Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'EmitWorkers.ahk'), $workerOutput)
         $workers = @(Get-ChildItem $workerOutput -Filter '*.ahk')

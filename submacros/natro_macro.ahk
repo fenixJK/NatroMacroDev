@@ -33,6 +33,8 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "HashFile.ahk"
 #Include "RuntimePolicy.ahk"
 #Include "ReconnectSession.ahk"
+#Include "OwnedProcessJob.ahk"
+#Include "RecoveryActivity.ahk"
 #Include "RemoteCapabilities.ahk"
 #Include "SupportReport.ahk"
 #Include "GatherProfiles.ahk"
@@ -16044,28 +16046,19 @@ nm_Move(MoveTime, MoveKey1, MoveKey2:="None"){
 		Send "{" MoveKey2 " up}"
 	SetKeyDelay PrevKeyDelay
 }
-CloseRoblox()
+CloseRoblox(recovery := 0)
 {
-	; if roblox exists, activate it and send Esc+L+Enter
-	if (hwnd := GetRobloxHWND())
-	{
-		GetRobloxClientPos(hwnd)
-		if (windowHeight >= 500) ; requirement for L to activate "Leave"
-		{
-			ActivateRoblox()
-			PrevKeyDelay := A_KeyDelay
-			SetKeyDelay 250+KeyDelay
-			send "{" SC_Esc "}{" SC_L "}{" SC_Enter "}"
-			SetKeyDelay PrevKeyDelay
+	activity := nm_RecoveryActivity()
+	try {
+		closed := nm_OwnedProcessJob.Execute(Map("kind", "close"), recovery)
+		; Preserve the existing post-close delay against duplicate-session errors.
+		if closed {
+			if recovery
+				recovery.Wait(5000)
+			else
+				Sleep 5000
 		}
-		try WinClose "Roblox"
-		Sleep 500
-		try WinClose "Roblox"
-		Sleep 4500 ;Delay to prevent Roblox Error Code 264
-	}
-	; kill any remnant processes
-	for p in ComObjGet("winmgmts:").ExecQuery("SELECT * FROM Win32_Process WHERE Name LIKE '%Roblox%' OR CommandLine LIKE '%ROBLOXCORPORATION%'")
-		ProcessClose p.ProcessID
+	} finally activity.Close()
 }
 DisconnectCheck(testCheck := 0)
 {
@@ -16081,6 +16074,8 @@ DisconnectCheck(testCheck := 0)
 	if observation != "missing" && observation != "disconnected" && !WinExist("Roblox Crash")
 		return 0
 
+	activity := nm_RecoveryActivity()
+	try {
 	; Reconnection is runtime, but is not gathering or conversion.
 	nm_TimeTracking.InterruptActions()
 	; end any residual movement and set reconnect start time
@@ -16131,7 +16126,7 @@ DisconnectCheck(testCheck := 0)
 			switch (ReconnectMethod = "Browser") ? 0 : Mod(i, 5) {
 				case 1,2:
 				;Close Roblox
-				CloseRoblox()
+				CloseRoblox(recovery)
 				;Run Server Deeplink
 				nm_setStatus("Attempting", ServerLabels[server])
 				RunDeeplink(PossibleServers[server]["type"], PossibleServers[server]["code"])
@@ -16144,13 +16139,13 @@ DisconnectCheck(testCheck := 0)
 				default:
 				if server {
 					;Close Roblox
-					CloseRoblox()
+					CloseRoblox(recovery)
 					;Run Server Link (legacy method w/ browser)
 					nm_setStatus("Attempting", ServerLabels[server] " (Browser)")
-					RunBrowser(PossibleServers[server]["link"])
+					RunBrowser(PossibleServers[server]["type"], PossibleServers[server]["code"])
 				} else {
 					;Close Roblox
-					(i = 1) && CloseRoblox()
+					(i = 1) && CloseRoblox(recovery)
 					;Run Server Link (spam deeplink method)
 					RunDeeplink()
 				}
@@ -16210,32 +16205,11 @@ DisconnectCheck(testCheck := 0)
 			return 1
 		}
 
-		RunDeeplink(type:="", code:=""){
-			switch type {
-				case "LinkCode":
-					try Run '"roblox://placeID=1537690962&linkcode=' code '"'
-				case "ShareCode":
-					try Run '"roblox://navigation/share_links?code=' code '&type=Server"'
-				default:
-					try Run '"roblox://placeID=1537690962"'
-			}
+		RunDeeplink(type := "", code := "") {
+			nm_OwnedProcessJob.Execute(Map("kind", "deeplink", "type", type, "code", code), recovery)
 		}
-
-		RunBrowser(url){
-			static cmd := Buffer(512), init := (DllCall("shlwapi\AssocQueryString", "Int",0, "Int",1, "Str","http", "Str","open", "Ptr",cmd.Ptr, "IntP",512),
-			DllCall("Shell32\SHEvaluateSystemCommandTemplate", "Ptr",cmd.Ptr, "PtrP",&pEXE:=0,"Ptr",0,"PtrP",&pPARAMS:=0))
-			, exe := (pEXE > 0) ? StrGet(pEXE) : ""
-			, params := (pPARAMS > 0) ? StrGet(pPARAMS) : ""
-
-			;seems like ShellRun is less consistent
-			if ((StrLen(exe) > 0) && (StrLen(params) > 0)) {
-				ShellRun(exe, StrReplace(params, "%1", url))
-				;tooltip(reconnect_debug . "`nShellRun")
-			}
-			else {
-				Run('"' url '"')
-				;tooltip(reconnect_debug . "`nRun")
-			}
+		RunBrowser(type, code) {
+			nm_OwnedProcessJob.Execute(Map("kind", "browser", "type", type, "code", code), recovery)
 		}
 
 	} catch nm_ReconnectExhausted as err {
@@ -16243,44 +16217,9 @@ DisconnectCheck(testCheck := 0)
 		nm_setStatus("Error", err.Message "`nReconnect stopped; check Roblox/server settings before restarting.")
 		nm_FailClosed(err)
 	}
+	} finally activity.Close()
 }
 
-/*
-ShellRun by Lexikos
-	requires: AutoHotkey v1.1
-	license: http://creativecommons.org/publicdomain/zero/1.0/
-Credit for explaining this method goes to BrandonLive:
-http://brandonlive.com/2008/04/27/getting-the-shell-to-run-an-application-for-you-part-2-how/
-
-Shell.ShellExecute(File [, Arguments, Directory, Operation, Show])
-http://msdn.microsoft.com/en-us/library/windows/desktop/gg537745
-*/
-;Note might have to use for deeplinking if we have roblox admin issues
-ShellRun(prms*)
-{
-	shellWindows := ComObject("Shell.Application").Windows
-	desktop := shellWindows.FindWindowSW(0, 0, 8, 0, 1) ; SWC_DESKTOP, SWFO_NEEDDISPATCH
-
-	; Retrieve top-level browser object.
-	tlb := ComObjQuery(desktop,
-		"{4C96BE40-915C-11CF-99D3-00AA004AE837}", ; SID_STopLevelBrowser
-		"{000214E2-0000-0000-C000-000000000046}") ; IID_IShellBrowser
-
-	; IShellBrowser.QueryActiveShellView -> IShellView
-	ComCall(15, tlb, "ptr*", sv := ComValue(13, 0)) ; VT_UNKNOWN
-
-	; Define IID_IDispatch.
-	NumPut("int64", 0x20400, "int64", 0x46000000000000C0, IID_IDispatch := Buffer(16))
-
-	; IShellView.GetItemObject -> IDispatch (object which implements IShellFolderViewDual)
-	ComCall(15, sv, "uint", 0, "ptr", IID_IDispatch, "ptr*", sfvd := ComValue(9, 0)) ; VT_DISPATCH
-
-	; Get Shell object.
-	shell := sfvd.Application
-
-	; IShellDispatch2.ShellExecute
-	shell.ShellExecute(prms*)
-}
 nm_claimHiveSlot(recovery := 0){
 	global KeyDelay, FwdKey, RightKey, LeftKey, BackKey, ZoomOut, HiveSlot, HiveConfirmed, SC_E, SC_Esc, SC_R, SC_Enter, bitmaps
 	GetBitmap() {
@@ -20650,20 +20589,20 @@ getout(*){
 	DllCall(A_WorkingDir "\nm_image_assets\Styles\USkin.dll\USkinExit")
 }
 
-Background(){
-	;auto field boost
+Background() => nm_RecoveryActivity.RunBackground(nm_BackgroundActions)
+nm_BackgroundActions(){
 	if (AFBrollingDice && nm_AFBReady() && state!="Disconnected")
 		nm_fieldBoostDice()
-	;use/check hotbar boosts
-	if PFieldBoosted {
+	if !nm_RecoveryActivity.Allowed()
+		return
+	if PFieldBoosted
 		nm_hotbar(1)
-	} else {
+	else
 		nm_hotbar()
-	}
-	;bug death check
+	if !nm_RecoveryActivity.Allowed()
+		return
 	if(state="Gathering" || state="Searching" || (nm_NightInterrupt() && state="Attacking"))
 		nm_bugDeathCheck()
-	;stats
 	nm_setStats()
 }
 

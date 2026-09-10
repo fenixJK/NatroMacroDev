@@ -2,6 +2,8 @@
 #SingleInstance Off
 #Warn All, StdOut
 #Include "%A_ScriptDir%\..\lib\RuntimePolicy.ahk"
+#Include "%A_ScriptDir%\..\lib\OwnedProcessJob.ahk"
+#Include "%A_ScriptDir%\..\lib\RecoveryActivity.ahk"
 #Include "%A_ScriptDir%\..\lib\ReconnectSession.ahk"
 #Include "%A_ScriptDir%\ReconnectTests.ahk"
 #Include "%A_ScriptDir%\..\lib\PlanterRecovery.ahk"
@@ -87,7 +89,7 @@ SetWorkingDir testDirectory
 passed := failed := 0
 try {
 	for test in [TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
-		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures, TestCollectionInterrupts, TestDiscordPayload, TestDeliveryQueue, TestHourlyReportDelivery, TestLocalHttpDelivery, TestGeometryCache, TestInventoryEngine, TestInventoryReader, TestPointerLease, TestInventoryDrag, TestQuestObservation, TestQuestFrames, TestQuestActions, TestQuestUnknownPublication, TestQuestRecovery, TestQuestTurnInRecovery, TestHealthObservation, TestBossHealthEstimation, TestBossHealthReporting, TestImageObservation, TestCombatPresence, TestRemoteCapabilities, TestAttachmentWorker, TestSupportReport, TestGatherProfiles, TestReconnectSession] {
+		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures, TestCollectionInterrupts, TestDiscordPayload, TestDeliveryQueue, TestHourlyReportDelivery, TestLocalHttpDelivery, TestGeometryCache, TestInventoryEngine, TestInventoryReader, TestPointerLease, TestInventoryDrag, TestQuestObservation, TestQuestFrames, TestQuestActions, TestQuestUnknownPublication, TestQuestRecovery, TestQuestTurnInRecovery, TestHealthObservation, TestBossHealthEstimation, TestBossHealthReporting, TestImageObservation, TestCombatPresence, TestRemoteCapabilities, TestAttachmentWorker, TestSupportReport, TestGatherProfiles, TestReconnectSession, TestRecoveryActivity] {
 		try {
 			test.Call()
 			passed++

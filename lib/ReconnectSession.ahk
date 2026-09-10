@@ -31,7 +31,11 @@ class nm_ReconnectSession {
 	ElapsedSeconds() => Max(0, (this.Clock.Call() - this.Started) // 1000)
 	Join(launch, observe) {
 		this.Check()
-		launch.Call()
+		try launch.Call()
+		catch nm_ProcessJobError {
+			this.LastFailure := "launch or cleanup helper failed"
+			return false
+		}
 		this.Check()
 		this.Stage := "window", stageDeadline := this.Clock.Call() + 240000
 		Loop {

@@ -87,3 +87,27 @@ TestReconnectSession() {
 	AssertEqual(nm_ReconnectObservation.Classify(0,1,1), "loaded", "Positive loaded signal accepted")
 	AssertDeliveryError(() => nm_ReconnectObservation.Classify(-1,0,1), "Native search error cannot become success")
 }
+
+TestRecoveryActivity() {
+	calls := 0
+	Act() => calls++
+	nm_RecoveryActivity.RunBackground(Act)
+	AssertEqual(calls, 1, "Background runs before recovery")
+	outer := nm_RecoveryActivity()
+	try {
+		nm_RecoveryActivity.RunBackground(Act)
+		AssertEqual(calls, 1, "Recovery blocks background actions")
+		inner := nm_RecoveryActivity()
+		inner.Close(), inner.Close()
+		Assert(!nm_RecoveryActivity.Allowed(), "Nested cleanup cannot release reconnect ownership")
+	} finally outer.Close()
+	nm_RecoveryActivity.RunBackground(Act)
+	AssertEqual(calls, 2, "Background resumes after final owner releases")
+	FailWhileOwned() {
+		owner := nm_RecoveryActivity()
+		try throw Error("fixture")
+		finally owner.Close()
+	}
+	AssertDeliveryError(FailWhileOwned, "Failure propagates from recovery")
+	Assert(nm_RecoveryActivity.Allowed(), "Failure cleanup releases ownership")
+}
