@@ -552,3 +552,46 @@ a search does not validate a later click.
 [Combat verification](combat-verification.md) records these limits. The full
 production objective remains active, including all other feature, state, reporting,
 optimization, proposed-feature and release/live-verification gates.
+
+## Remote capability checkpoint
+
+Code checkpoint: `13338ee4d69bd31521d9ba346f11493cb85f40dc`.
+[Windows run 34423609802](https://github.com/fenixJK/NatroMacroDev/actions/runs/34423609802)
+passed **40 regression groups on each AHK architecture**, native permission-window
+and screenshot checks, the existing geometry/pointer/image/health integrations,
+six script validations and four emitted-worker validations per architecture,
+and **35 updater scenarios on each PowerShell version**. No AHK warnings occurred.
+CI caught and prompted corrections to an oversized switch case and a checkbox
+expression before the passing checkpoint. The checkout Node deprecation notice
+remains a separate CI maintenance item.
+
+Status > Permissions now provides seven independent, disabled-by-default optional
+capabilities, separate from the existing user/role authorization requirement.
+Ordinary macro commands remain available to authorized controllers. Desktop
+capture/control, file upload/receipt, system restart, diagnostics and personal
+commands require explicit local grants. Permissions live outside the remotely
+editable settings registry and are read again for each new dispatch. The local
+permission button remains usable while the macro runs.
+
+Direct screenshots default to focused Roblox client capture, with no desktop
+fallback. A revoked desktop permission also blocks a previously selected desktop
+mode. Remote attachment receipt uses generated names in a dedicated inbox instead
+of arbitrary destination directories. Single-file uploads reject folders,
+wildcards and the known credential/permission INI filenames. Generic configuration
+lookup also rejects authentication and permission keys.
+
+Native Windows tests open/save/reopen/cancel the actual permission window, capture
+an owned client with exact dimensions, reject missing Roblox and invalid modes,
+and verify immediate local revocation. Regression tests exercise aliases,
+independent grants, malformed persisted masks, private settings and file paths.
+No test contacts Discord or confirms Roblox gameplay.
+
+[Remote permissions](remote-permissions.md) records the capability contract and
+remaining limits: local personal code and desktop input are powerful grants;
+uploads/logs are not comprehensively redacted; attachment downloading still needs
+response/time/size bounds and partial-file recovery. Live identity changes,
+multiple-DPI UI/capture behavior, redacted support preview, command serialization
+and reliable delivery remain open. All other feature, state, optimization,
+proposed-feature and release gates stay in scope. The full production objective
+remains active; the user has no live Windows/Roblox machine and authorized code
+fixes and CI to continue.
