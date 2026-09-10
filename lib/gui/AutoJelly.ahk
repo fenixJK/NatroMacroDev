@@ -20,6 +20,7 @@ CoordMode('Pixel', 'Screen')
 CoordMode('Mouse', 'Screen')
 ;==================================
 #Include "%A_ScriptDir%\lib\GuiGraphics.ahk"
+#Include "%A_ScriptDir%\lib\AutoJellySafety.ahk"
 resources := nm_GuiGraphics()
 OnExit((*) => (closefunction()), -1)
 stopToggle(*) {
@@ -286,116 +287,112 @@ ReplaceSystemCursors(IDC := "")
 	}
 }
 blc_start() {
-	global stopping:=false
-	hotkey "~*esc", stopToggle, "On"
-	selectedBees := [], selectedMutations := []
-	for i in beeArr
-		if %i% || SelectAll
-			selectedBees.push(i)
-	if mutations {
-		selectedMutations := []
-		for i in mutationsArr
-			if %i.name%
-				selectedMutations.push(i)
-	}
-	ocr_enabled := 1
-	ocr_language := ""
-	for k,v in Map("Windows.Globalization.Language","{9B0252AC-0C27-44F8-B792-9793FB66C63E}", "Windows.Graphics.Imaging.BitmapDecoder","{438CCB26-BCEF-4E95-BAD6-23A822E58D01}", "Windows.Media.Ocr.OcrEngine","{5BFFA85A-3384-3540-9940-699120D428A8}") {
-		CreateHString(k, &hString)
-		GUID := Buffer(16), DllCall("ole32\CLSIDFromString", "WStr", v, "Ptr", GUID)
-		result := DllCall("Combase.dll\RoGetActivationFactory", "Ptr", hString, "Ptr", GUID, "PtrP", &pClass:=0)
-		DeleteHString(hString)
-		if (result != 0)
-		{
-			ocr_enabled := 0
-			break
+	global stopping
+	static running := false
+	if running
+		return
+	running := true, stopping := false
+	try {
+		Hotkey "~*esc", stopToggle, "On"
+		selectedBees := [], selectedMutations := []
+		for bee in beeArr
+			if %bee% || SelectAll
+				selectedBees.Push(bee)
+		if !selectedBees.Length
+			throw Error("Select at least one bee before starting Auto-Jelly")
+		if mutations {
+			for mutation in mutationsArr
+				if %mutation.name%
+					selectedMutations.Push(mutation)
+			if !selectedMutations.Length
+				throw Error("Select at least one mutation or turn off mutation filtering")
+			ocrLanguage := nm_AutoJellyObservation.EnglishLanguage(ocr("ShowAvailableLanguages"))
 		}
-	}
-	if !(ocr_enabled) && mutations
-		msgbox "OCR is disabled. This means that the macro will not be able to detect mutations.",, 0x40010
-	list := ocr("ShowAvailableLanguages")
-	lang:="en-"
-	Loop Parse list, "`n", "`r" {
-		if (InStr(A_LoopField, lang) = 1) {
-			ocr_language := A_LoopField
-			break
-		}
-	}
-	if (ocr_language = "" && ocr_enabled)
-		if ((ocr_language := SubStr(list, 1, InStr(list, "`n")-1)) = "")
-			return msgbox("No OCR supporting languages are installed on your system! Please follow the Knowledge Base guide to install a supported language as a secondary language on Windows.", "WARNING!!", 0x1030)
-	if !(hwndRoblox:=GetRobloxHWND()) || !(GetRobloxClientPos(), windowWidth)
-		return msgbox("You must have Bee Swarm Simulator open to use this!", "Auto-Jelly", 0x40030)
-	if !selectedBees.length
-		return msgbox("You must select at least one bee to run this macro!", "Auto-Jelly", 0x40030)
-	yOffset := GetYOffset(hwndRoblox, &fail)
-	if fail	
-		MsgBox("Unable to detect in-game GUI offset!`nThis means the macro will NOT work correctly!`n`nThere are a few reasons why this can happen:`n- Incorrect graphics settings (check Troubleshooting Guide!)`n- Your Experience Language is not set to English`n- Something is covering the top of your Roblox window`n`nJoin our Discord server for support!", "WARNING!!", 0x1030 " T60")
-	if mgui is Gui
-		mgui.hide()
-	While !stopping {
-		ActivateRoblox()
-		click windowX + Round(0.5 * windowWidth + 10) " " windowY + yOffset + Round(0.4 * windowHeight + 230)
-		sleep 800
-		pBitmap := Gdip_BitmapFromScreen(windowX + 0.5*windowWidth - 155 "|" windowY + yOffset + 0.425*windowHeight - 200 "|" 320 "|" 140)
-		if mythicStop
-			for i, j in ["Buoyant", "Fuzzy", "Precise", "Spicy", "Tadpole", "Vector"]
-				if Gdip_ImageSearch(pBitmap, bitmaps["-" j]) || Gdip_ImageSearch(pBitmap, bitmaps["+" j]) {
-					Gdip_DisposeImage(pBitmap)
-					msgbox "Found a mythic bee!", "Auto-Jelly", 0x40040
-					break 2
-				}
-		if giftedStop
-			for i, j in beeArr {
-				if Gdip_ImageSearch(pBitmap, bitmaps["+" j]) {
-					Gdip_DisposeImage(pBitmap)
-					msgbox "Found a gifted bee!", "Auto-Jelly", 0x40040
-					break 2	
-				}	
-			}
-		found := 0
-		for i, j in selectedBees {
-			if Gdip_ImageSearch(pBitmap, bitmaps["-" j]) || Gdip_ImageSearch(pBitmap, bitmaps["+" j]) {
-				if (!mutations || !ocr_enabled || !selectedMutations.length) {
-					Gdip_DisposeImage(pBitmap)
-					if msgbox("Found a match!`nDo you want to keep this?","Auto-Jelly!", 0x40044) = "Yes"
-						break 2
-					else
-						continue 2
-				}
-				found := 1
+		if stopping
+			return
+		if !KeyWait("LButton", "T2")
+			throw Error("Release the mouse button before starting Auto-Jelly")
+		if !(hwndRoblox := GetRobloxHWND())
+			throw Error("Open Bee Swarm Simulator before starting Auto-Jelly")
+		mgui.Hide()
+		if !ActivateRoblox(hwndRoblox) || !(anchor := nm_ClientSnapshot(hwndRoblox))
+			throw Error("Could not activate the Roblox client")
+		yOffset := GetYOffset(hwndRoblox, &offsetFailed, false)
+		if offsetFailed
+			throw Error("Could not detect the in-game GUI offset. Check graphics settings, language and window visibility.")
+		surface := nm_AutoJellySurface(hwndRoblox, yOffset, (*) => stopping, anchor)
+		while !stopping {
+			surface.Click()
+			surface.Wait(800)
+			pBitmap := surface.Capture("bee")
+			try result := nm_AutoJellyObservation.Identify((key) => Gdip_ImageSearch(pBitmap, bitmaps[key]), beeArr)
+			finally Gdip_DisposeImage(pBitmap)
+			surface.Check()
+			reason := nm_AutoJellyObservation.Reason(result, selectedBees, mythicStop, giftedStop)
+			if reason = "mythic" || reason = "gifted" {
+				MsgBox "Found a " reason " bee!", "Auto-Jelly", 0x40040
 				break
 			}
-		}
-		Gdip_DisposeImage(pBitmap)
-		if !found
-			continue
-		pBitmap := Gdip_BitmapFromScreen(windowX + Round(0.5 * windowWidth - 320) "|" windowY + yOffset + Round(0.4 * windowHeight + 17) "|210|90")
-		pEffect := Gdip_CreateEffect(5, -60,30)
-		Gdip_BitmapApplyEffect(pBitmap, pEffect)
-		Gdip_DisposeEffect(pEffect)
-		hBitmap := Gdip_CreateHBITMAPFromBitmap(pBitmap)
-		Gdip_DisposeImage(pBitmap)
-		try pIRandomAccessStream := HBitmapToRandomAccessStream(hBitmap)
-		finally DllCall("DeleteObject", "Ptr", hBitmap)
-		text:= RegExReplace(ocr(pIRandomAccessStream), "i)([\r\n\s]|mutation)*")
-		found := 0
-		for i, j in selectedMutations
-			for k, trigger in j.triggers
-				if inStr(text, trigger) { 
-					found := 1
-					break
+			if reason != "selected"
+				continue
+			if mutations {
+				pBitmap := surface.Capture("mutation"), pEffect := hBitmap := 0
+				try {
+					pEffect := Gdip_CreateEffect(5, -60, 30)
+					if !IsInteger(pEffect) || !pEffect {
+						pEffect := 0
+						throw Error("Could not create mutation image effect")
+					}
+					if Gdip_BitmapApplyEffect(pBitmap, pEffect)
+						throw Error("Could not prepare the mutation image")
+					if !(hBitmap := Gdip_CreateHBITMAPFromBitmap(pBitmap))
+						throw Error("Could not prepare the OCR bitmap")
+					pIRandomAccessStream := HBitmapToRandomAccessStream(hBitmap)
+				} finally {
+					if hBitmap
+						DllCall("DeleteObject", "Ptr", hBitmap)
+					if pEffect
+						Gdip_DisposeEffect(pEffect)
+					Gdip_DisposeImage(pBitmap)
 				}
-		if !found
-			continue
-		if msgbox("Found a match!`nDo you want to keep this?","Auto-Jelly!", 0x40044) = "Yes"
-			break
+				; Existing OCR helper owns the stream on its successful path.
+				text := RegExReplace(ocr(pIRandomAccessStream, ocrLanguage), "i)([\r\n\s]|mutation)*")
+				surface.Check()
+				if !text
+					throw Error("Mutation text could not be read; rolling stopped")
+				found := false
+				for mutation in selectedMutations
+					for trigger in mutation.triggers
+						if InStr(text, trigger)
+							found := true
+				if !found
+					continue
+			}
+			if MsgBox("Found a match!`nDo you want to keep this?", "Auto-Jelly", 0x40044) = "Yes"
+				break
+			; A user declining our own modal explicitly resumes this run. Reacquire
+			; that same client, then reject geometry changes before any next click.
+			if stopping
+				break
+			if !ActivateRoblox(hwndRoblox)
+				throw Error("Could not resume the Roblox client")
+			surface.Check()
+		}
+	} catch nm_AutoJellyCancelled {
+		; Escape is an ordinary stop, not an error dialog.
+	} catch as err {
+		MsgBox err.Message, "Auto-Jelly stopped", 0x40030
+	} finally {
+		nm_AutoJellySurface.Release()
+		try Hotkey "~*esc", stopToggle, "Off"
+		try mgui.Show()
+		running := false
 	}
-	hotkey "~*esc", stopToggle, "Off"
-	mgui.show()
 }
 closeFunction(*) {
-	global xPos, yPos
+	global xPos, yPos, stopping
+	stopping := true
+	nm_AutoJellySurface.Release()
 	try {
 		mgui.getPos(&xp, &yp)
 		if !(xp < 0) && !(xp > A_ScreenWidth) && !(yp < 0) && !(yp > A_ScreenHeight)

@@ -46,6 +46,7 @@ TestNativeGeneratedGuis() {
 				. ' global guiReady, resources, config, Bomber, mythicStop, selectAll, priorityState`n'
 				. ' if !IsSet(guiReady) || !guiReady {`n SetTimer nm_ProbeGui, -50`n return`n }`n'
 				. ' Critical "On"`n try {`n'
+				. (kind = "bee" ? " nm_ProbeBeeAssets()`n" : "")
 				. (kind = "priority" ? ' if A_CoordModeMouse != "Screen"`n throw Error("Priority drag uses screen coordinates")`n if !nm_SavePriority(87654321) || priorityState.Order != 87654321 || nm_PrioritySettings.Read().Order != 87654321`n throw Error("Priority editor failed to save and publish order")`n if !nm_SavePriority(12345678) || priorityState.Order != 12345678`n throw Error("Priority editor failed to reset")`n' : "")
 				. (kind = "bee" ? ' if Bomber != 1 || mythicStop != 1 || selectAll != 0 || FileRead("settings\mutations.ini") != ' nm_GuiScripts.Literal(iniFixture) '`n throw Error("Auto-Jelly settings validation or read-only startup failed")`n' : "")
 				. ' before := DllCall("GetGuiResources", "Ptr", -1, "UInt", 0, "UInt")`n'
@@ -57,6 +58,29 @@ TestNativeGeneratedGuis() {
 				. ' if resources.Token || resources.Surface || resources.Bitmaps.Count`n throw Error("GUI cleanup left owned graphics resources")`n'
 				. ' FileAppend "PASS ' kind ' redraw and close" (config.Has("webhook") ? "|" config["webhook"] : ""), "*", "UTF-8-RAW"`n'
 				. ' } catch as err {`n FileAppend "FAIL GUI probe: " err.Message, "*", "UTF-8-RAW"`n ExitApp 1`n }`n ExitApp 0`n}`n'
+			if kind = "bee"
+				source .= 'nm_ProbeBeeAssets() {`n'
+				. ' global bitmaps, beeArr`n'
+				. ' for bee in beeArr {`n'
+				. '  for prefix in ["-", "+"] {`n'
+				. '   capture := Gdip_CreateBitmap(320, 140), graphics := 0`n'
+				. '   try {`n'
+				. '    graphics := Gdip_GraphicsFromImage(capture)`n'
+				. '    if !capture || !graphics || Gdip_DrawImage(graphics, bitmaps[prefix bee], 0, 0)`n'
+				. '     throw Error("Could not build bee template fixture")`n'
+				. '    Gdip_DeleteGraphics(graphics), graphics := 0`n'
+				. '    result := nm_AutoJellyObservation.Identify((key) => Gdip_ImageSearch(capture, bitmaps[key]), beeArr)`n'
+				. '    if result.bee != bee || result.gifted != (prefix = "+")`n'
+				. '     throw Error("Bee template fixture returned wrong identity: " prefix bee)`n'
+				. '   } finally {`n'
+				. '    if graphics`n'
+				. '     Gdip_DeleteGraphics(graphics)`n'
+				. '    if capture`n'
+				. '     Gdip_DisposeImage(capture)`n'
+				. '   }`n'
+				. '  }`n'
+				. ' }`n'
+				. '}`n'
 			worker := nm_InlineWorker(source, A_AhkPath)
 			try {
 				output := worker.Output()
