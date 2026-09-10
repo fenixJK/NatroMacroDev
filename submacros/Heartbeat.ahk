@@ -22,6 +22,8 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "%A_ScriptDir%\..\lib\WatchdogRecovery.ahk"
 #Include "%A_ScriptDir%\..\lib\FailureLog.ahk"
 
+HideErrors := 1
+OnError((err, mode) => (nm_Failures.Write(err, "Watchdog unhandled failure"), ExitApp(1)))
 SetWorkingDir A_ScriptDir "\.."
 OnMessage(0x5552, nm_SetGlobalInt)
 OnMessage(0x5556, nm_SetHeartbeat)
