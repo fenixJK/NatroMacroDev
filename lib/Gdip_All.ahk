@@ -1,4 +1,5 @@
 #Include "Gdip_Capture.ahk"
+#Include "Gdip_Text.ahk"
 ; v1.61
 ; NOTE: Some functions have been modified/added!
 ; 		To see which functions these are, you can compare with the
@@ -2394,102 +2395,9 @@ Gdip_DeleteMatrix(Matrix)
 ; Text functions
 ;#####################################################################################
 
-Gdip_TextToGraphics(pGraphics, Text, Options, Font:="Arial", Width:="", Height:="", Measure:=0)
+Gdip_TextToGraphics(pGraphics, Text, Options, Font:="Arial", Width:="", Height:="", Measure:=0, Brush:=0)
 {
-	IWidth := Width
-	IHeight := Height
-	PassBrush := 0
-	Text := String(Text)
-
-
-	pattern_opts := "i)"
-	RegExMatch(Options, pattern_opts "X([\-\d\.]+)(p*)", &xpos:="")
-	RegExMatch(Options, pattern_opts "Y([\-\d\.]+)(p*)", &ypos:="")
-	RegExMatch(Options, pattern_opts "W([\-\d\.]+)(p*)", &Width:="")
-	RegExMatch(Options, pattern_opts "H([\-\d\.]+)(p*)", &Height:="")
-	RegExMatch(Options, pattern_opts "C(?!(entre|enter))([a-f\d]+)", &Colour:="")
-	RegExMatch(Options, pattern_opts "Top|Up|Bottom|Down|vCentre|vCenter", &vPos:="")
-	RegExMatch(Options, pattern_opts "NoWrap", &NoWrap:="")
-	RegExMatch(Options, pattern_opts "R(\d)", &Rendering:="")
-	RegExMatch(Options, pattern_opts "S(\d+)(p*)", &Size:="")
-
-	if Colour && IsInteger(Colour[2]) && !Gdip_DeleteBrush(Gdip_CloneBrush(Colour[2])) {
-		PassBrush := 1, pBrush := Colour[2]
-	}
-
-	if !(IWidth && IHeight) && ((xpos && xpos[2]) || (ypos && ypos[2]) || (Width && Width[2]) || (Height && Height[2]) || (Size && Size[2])) {
-		return -1
-	}
-
-	Style := 0
-	Styles := "Regular|Bold|Italic|BoldItalic|Underline|Strikeout"
-	for eachStyle, valStyle in StrSplit( Styles, "|" ) {
-		if RegExMatch(Options, "\b" valStyle)
-			Style |= (valStyle != "StrikeOut") ? (A_Index-1) : 8
-	}
-
-	Align := 0
-	Alignments := "Near|Left|Centre|Center|Far|Right"
-	for eachAlignment, valAlignment in StrSplit( Alignments, "|" ) {
-		if RegExMatch(Options, "\b" valAlignment) {
-			Align |= A_Index*10//21	; 0|0|1|1|2|2
-		}
-	}
-
-	xpos := (xpos && (xpos[1] != "")) ? xpos[2] ? IWidth*(xpos[1]/100) : xpos[1] : 0
-	ypos := (ypos && (ypos[1] != "")) ? ypos[2] ? IHeight*(ypos[1]/100) : ypos[1] : 0
-	Width := (Width && Width[1]) ? Width[2] ? IWidth*(Width[1]/100) : Width[1] : IWidth
-	Height := (Height && Height[1]) ? Height[2] ? IHeight*(Height[1]/100) : Height[1] : IHeight
-
-	if !PassBrush {
-		Colour := "0x" (Colour && Colour[2] ? Colour[2] : "ff000000")
-	}
-
-	Rendering := (Rendering && (Rendering[1] >= 0) && (Rendering[1] <= 5)) ? Rendering[1] : 4
-	Size := (Size && (Size[1] > 0)) ? Size[2] ? IHeight*(Size[1]/100) : Size[1] : 12
-
-	hFamily := Gdip_FontFamilyCreate(Font)
-	hFont := Gdip_FontCreate(hFamily, Size, Style)
-	FormatStyle := NoWrap ? 0x4000 | 0x1000 : 0x4000
-	hFormat := Gdip_StringFormatCreate(FormatStyle)
-	pBrush := PassBrush ? pBrush : Gdip_BrushCreateSolid(Colour)
-
-	if !(hFamily && hFont && hFormat && pBrush && pGraphics) {
-		return !pGraphics ? -2 : !hFamily ? -3 : !hFont ? -4 : !hFormat ? -5 : !pBrush ? -6 : 0
-	}
-
-	CreateRectF(&RC:="", xpos, ypos, Width, Height)
-	Gdip_SetStringFormatAlign(hFormat, Align)
-	Gdip_SetTextRenderingHint(pGraphics, Rendering)
-	ReturnRC := Gdip_MeasureString(pGraphics, Text, hFont, hFormat, &RC)
-
-	if vPos {
-		ReturnRC := StrSplit(ReturnRC, "|")
-
-		if (vPos[0] = "vCentre") || (vPos[0] = "vCenter")
-			ypos += Floor(Height-ReturnRC[4])//2
-		else if (vPos[0] = "Top") || (vPos[0] = "Up")
-			ypos := 0
-		else if (vPos[0] = "Bottom") || (vPos[0] = "Down")
-			ypos := Height-ReturnRC[4]
-
-		CreateRectF(&RC, xpos, ypos, Width, ReturnRC[4])
-		ReturnRC := Gdip_MeasureString(pGraphics, Text, hFont, hFormat, &RC)
-	}
-
-	if !Measure {
-		Gdip_DrawString(pGraphics, Text, hFont, hFormat, pBrush, &RC)
-	}
-
-	if !PassBrush {
-		Gdip_DeleteBrush(pBrush)
-	}
-
-	Gdip_DeleteStringFormat(hFormat)
-	Gdip_DeleteFont(hFont)
-	Gdip_DeleteFontFamily(hFamily)
-
-	return ReturnRC
+	return Gdip_TextRenderer.Draw(pGraphics, Text, Options, Font, Width, Height, Measure, Brush)
 }
 
 ;#####################################################################################
@@ -2510,8 +2418,8 @@ Gdip_DrawString(pGraphics, sString, hFont, hFormat, pBrush, &RectF)
 
 Gdip_MeasureString(pGraphics, sString, hFont, hFormat, &RectF)
 {
-	RC := Buffer(16)
-	DllCall("gdiplus\GdipMeasureString"
+	RC := Buffer(16, 0)
+	status := DllCall("gdiplus\GdipMeasureString"
 					, "UPtr", pGraphics
 					, "UPtr", StrPtr(sString)
 					, "Int", -1
@@ -2522,7 +2430,7 @@ Gdip_MeasureString(pGraphics, sString, hFont, hFormat, &RectF)
 					, "uint*", &Chars:=0
 					, "uint*", &Lines:=0)
 
-	return RC.Ptr ? NumGet(RC, 0, "Float") "|" NumGet(RC, 4, "Float") "|" NumGet(RC, 8, "Float") "|" NumGet(RC, 12, "Float") "|" Chars "|" Lines : 0
+	return status = 0 ? NumGet(RC, 0, "Float") "|" NumGet(RC, 4, "Float") "|" NumGet(RC, 8, "Float") "|" NumGet(RC, 12, "Float") "|" Chars "|" Lines : 0
 }
 
 ; Near = 0

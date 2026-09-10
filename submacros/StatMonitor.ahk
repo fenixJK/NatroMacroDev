@@ -982,7 +982,7 @@ SendHourlyReport()
 					: (i = "redboost") ? 0xffe46156
 					: 0xff56a4e4
 
-				pBrush := Gdip_BrushCreateSolid(color), Gdip_TextToGraphics(G, "x" . (count ? Round(total/count, 3) : "0.000"), "s32 Center Bold c" pBrush " x" v[1]-190 " y" v[2]+(72-36*A_Index), "Segoe UI"), Gdip_DeleteBrush(pBrush)
+				pBrush := Gdip_BrushCreateSolid(color), Gdip_TextToGraphics(G, "x" . (count ? Round(total/count, 3) : "0.000"), "s32 Center Bold x" v[1]-190 " y" v[2]+(72-36*A_Index), "Segoe UI",,, 0, pBrush), Gdip_DeleteBrush(pBrush)
 
 				points := []
 
@@ -1070,7 +1070,7 @@ SendHourlyReport()
 				: (k = "precision") ? 0xff8f4eb4
 				: (k = "reindeerfetch") ? 0xffcc2c2c : 0
 
-			pBrush := Gdip_BrushCreateSolid(color), Gdip_TextToGraphics(G, "x" . (count ? Round(total/count, 3) : "0.000"), "s32 Center Bold c" pBrush " x" v[1]-190 " y" v[2]+36, "Segoe UI"), Gdip_DeleteBrush(pBrush)
+			pBrush := Gdip_BrushCreateSolid(color), Gdip_TextToGraphics(G, "x" . (count ? Round(total/count, 3) : "0.000"), "s32 Center Bold x" v[1]-190 " y" v[2]+36, "Segoe UI",,, 0, pBrush), Gdip_DeleteBrush(pBrush)
 
 			points := []
 
@@ -1293,14 +1293,14 @@ SendHourlyReport()
 		pPen := Gdip_CreatePen(color-0xd0000000, 32), Gdip_DrawArc(G, pPen, stat_regions["buffs"][1]+50+(A_Index-1)*(stat_regions["buffs"][3]-100-200)/4, stat_regions["buffs"][2]+410, 200, 200, -90-1+(nectar_value+projected_value)/100*360, 360+2-(nectar_value+projected_value)/100*360), Gdip_DeletePen(pPen)
 
 		pBrush := Gdip_BrushCreateSolid(color)
-		Gdip_TextToGraphics(G, nectar_value "%", "s54 Center Bold c" pBrush " x" stat_regions["buffs"][1]+150+(A_Index-1)*(stat_regions["buffs"][3]-100-200)/4 " y" stat_regions["buffs"][2]+(projected_value ? 456 : 472), "Segoe UI")
-		Gdip_TextToGraphics(G, Format("{1:Us}", SubStr(j, 1, 3)), "s48 Center Bold c" pBrush " x" stat_regions["buffs"][1]+150+(A_Index-1)*(stat_regions["buffs"][3]-100-200)/4 " y" stat_regions["buffs"][2]+630, "Segoe UI")
+		Gdip_TextToGraphics(G, nectar_value "%", "s54 Center Bold x" stat_regions["buffs"][1]+150+(A_Index-1)*(stat_regions["buffs"][3]-100-200)/4 " y" stat_regions["buffs"][2]+(projected_value ? 456 : 472), "Segoe UI",,, 0, pBrush)
+		Gdip_TextToGraphics(G, Format("{1:Us}", SubStr(j, 1, 3)), "s48 Center Bold x" stat_regions["buffs"][1]+150+(A_Index-1)*(stat_regions["buffs"][3]-100-200)/4 " y" stat_regions["buffs"][2]+630, "Segoe UI",,, 0, pBrush)
 		Gdip_DeleteBrush(pBrush)
 
 		if projected_value
 		{
 			pBrush := Gdip_BrushCreateSolid(color-0x40000000)
-			Gdip_TextToGraphics(G, "(+" Round(projected_value) "%)", "s28 Center Bold c" pBrush " x" stat_regions["buffs"][1]+150+(A_Index-1)*(stat_regions["buffs"][3]-100-200)/4 " y" stat_regions["buffs"][2]+516, "Segoe UI")
+			Gdip_TextToGraphics(G, "(+" Round(projected_value) "%)", "s28 Center Bold x" stat_regions["buffs"][1]+150+(A_Index-1)*(stat_regions["buffs"][3]-100-200)/4 " y" stat_regions["buffs"][2]+516, "Segoe UI",,, 0, pBrush)
 			Gdip_DeleteBrush(pBrush)
 		}
 	}

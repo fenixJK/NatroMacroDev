@@ -37,6 +37,7 @@
 #Include "%A_ScriptDir%\..\lib\FailureLog.ahk"
 #Include "%A_ScriptDir%\..\lib\Gdip_All.ahk"
 #Include "%A_ScriptDir%\ScreenCaptureTests.ahk"
+#Include "%A_ScriptDir%\TextGraphicsTests.ahk"
 #Include "%A_ScriptDir%\..\lib\Gdip_ImageSearch.ahk"
 #Include "%A_ScriptDir%\..\lib\AutoFieldBoost.ahk"
 #Include "%A_ScriptDir%\..\lib\Discord.ahk"
@@ -119,7 +120,7 @@ DirCreate testDirectory "\settings"
 SetWorkingDir testDirectory
 passed := failed := 0
 try {
-	for test in [TestScreenCapture, TestAutoJellyLimits, TestAutoJellyOcr, TestAutoJellySafety, TestPrioritySettings, TestAutoJellySettings, TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
+	for test in [TestTextGraphics, TestScreenCapture, TestAutoJellyLimits, TestAutoJellyOcr, TestAutoJellySafety, TestPrioritySettings, TestAutoJellySettings, TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
 		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures, TestCollectionInterrupts, TestDiscordPayload, TestDeliveryQueue, TestHourlyReportDelivery, TestLocalHttpDelivery, TestGeometryCache, TestInventoryEngine, TestInventoryReader, TestPointerLease, TestInventoryDrag, TestQuestObservation, TestQuestFrames, TestQuestActions, TestQuestUnknownPublication, TestQuestRecovery, TestQuestTurnInRecovery, TestHealthObservation, TestBossHealthEstimation, TestBossHealthReporting, TestImageObservation, TestCombatPresence, TestRemoteCapabilities, TestAttachmentWorker, TestSupportReport, TestGatherProfiles, TestReconnectSession, TestRecoveryActivity, TestPlanterDialog, TestStatCounters, TestDiscordRepliesEncoding, TestDiscordHelp, TestDiscordReports, TestLiveHoneyDelivery, TestLocalLiveHoney, TestUploadOwnership, TestCommandDelivery, TestDeliveryCooldown, TestLocalCooldown, TestBotInbox, TestBotRoles, TestBotRecovery, TestLocalBotInbox, TestStartupControl, TestWatchdogRecovery] {
 		try {
 			test.Call()
