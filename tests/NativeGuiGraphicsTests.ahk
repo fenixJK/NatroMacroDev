@@ -38,6 +38,12 @@ TestNativeGeneratedGuis() {
 		; worker limit. Keep all comparisons, split asset work into disjoint halves.
 		for probe in [["discord", 0], ["priority", 0], ["bee", 1], ["bee", 2], ["bee", 0]] {
 			kind := probe[1], assetBatch := probe[2]
+			; Closing Auto-Jelly deliberately persists its GUI position. Each
+			; independent worker must start with the original read-only fixture.
+			if kind = "bee" {
+				FileDelete directory "\settings\mutations.ini"
+				FileAppend iniFixture, directory "\settings\mutations.ini", "UTF-8"
+			}
 			if FileExist(directory "\probe-phase.txt")
 				FileDelete directory "\probe-phase.txt"
 			config := nm_GuiScripts.Defaults(kind)
