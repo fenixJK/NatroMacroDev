@@ -62,7 +62,7 @@ class nm_RemotePermissionsWindow {
 			"Diagnostics", "Send logs and diagnostic reports",
 			"CustomCommands", "Run locally installed personal commands")
 		for key, flag in nm_RemoteCapabilities.Flags
-			panel.AddCheckbox("w520 v" key " Checked" !!(mask & flag), labels[key])
+			panel.AddCheckbox("w520 v" key " Checked" (!!(mask & flag)), labels[key])
 		panel.AddText("w520", "Desktop control and personal commands can provide full control of this computer. File uploads and diagnostics can disclose private information. Received attachments are saved only; they are not opened or executed.")
 		panel.AddText("w520", "All optional permissions start disabled. Revoking a permission prevents new commands; it cannot undo an action already in progress.")
 		panel.AddButton("w130 Default", "Save permissions").OnEvent("Click", (*) => this.Save(panel))
