@@ -1809,3 +1809,40 @@ not a native allocation soak or an in-game mutation corpus. Consumption budgets,
 positive roll receipts, hover-handler review and live game accuracy remain open.
 No Windows/Roblox machine is available. The full production goal remains active;
 no merge, deployment or release is claimed.
+
+## Auto-Jelly mouse callback checkpoint
+
+Code checkpoint: `3b6fa8c20bd45e35be626a73d879447b32494354`.
+[Windows run 34463583704](https://github.com/fenixJK/NatroMacroDev/actions/runs/34463583704)
+passed **66 regression groups on both AHK architectures**, native process/GUI
+suites, **nine production-script, four test-entry and seven emitted-worker
+validations** per architecture, plus **eight file-channel checks, 43 attachment
+checks and 35 updater scenarios** per PowerShell version. No AHK warnings occurred;
+the checkout Node runtime deprecation notice remains.
+
+Auto-Jelly hover and close callbacks no longer contain waiting loops. A short
+timer tracks hover exit, tooltip delay and close-press expiry, and stable hover
+does not redraw repeatedly. Control lookup checks message ownership and the
+focused, visible GUI under the pointer before indexing controls. The hand cursor
+is confined to owned client-area cursor messages; system-wide cursor replacement
+and cursor-scheme resets are removed. Roll and Help defer their work until after
+the click message returns.
+
+Close tracking owns capture only when none already exists, accepts a matching
+release on its close control, and cancels on release elsewhere, focus loss,
+Escape, capture transfer or timeout. It preserves a new capture owner and posts
+accepted close/title-drag messages explicitly to the Auto-Jelly window. GUI teardown
+stops tracking and clears tooltips before window/graphics destruction.
+
+The generated GUI fixture verifies real control hover/tooltip behavior, cursor
+message handling, foreign click isolation, deferred action dispatch, close press
+capture/release/expiry/transfer, accepted close targeting and repeated cleanup.
+Its existing startup-retry, settings preservation, redraw and graphics lifecycle
+checks still pass, as do actual English OCR and input/cancellation tests.
+
+[Mouse verification](auto-jelly-mouse-verification.md) records the contract and
+limits. This is not a CPU benchmark or exhaustive physical drag/held-button/DPI
+verification. Synchronous drawing and INI calls remain. Consumption limits,
+mutation accuracy, positive roll receipts and live game checks remain production
+work. No Windows/Roblox machine is available. The full production goal remains
+active; no merge, deployment or release is claimed.

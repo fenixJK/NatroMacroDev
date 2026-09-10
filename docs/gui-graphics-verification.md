@@ -99,3 +99,11 @@ wraps each returned COM reference and closes its temporary streams/bitmaps on
 unwinding. Async polling has one shared deadline and input/cancellation checks.
 [OCR verification](auto-jelly-ocr-verification.md) records native COM cleanup
 fault tests, actual English recognition and the remaining native-call/game limits.
+
+## Auto-Jelly mouse follow-up
+
+Hover redraw now occurs on a control change rather than inside a waiting callback.
+Tracking and tooltips are stopped before graphics teardown. System-wide cursor
+replacement is removed. [Mouse verification](auto-jelly-mouse-verification.md)
+records the native hover/capture/foreign-window tests and remaining display/input
+scope; this is not a whole-program CPU benchmark.

@@ -76,8 +76,9 @@ after the attempted click rather than retrying it.
 
 Mutation trigger accuracy, nonempty but invalid OCR text, animation/stale-result
 handling, overlay/occlusion detection, live GUI offsets and in-game stop/resume
-behavior remain unverified. The legacy hover handler also contains a waiting loop
-and needs an event-handling review. Full-run error cleanup after actual game
+behavior remain unverified. Hover and close waiting loops have since been replaced
+with window-scoped tracking; [mouse verification](auto-jelly-mouse-verification.md)
+records that checkpoint and its physical-input/display limits. Full-run error cleanup after actual game
 operations has not been exercised in Roblox. There is no Windows/Roblox machine available;
 CI evidence does not establish full Auto-Jelly or production readiness.
 
