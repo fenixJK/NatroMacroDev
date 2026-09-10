@@ -696,3 +696,43 @@ Arbitrary free text is not guaranteed anonymous; local review remains useful.
 The full recovery objective stays active, including remaining game features,
 state/recovery/reporting work, measured optimization, proposed features and
 production release/live-verification gates.
+
+## Gather profile validation and persistence checkpoint
+
+Code checkpoint: `aaa098917df9382cf601eff4ead4b6d6babac97f`.
+[Windows run 34426812328](https://github.com/fenixJK/NatroMacroDev/actions/runs/34426812328)
+passed **43 regression groups on each AHK architecture**, native geometry checks,
+six script and four emitted-worker validations per architecture, **43 attachment
+checks** and **35 updater scenarios** on each PowerShell version. No AHK warnings
+occurred. The existing checkout action's Node runtime deprecation notice remains.
+
+Gather copy/paste now uses a shared parser and typed validation for all fifteen
+profile settings. New copies include schema version 1; legacy partial profiles,
+integer strings and multiline JSON remain supported. Invalid or duplicate keys,
+unsupported versions, unavailable fields/patterns and invalid bounds are rejected
+before persistence. Imported field changes retain explicitly supplied pattern
+settings instead of invoking field defaults. Native spinners, globals and the
+current-field display are refreshed after saving.
+
+Pasting requires a stopped macro. The main process holds its event handlers while
+committing the complete Gather section through the Windows profile API. Status
+Gather writes cooperate through an OS-owned lock, protecting the section merge
+from concurrent remote writes. Unspecified keys and other sections are preserved.
+Delayed numeric notifications reload persisted values, and redundant name
+notifications do not reset an imported profile. This does not provide a power-loss
+transaction, coherent multi-key reads for legacy readers, or protection from
+uncoordinated external file editors.
+
+Tests exercise parser failures and compatibility, real INI write failures, an
+independent writer blocked by the shared lock, an independent section reader
+during repeated commits, and the production copy/paste handlers with native
+controls. Only the surrounding tab-enable routine is substituted. CI exposed an
+incorrect UTF-16 encoding offset, test fixture scope/declaration errors and an
+ambiguous main-script if/try/else, all corrected before accepting this checkpoint.
+
+[Gather profile documentation](gather-profiles.md) records the persistence and UI
+publication limits. Full application layout, rapid live remote-edit interactions,
+custom-pattern execution and process/power-loss recovery remain unverified.
+The user confirmed that no Windows/Roblox machine is currently available and
+authorized continued code fixes and CI. Live game verification remains a release
+gate; remaining recovery work and the full production objective stay active.
