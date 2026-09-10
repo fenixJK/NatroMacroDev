@@ -69,7 +69,7 @@ class nm_ScriptProcess {
 					path := Buffer(65536), size := 32768
 					if !DllCall("QueryFullProcessImageNameW", "Ptr", handle, "UInt", 0, "Ptr", path, "UIntP", &size)
 						throw Error("Could not verify macro runtime")
-					if StrCompare(StrGet(path), executable, false) != 0
+					if StrCompare(this.FullPath(StrGet(path)), executable, false) != 0
 						|| !nm_RobloxProcesses.SameUser(handle) || nm_RobloxProcesses.Session(handle) != nm_RobloxProcesses.Session(-1)
 						|| !WinExist("ahk_id " hwnd) || WinGetPID("ahk_id " hwnd) != pid
 						|| StrCompare(WinGetTitle("ahk_id " hwnd), script " - AutoHotkey v" A_AhkVersion, false) != 0
@@ -92,6 +92,10 @@ class nm_ScriptProcess {
 		length := DllCall("GetFullPathNameW", "Str", path, "UInt", 32768, "Ptr", pathBuffer, "Ptr", 0, "UInt")
 		if !length || length >= 32768
 			throw Error("Could not resolve script identity")
+		longPath := Buffer(65536)
+		longLength := DllCall("GetLongPathNameW", "Ptr", pathBuffer, "Ptr", longPath, "UInt", 32768, "UInt")
+		if longLength && longLength < 32768
+			return StrGet(longPath)
 		return StrGet(pathBuffer)
 	}
 	static Stop(script, executable) {

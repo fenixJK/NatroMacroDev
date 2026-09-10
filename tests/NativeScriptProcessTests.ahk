@@ -33,6 +33,12 @@ TestNativeScriptProcesses() {
 			for item in captured
 				item.Release()
 		}
+		captured := nm_ScriptProcess.Find(selectedScript, directory "\other-runtime.exe")
+		try RequireProcess(captured.Length = 1 && captured[1].Pid = otherRuntime.Pid, "Short and long runtime paths identify the same expected executable")
+		finally {
+			for item in captured
+				item.Release()
+		}
 		nm_ScriptProcess.Stop(selectedScript, A_AhkPath)
 		RequireProcess(!selected.Running(), "Watchdog cleanup terminates the verified script through its retained handle")
 		RequireProcess(decoy.Running() && otherRuntime.Running(), "Same-name script and different-runtime decoys survive cleanup")
