@@ -14,11 +14,11 @@ class nm_PowerShellJob extends nm_OwnedProcessJob {
 			throw Error("File worker has not completed")
 		if !DllCall("GetExitCodeProcess", "Ptr", this.Process, "UIntP", &code := 0) || code != 0
 			return Map("ok", false, "reason", "worker")
-		state := NumGet(this.View, 8, "Int"), reason := NumGet(this.View, 12, "Int")
-		if state = 1 && reason = 0
+		resultState := NumGet(this.View, 8, "Int"), reason := NumGet(this.View, 12, "Int")
+		if resultState = 1 && reason = 0
 			return Map("ok", true)
 		reasons := ["worker", "url", "storage", "quota", "network", "http", "size", "timeout"]
-		return Map("ok", false, "reason", state = 2 && reason >= 0 && reason < reasons.Length ? reasons[reason + 1] : "worker")
+		return Map("ok", false, "reason", resultState = 2 && reason >= 0 && reason < reasons.Length ? reasons[reason + 1] : "worker")
 	}
 	Terminate() {
 		if !DllCall("TerminateJobObject", "Ptr", this.Job, "UInt", 1)

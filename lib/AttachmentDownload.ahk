@@ -35,19 +35,20 @@ class nm_AttachmentDownloads {
 			}
 			return
 		}
-		this.Active := 0
 		try {
 			result := job.stopping ? Map("ok", false, "reason", "timeout") : job.worker.Result()
 			ok := result.Has("ok") && result["ok"]
 			message := ok ? "Attachment saved in settings/remote-inbox. Files are not opened automatically."
 				: "Attachment download failed (" (result.Has("reason") ? result["reason"] : "worker") "). No completed file was reported."
-			notify.Call(message, ok, job.id)
 		} catch {
-			notify.Call("Attachment worker failed. Check the inbox before retrying.", false, job.id)
-		} finally {
-			job.worker.Close()
-			try DirDelete job.directory, true
+			message := "Attachment worker failed. Check the inbox before retrying.", ok := false
 		}
+		; Retain ownership if termination cannot be confirmed. Callback failure
+		; must not trigger a second, contradictory completion notification.
+		job.worker.Close()
+		this.Active := 0
+		try DirDelete job.directory, true
+		notify.Call(message, ok, job.id)
 	}
 	static Close(*) {
 		if !(job := this.Active)

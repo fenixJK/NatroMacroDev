@@ -32,6 +32,11 @@ TestAttachmentWorker() {
 		nm_AttachmentDownloads.Active := {worker: worker, directory: A_WorkingDir "\missing-receiving", id: "45", tick: 0, stopping: false}
 		nm_AttachmentDownloads.Pump(notify)
 		Assert(replies.Length = 3 && !replies[3][2] && !nm_AttachmentDownloads.Active, "Malformed worker result reports failure and releases ownership")
+		worker := AttachmentWorkerFixture(), worker.Status := 1
+		nm_AttachmentDownloads.Active := {worker: worker, directory: A_WorkingDir "\missing-receiving", id: "callback", tick: 0, stopping: false}
+		callbackCalls := {count: 0}
+		AssertDeliveryError(() => nm_AttachmentDownloads.Pump((*) => TestAttachmentNotifyFailure(callbackCalls)), "Notification failure propagates after cleanup")
+		Assert(!nm_AttachmentDownloads.Active && callbackCalls.count = 1, "Notification failure cannot repeat a contradictory completion or retain the finished worker")
 		; Exercise the actual production worker launch and mapping contract, including a
 		; Unicode working directory. Its URL policy rejects loopback before networking.
 		originalDirectory := A_WorkingDir
@@ -70,4 +75,9 @@ TestAttachmentWorker() {
 			SetWorkingDir originalDirectory
 		}
 	} finally nm_AttachmentDownloads.Active := 0
+}
+
+TestAttachmentNotifyFailure(calls) {
+	calls.count++
+	throw Error("Fixture notification failure")
 }

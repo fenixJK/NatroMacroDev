@@ -107,12 +107,12 @@ class nm_OwnedProcessJob {
 		if this.Process {
 			; TerminateProcess is asynchronous. Keep using this handle, not a PID
 			; lookup, and wait for its terminal state before releasing resources.
-			if DllCall("WaitForSingleObject", "Ptr", this.Process, "UInt", 0) = 258 {
-				if !DllCall("TerminateProcess", "Ptr", this.Process, "UInt", 1)
-					&& DllCall("WaitForSingleObject", "Ptr", this.Process, "UInt", 0) != 0
-					throw Error("Could not stop owned reconnect helper")
+			if this.Running() {
+				; Another termination request may already be in flight. Its handle
+				; can remain unsignaled briefly while TerminateProcess is denied.
+				DllCall("TerminateProcess", "Ptr", this.Process, "UInt", 1)
 				if DllCall("WaitForSingleObject", "Ptr", this.Process, "UInt", 2000) != 0
-					throw Error("Owned reconnect helper has not terminated")
+					throw Error("Owned process helper has not terminated")
 			}
 			DllCall("CloseHandle", "Ptr", this.Process), this.Process := 0
 			if nm_OwnedProcessJob.Jobs.Has(this.Pid)
