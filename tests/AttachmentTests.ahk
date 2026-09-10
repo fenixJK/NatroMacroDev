@@ -4,6 +4,11 @@ class AttachmentWorkerFixture {
 	Stopped := 0
 	__New(text := '{"ok":true}') => this.StdOut := {ReadAll: (*) => text}
 	Terminate() => (this.Stopped++, this.Status := 1)
+	Close() {
+		if this.Status = 0
+			this.Terminate()
+	}
+	Result() => JSON.parse(this.StdOut.ReadAll())
 }
 
 TestAttachmentWorker() {
@@ -27,13 +32,14 @@ TestAttachmentWorker() {
 		nm_AttachmentDownloads.Active := {worker: worker, directory: A_WorkingDir "\missing-receiving", id: "45", tick: 0, stopping: false}
 		nm_AttachmentDownloads.Pump(notify)
 		Assert(replies.Length = 3 && !replies[3][2] && !nm_AttachmentDownloads.Active, "Malformed worker result reports failure and releases ownership")
-		; Exercise the actual production worker launch and stdin contract, including a
+		; Exercise the actual production worker launch and mapping contract, including a
 		; Unicode working directory. Its URL policy rejects loopback before networking.
 		originalDirectory := A_WorkingDir
 		DirCreate "worker-" Chr(233) "\submacros"
 		DirCreate "worker-" Chr(233) "\lib"
 		FileCopy A_ScriptDir "\..\submacros\attachment-download.ps1", "worker-" Chr(233) "\submacros\attachment-download.ps1"
 		FileCopy A_ScriptDir "\..\lib\AttachmentDownload.ps1", "worker-" Chr(233) "\lib\AttachmentDownload.ps1"
+		FileCopy A_ScriptDir "\..\lib\PowerShellJob.ps1", "worker-" Chr(233) "\lib\PowerShellJob.ps1"
 		SetWorkingDir "worker-" Chr(233)
 		try {
 			nm_AttachmentDownloads.Start("http://127.0.0.1:1/not-allowed", "46")
@@ -48,10 +54,10 @@ TestAttachmentWorker() {
 			else if replies.Length >= 4
 				FileAppend "Attachment fixture result after " (DllCall("GetTickCount64", "UInt64") - start) " ms: " replies[4][1] "`n", "*"
 			Assert(!nm_AttachmentDownloads.Active && replies.Length = 4 && !replies[4][2], "Native worker launch completes without contacting an unapproved host")
-			Assert(InStr(replies[4][1], "(url)"), "Native worker receives and parses stdin JSON")
+			Assert(InStr(replies[4][1], "(url)"), "Native worker receives and parses shared-memory JSON")
 			Assert(!DirExist(jobDirectory), "Completed worker cleans its owned receiving directory")
 			FileDelete "submacros\attachment-download.ps1"
-			FileAppend "$null = [Console]::In.ReadToEnd(); Start-Sleep -Seconds 30", "submacros\attachment-download.ps1"
+			FileAppend "param([string]$Channel); Start-Sleep -Seconds 30", "submacros\attachment-download.ps1"
 			nm_AttachmentDownloads.Start("http://127.0.0.1:1/not-allowed", "47")
 			jobDirectory := nm_AttachmentDownloads.Active.directory
 			pid := nm_AttachmentDownloads.Active.worker.ProcessID

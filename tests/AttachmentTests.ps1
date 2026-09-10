@@ -75,6 +75,7 @@ try {
         Require (-not $result.ok -and $result.reason -eq 'storage') 'Concurrent inbox owner was ignored'
     } finally { $held.Dispose() }
     Require-NoPartial $job
+    & (Join-Path $PSScriptRoot 'FileWorkerTests.ps1')
     Write-Host "$script:passed attachment checks passed on PowerShell $($PSVersionTable.PSVersion)"
 } finally {
     if (-not $fixture.HasExited) { $fixture.Kill(); $fixture.WaitForExit() }

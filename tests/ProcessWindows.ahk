@@ -3,6 +3,8 @@
 #Warn All, StdOut
 #Include "%A_ScriptDir%\..\lib\JSON.ahk"
 #Include "%A_ScriptDir%\..\lib\OwnedProcessJob.ahk"
+#Include "%A_ScriptDir%\..\lib\PowerShellJob.ahk"
+#Include "%A_ScriptDir%\NativeFileJobTests.ahk"
 #Include "%A_ScriptDir%\..\lib\RobloxProcesses.ahk"
 #Include "%A_ScriptDir%\..\lib\ReconnectLaunch.ahk"
 #Include "%A_ScriptDir%\..\lib\DeliveryCooldown.ahk"
@@ -93,6 +95,7 @@ ProcessTests() {
 		RequireProcess(decoy.Running(), "Studio/Roblox-named command-line decoy survives")
 		RequireProcess(nm_OwnedProcessJob.Execute(Map("kind", "close")) = 0, "Repeated cleanup does not target unrelated survivors")
 		TestProcessCrashOwnership()
+		TestNativeFileJobs()
 		TestNativeCooldown()
 		FileAppend "PASS Windows owned-process and reconnect cleanup integration (" A_PtrSize * 8 "-bit)`n", "*"
 	} finally {

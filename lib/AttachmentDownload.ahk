@@ -1,3 +1,4 @@
+#Include "%A_ScriptDir%\..\lib\PowerShellJob.ahk"
 ; One owned worker at a time. Polling never waits for response bodies.
 class nm_AttachmentDownloads {
 	static Active := 0
@@ -16,17 +17,8 @@ class nm_AttachmentDownloads {
 		if !DllCall("CreateDirectoryW", "Str", directory, "Ptr", 0)
 			throw Error("Could not create the attachment receiving directory")
 		try {
-			worker := ComObject("WScript.Shell").Exec('"' A_WinDir '\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "' A_WorkingDir '\submacros\attachment-download.ps1"')
+			worker := nm_PowerShellJob(Map("url", url, "directory", directory), A_WorkingDir "\submacros\attachment-download.ps1")
 			this.Active := {worker: worker, directory: directory, id: messageId, tick: DllCall("GetTickCount64", "UInt64"), stopping: false}
-			; ASCII JSON survives the Windows PowerShell 5.1 pipe code page, including
-			; paths containing non-ASCII characters. No URL is put on the command line.
-			payload := "", encoded := JSON.stringify(Map("url", url, "directory", directory))
-			Loop StrLen(encoded) {
-				unit := NumGet(StrPtr(encoded), (A_Index - 1) * 2, "UShort")
-				payload .= unit > 127 ? Format("\u{:04x}", unit) : Chr(unit)
-			}
-			worker.StdIn.Write(payload)
-			worker.StdIn.Close()
 		} catch {
 			this.Close()
 			try DirDelete directory, true
@@ -45,29 +37,23 @@ class nm_AttachmentDownloads {
 		}
 		this.Active := 0
 		try {
-			result := job.stopping ? Map("ok", false, "reason", "timeout") : JSON.parse(job.worker.StdOut.ReadAll())
-			ok := result.Has("ok") && result["ok"] && job.worker.ExitCode = 0
+			result := job.stopping ? Map("ok", false, "reason", "timeout") : job.worker.Result()
+			ok := result.Has("ok") && result["ok"]
 			message := ok ? "Attachment saved in settings/remote-inbox. Files are not opened automatically."
 				: "Attachment download failed (" (result.Has("reason") ? result["reason"] : "worker") "). No completed file was reported."
 			notify.Call(message, ok, job.id)
 		} catch {
 			notify.Call("Attachment worker failed. Check the inbox before retrying.", false, job.id)
 		} finally {
+			job.worker.Close()
 			try DirDelete job.directory, true
 		}
 	}
 	static Close(*) {
 		if !(job := this.Active)
 			return
+		job.worker.Close()
 		this.Active := 0
-		try {
-			if job.worker.Status = 0 {
-				job.worker.Terminate()
-				ProcessWaitClose(job.worker.ProcessID, 2)
-			}
-		} finally {
-			if job.worker.Status != 0
-				try DirDelete job.directory, true
-		}
+		try DirDelete job.directory, true
 	}
 }

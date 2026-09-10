@@ -16,7 +16,7 @@ class nm_OwnedProcessJob {
 			nm_OwnedProcessJob.Initialized := true
 		}
 		encoded := JSON.stringify(request)
-		if StrLen(encoded) > 4096
+		if StrLen(encoded) > this.RequestLimit()
 			throw ValueError("Process request is too large")
 		try {
 			guid := Buffer(16), text := Buffer(78)
@@ -31,12 +31,12 @@ class nm_OwnedProcessJob {
 			if !this.View
 				throw OSError()
 			NumPut("UInt", 1, "UInt", StrLen(encoded), "Int", 0, "Int", 0, this.View)
-			StrPut(encoded, this.View + 16, 4097, "UTF-16")
+			StrPut(encoded, this.View + 16, StrLen(encoded) + 1, "UTF-16")
 			if !script
 				script := A_WorkingDir "\submacros\reconnect-worker.ahk"
 			if !executable
 				executable := A_AhkPath
-			command := '"' executable '" /ErrorStdOut=UTF-8 "' script '" "' this.Name '"'
+			command := this.Command(executable, script)
 			mutableCommand := Buffer((StrLen(command) + 1) * 2)
 			StrPut(command, mutableCommand, "UTF-16")
 			this.Job := DllCall("CreateJobObjectW", "Ptr", 0, "Ptr", 0, "Ptr")
@@ -45,7 +45,7 @@ class nm_OwnedProcessJob {
 			limits := Buffer(A_PtrSize = 8 ? 144 : 112, 0)
 			; KILL_ON_JOB_CLOSE | SILENT_BREAKAWAY_OK. The helper stays owned;
 			; browser/game processes it creates are not killed with the helper.
-			NumPut("UInt", 0x3000, limits, 16)
+			NumPut("UInt", this.LimitFlags(), limits, 16)
 			if !DllCall("SetInformationJobObject", "Ptr", this.Job, "Int", 9, "Ptr", limits, "UInt", limits.Size)
 				throw OSError()
 			DllCall("InitializeProcThreadAttributeList", "Ptr", 0, "UInt", 1, "UInt", 0, "UPtrP", &attributeBytes := 0)
@@ -72,16 +72,19 @@ class nm_OwnedProcessJob {
 			nm_OwnedProcessJob.Jobs[this.Pid] := this
 		} catch {
 			this.Close()
-			throw nm_ProcessJobError("Could not start an owned reconnect helper (Windows 10 or newer is required)")
+			throw nm_ProcessJobError("Could not start an owned process helper (Windows 10 or newer is required)")
 		} finally {
 			if attributesReady
 				DllCall("DeleteProcThreadAttributeList", "Ptr", attributes)
 		}
 	}
+	RequestLimit() => 4096
+	LimitFlags() => 0x3000
+	Command(executable, script) => '"' executable '" /ErrorStdOut=UTF-8 "' script '" "' this.Name '"'
 	Running() {
 		status := DllCall("WaitForSingleObject", "Ptr", this.Process, "UInt", 0, "UInt")
 		if status != 0 && status != 258
-			throw nm_ProcessJobError("Could not observe reconnect helper")
+			throw nm_ProcessJobError("Could not observe process helper")
 		return status = 258
 	}
 	Wait(recovery := 0, limitMs := 20000) {

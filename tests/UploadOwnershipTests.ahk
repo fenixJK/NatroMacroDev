@@ -11,6 +11,10 @@ class TestUploadEncodingFailure extends discord {
 }
 
 TestUploadOwnership() {
+	DirCreate "submacros"
+	DirCreate "lib"
+	FileCopy A_ScriptDir "\..\submacros\upload-archive.ps1", "submacros\upload-archive.ps1", true
+	FileCopy A_ScriptDir "\..\lib\PowerShellJob.ps1", "lib\PowerShellJob.ps1", true
 	; The whole suite's working directory is under A_Temp. The old sender
 	; deleted these caller-owned files merely because of that location.
 	path := A_WorkingDir "\owned-by-caller.txt", content := "caller data`nΩ🐝"
@@ -35,7 +39,7 @@ TestUploadOwnership() {
 	FileAppend "pre-existing zip sentinel", collision
 	before := nm_UploadArchive.Active.Count
 	try {
-		; Exercise the actual PowerShell LiteralPath/JSON-stdin path. No remote
+		; Exercise the actual PowerShell LiteralPath/shared-memory path. No remote
 		; folder capability is enabled: only this local library test calls it.
 		archive := nm_UploadArchive(directory)
 		ownedDirectory := archive.Directory
