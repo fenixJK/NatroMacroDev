@@ -1541,3 +1541,45 @@ flows, helper readiness, cross-instance IPC, resource soaks, supervisor cost and
 crash-state reconciliation remain open. No Windows/Roblox machine is currently
 available; work continues through code fixes and CI. The full production plan
 remains active. No merge, deployment or production release is claimed.
+
+## Attachment startup deadline and lifecycle evidence checkpoint
+
+Code checkpoint: `a351bdd48ee00f1661a6bc91db5fc97fb03cb18b`.
+[Windows run 34453759775](https://github.com/fenixJK/NatroMacroDev/actions/runs/34453759775)
+passed **62 regression groups on each AHK architecture**, native process/GUI
+suites, eight production-script and four emitted-worker validations per
+architecture, and eight file-channel checks, 43 attachment checks and 35 updater
+scenarios on each PowerShell version. No AHK warnings occurred; the checkout Node
+runtime deprecation notice remains.
+
+The attachment deadline previously began after native worker creation. It now
+includes receiving-directory preparation and creation time. The worker mapping
+also carries four monotonic numeric milestones outside the maximum request area:
+channel connection, parsed request, returned action and written result. Exceptions
+retain the last reached stage. Existing result validation still requires process
+completion; diagnostic stages cannot authorize a successful download.
+
+Attachment lifecycle diagnostics record stage, native creation, worker CPU and
+elapsed times, process-close time and receiving-directory cleanup time. They
+exclude request URLs, query strings, message IDs, receiving paths and exception
+bodies. Status writes failed/deadline/unconfirmed-cleanup events and slow cleanup
+to its existing local error log. Normal successful completion remains quiet.
+Diagnostic callback failure cannot change completion or cause a second reply.
+
+Native tests verify exception, silent exit, stalled action, successful result,
+milestone ordering and timing availability. The production URL-rejection fixture
+verifies the full numeric diagnostic and startup budget. PowerShell 5.1/7 verify
+stage publication across all eight existing mapping cases, including malformed
+and maximum-length requests. Existing process ownership and crash checks pass.
+
+The final run's 32-bit/64-bit workers connected at 10578/3360 ms and published
+results at 12656/4657 ms. Their CPU times were 562/671 ms, native creation measured
+0/0 ms at TickCount resolution, confirmed close 0/0 ms, and directory cleanup
+1891/47 ms. These samples expose substantial pre-connection delay and a blocking
+filesystem cleanup in successful runs. They do not establish the cause of the
+earlier 61.8-second timeout or prove that it is fixed. Moving blocking cleanup out
+of the owner, further startup evidence, native/OS deadline overruns, crash-file
+reconciliation and live delivery remain open. The production goal remains active.
+
+[File-worker verification](file-worker-verification.md) records the updated
+contract and evidence. No merge, deployment or production release is claimed.

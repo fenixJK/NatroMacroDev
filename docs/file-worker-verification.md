@@ -80,6 +80,52 @@ PowerShell version. No AHK warnings occurred.
 These tests contain no Roblox instance or Discord request. They do not prove live
 attachment delivery or a complete production soak.
 
+## Attachment deadline and lifecycle diagnostics
+
+The attachment owner's 45-second budget starts before directory preparation and
+native worker creation. It previously started after creation, allowing startup
+time outside that budget. This remains a cooperative deadline: a blocked native
+call cannot be interrupted by the polling code.
+
+The file-worker mapping reserves bytes 16032–16051, beyond the maximum request,
+for a numeric progress stage and four Windows TickCount milestones. Stages are
+not-connected, connected, request-parsed, action-returned and result-written.
+Exceptions retain their last completed stage while the existing result header
+reports failure. These markers are diagnostics, not a substitute for confirmed
+process exit and the existing result checks. Tick differences handle 32-bit wrap.
+
+Attachment diagnostics include creation time, milestone times, total elapsed
+time, worker CPU time, confirmed process-close time and receiving-directory
+cleanup time. They contain fixed event/stage names and numbers, without request
+URLs, signed query strings, message IDs, receiving paths or exception bodies.
+Status records failures, deadline events, unconfirmed cleanup and cleanup over
+one second in its existing local error log. Successful ordinary completions do
+not produce a lifecycle log. Diagnostic callback failures cannot change download
+completion or send a second notification.
+
+The production attachment library is loaded inside the mapped action, so its
+loading and URL checks occur after the request-parsed milestone. The prior
+61.8-second timeout had no such markers; its cause remains unresolved. An initial
+instrumented passing run observed 32-bit/64-bit channel connection at 5750/3016 ms,
+native creation at 16/16 ms, and directory cleanup at 734/31 ms. These two samples
+show where those successful runs spent time; they neither explain the earlier
+failure nor establish a performance baseline or improvement.
+
+Native tests check successful, thrown, silent-exit and stalled-action stages,
+monotonic milestone ordering, creation/CPU/cleanup timings, and diagnostic callback
+failure isolation. The eight PowerShell mapping cases additionally verify stage
+and milestone publication through malformed and maximum-size requests.
+
+Code `a351bdd48ee00f1661a6bc91db5fc97fb03cb18b` passed
+[Windows run 34453759775](https://github.com/fenixJK/NatroMacroDev/actions/runs/34453759775):
+62 regression groups per AHK architecture, native process/GUI suites, eight
+production-script and four emitted-worker validations per architecture, plus
+eight file-channel checks, 43 attachment checks and 35 updater scenarios on each
+PowerShell version. The final 32-bit/64-bit samples connected at 10578/3360 ms,
+returned results at 12656/4657 ms, and took 1891/47 ms for directory cleanup.
+Worker CPU usage was 562/671 ms. These are observed samples, not a cause established
+for the prior timeout; blocking filesystem cleanup in the owner remains open.
+
 ## Remaining limits
 
 The earlier intermittent WScript attachment timeout has no established root
