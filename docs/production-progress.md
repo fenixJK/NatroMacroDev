@@ -409,3 +409,26 @@ requires a separate retry delay for failed Black/Brown visits. These remaining
 requirements are not hidden by the new green CI result. The full recovery plan,
 other feature/state/reporting fixes, optimizations, proposed features and release
 verification gates remain active.
+
+
+## Persisted quest retry checkpoint
+
+Code checkpoint: `134c5b0db95672a22ae4107bb0ccc0810ffc90a1`.
+[Windows run 34420145053](https://github.com/fenixJK/NatroMacroDev/actions/runs/34420145053)
+passed **34 regression groups on each AHK architecture**, native geometry/pointer
+checks, six script validations, four emitted worker validations per architecture,
+and **35 updater scenarios on each PowerShell version**, without AHK warnings.
+
+Each quest family now reserves a persisted delay before reading (30 seconds) or
+traveling for a turn-in (five minutes). Confirmed results clear the relevant delay;
+unknown results and interrupted attempts retain it. Read and visit reservations are
+independent, active work cannot overlap its own reservation, and in-process timing
+uses a monotonic clock. Invalid records and backward clock changes receive a bounded
+repair delay. All six turn-in consumers share the reservation/confirmation helper.
+Black quest rotation permits other families while its visit is deferred.
+
+Tests cover reservations before work, expiry, restart, clock changes, malformed
+records, independent families, all six consumers, travel exceptions and actual INI
+write failure before travel. The remaining quest observation, acquisition, planner,
+game acceptance and live interruption gates are documented in
+[quest verification](quest-verification.md). Full production recovery remains active.

@@ -46,10 +46,17 @@ hourly timestamps also advance only after that observed transition. Honey now
 re-reads after a visit before announcing that the next Honey Hunt started; its
 existing exclusion from the quest completion counters is preserved.
 
+Each reader reserves a persisted 30-second retry delay before scanning. Turn-ins
+reserve five minutes before travel, independently for each family. Verified results
+clear their reservation; failed or interrupted work retains a delay. Active work
+cannot overlap even if its original delay expires. In-process elapsed time is
+monotonic; restart records use UTC and invalid/backward-clock records receive one
+bounded repair delay. A failed reservation write prevents the action.
+
 ## Evidence and remaining gates
 
-[Windows run 34419566125](https://github.com/fenixJK/NatroMacroDev/actions/runs/34419566125)
-verified code `6ee9de2f048e66134f61d7a004fdb86590cb83d0`: 32 regression groups on each
+[Windows run 34420145053](https://github.com/fenixJK/NatroMacroDev/actions/runs/34420145053)
+verified code `134c5b0db95672a22ae4107bb0ccc0810ffc90a1`: 34 regression groups on each
 bundled architecture, native window/pointer checks, six script validations, four
 emitted worker validations and 35 updater scenarios on each PowerShell version.
 AHK warnings are failures; none occurred in the verified run.
@@ -57,7 +64,9 @@ AHK warnings are failures; none occurred in the verified run.
 Quest tests cover explicit colors, empty/missing/partial/unknown objective sets,
 real GDI title/row matching, missing borders, clipped frames, dynamic endpoint
 requirements, locked-bitmap errors, all six actual action consumers, unknown results
-after visits, counters/cooldowns, and unknown GUI/state publication.
+after visits, counters/cooldowns, and unknown GUI/state publication. Retry tests
+cover expiry, restart, overlapping attempts, clock changes, corrupt records,
+travel exceptions and an actual INI write failure before travel.
 
 F20 remains open for these checks and improvements:
 
@@ -71,9 +80,9 @@ F20 remains open for these checks and improvements:
 - Establish explicit initial quest acquisition/reconciliation. A missing quest title
   no longer causes an assumed-complete visit, so a user without an active supported
   quest needs a positively justified acquisition path rather than that old fallback.
-- Add bounded, persisted retry handling for unconfirmed turn-ins and unknown scans.
-  With the false hourly-success timestamp removed, failed Black/Brown visits must
-  receive their own retry delay without being recorded as completed quests.
+- Exercise the implemented persisted retry handling during live pause/stop, delayed
+  game refresh and process interruption; cross-process state writes and quest
+  counter commits still need transactional ownership.
 - Verify game acceptance after interaction, delayed quest refresh and repeat quests
   with the same title. A complete-to-incomplete observation is stronger evidence but
   is not a transactional reward receipt or a unique game quest identifier.
