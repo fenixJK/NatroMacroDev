@@ -736,3 +736,56 @@ custom-pattern execution and process/power-loss recovery remain unverified.
 The user confirmed that no Windows/Roblox machine is currently available and
 authorized continued code fixes and CI. Live game verification remains a release
 gate; remaining recovery work and the full production objective stay active.
+
+## Bounded reconnect stages and completion accounting checkpoint
+
+Code checkpoint: `154d692761c8a8c81a004dd1d98d7237eebfeb81`.
+[Windows run 34427573717](https://github.com/fenixJK/NatroMacroDev/actions/runs/34427573717)
+passed **44 regression groups on each AHK architecture**, native geometry checks,
+six script and four emitted-worker validations per architecture, **43 attachment
+checks** and **35 updater scenarios** on each PowerShell version. No AHK warnings
+occurred. The existing checkout action's Node runtime deprecation notice remains.
+
+The reconnect controller now makes one circuit of eligible server candidates,
+with five actual launches per candidate and a 30-minute monotonic budget after
+any requested scheduled delay. Private-only policy remains private-only. A window
+has four minutes to appear, recognizable game/loading imagery has three minutes,
+and loading has three minutes to complete. Unknown frames cannot renew a stage;
+starting another launch cannot renew the recovery budget. Failed attempts wait
+two seconds before another launch. Exhaustion records the reason and invokes the
+existing main stop/exit cleanup instead of returning success to an interrupted
+action or cycling servers indefinitely.
+
+Loaded-game success requires the existing science template, with disconnect
+imagery taking precedence. Loading-image disappearance is now unknown. Searches
+share a single owned frame during loading, with focus/geometry checks before
+acceptance and unconditional frame disposal; invalid native search results and
+nonpositive capture handles are rejected. Routine disconnect checks retain the
+smaller center capture instead of adding full-frame searches to every check.
+These changes do not establish that existing templates match today's game.
+
+Hive claiming shares the cooperative deadline through its sleeps, walk waits
+and checks before movement. Cleanup releases the interaction key and ends the
+walk worker. A failed claim no longer publishes reconnect completion or repeatedly
+extends planter/gingerbread times by the full recovery duration. Legacy timer
+adjustments happen after the claim routine accepts a hive (or a connection-only
+check); elapsed compensation uses actual monotonic time including scheduled delay.
+Zero elapsed time no longer invents a five-minute adjustment. This retains the
+legacy timer model; the game-side offline/online growth model is not verified.
+
+Clock-controlled tests execute the production stage controller with missing,
+unknown, loading, loaded and disconnected observations. They cover candidate
+exhaustion, private/public-only ordering, late observation and launch callbacks,
+clipped waits, and repeated slow launches sharing exactly one aggregate deadline.
+Native search-result classification rejects errors and conflicting disconnect /
+loaded evidence favors disconnect. Main and helper validation covers integration
+syntax; full main-process orchestration, actual browser/deeplink launching,
+process ownership, live input and timer effects are not exercised by these tests.
+
+[Reconnect verification](reconnect-verification.md) records the remaining gates.
+This is a cooperative deadline, not a hard preemption guarantee for blocking
+Windows/COM calls. Browser launch/WMI cleanup isolation, positive post-input hive
+receipts, broader background/input coordination, and crash-atomic timer updates
+remain open. Live Windows/Roblox scenarios remain unverified. The full production
+objective remains active, including remaining features, state/reporting work,
+measured optimizations, proposed additions and release verification.
