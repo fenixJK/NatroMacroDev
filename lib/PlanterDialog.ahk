@@ -4,11 +4,18 @@ class nm_PlanterDialog {
 	static Run(surface, fullOnly, timeout := 8000) {
 		started := surface.Clock(), chosen := "", promptAbsent := false
 		before := surface.Observe()
-		if !before.valid || before.blocked || !before.e || before.yes || before.no || !surface.Press(before)
+		if !before.valid || before.blocked || !before.e || before.yes || before.no
+			|| surface.Clock() - started >= timeout || !surface.Press(before)
 			return "unconfirmed"
 		Loop {
-			if surface.Clock() - started >= timeout
-				return !chosen && promptAbsent ? "no_dialog" : "unconfirmed"
+			if surface.Clock() - started >= timeout {
+				if chosen || !promptAbsent
+					return "unconfirmed"
+				; The final wait may have lost focus or revealed a late dialog.
+				; Re-observe without sending any input after the deadline.
+				last := surface.Observe()
+				return last.valid && !last.blocked && !last.e && !last.yes && !last.no ? "no_dialog" : "unconfirmed"
+			}
 			frame := surface.Observe()
 			if !frame.valid || frame.blocked
 				return "unconfirmed"

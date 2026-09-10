@@ -38,6 +38,14 @@ TestPlanterDialog() {
 	AssertEqual(nm_PlanterDialog.Run(fixture, false, 500), "unconfirmed", "Unchanged E prompt is not a completed interaction")
 	fixture := PlanterDialogFixture([ready, clear, ready])
 	AssertEqual(nm_PlanterDialog.Run(fixture, false, 500), "unconfirmed", "A reappeared E prompt cannot use an earlier absence")
+	fixture := PlanterDialogFixture([ready, clear, clear, clear, clear, clear, {valid: false}])
+	AssertEqual(nm_PlanterDialog.Run(fixture, false, 500), "unconfirmed", "Focus loss during the final wait preserves state")
+	fixture := PlanterDialogFixture([ready, clear, clear, clear, clear, clear, dialog])
+	AssertEqual(nm_PlanterDialog.Run(fixture, false, 500), "unconfirmed", "Dialog arriving at the deadline is not absence")
+	AssertEqual(fixture.Clicks.Length, 0, "No click is sent after the dialog deadline")
+	fixture := PlanterDialogFixture([ready])
+	AssertEqual(nm_PlanterDialog.Run(fixture, false, 0), "unconfirmed", "Expired interaction does not start input")
+	AssertEqual(fixture.Presses, 0, "No E input after the initial deadline")
 
 	nm_PlanterRecovery.Clear("Harvest3")
 	calls := 0
