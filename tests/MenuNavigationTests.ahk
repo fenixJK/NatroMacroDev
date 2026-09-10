@@ -58,7 +58,10 @@ class MenuNavigationFixture {
 		return {valid: this.Last != "unknown", tab: this.Last}
 	}
 	Fresh(frame) => this.Current
-	Click(frame, tab) => (this.Clicks.Push(tab) && this.ClickOk)
+	Click(frame, tab) {
+		this.Clicks.Push(tab)
+		return this.ClickOk
+	}
 	Wait(ms) => this.Tick += ms
 	Close() => this.Closed++
 }
