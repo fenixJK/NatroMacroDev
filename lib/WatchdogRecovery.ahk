@@ -1,9 +1,9 @@
 ; A watchdog can replace the macro at most three times in a rolling half hour.
 ; Each attempt has five minutes, including cleanup and UI initialization.
 class nm_WatchdogRecovery {
-	__New(clock := unset, sleep := unset) {
+	__New(clock := unset, sleeper := unset) {
 		this.Clock := IsSet(clock) ? clock : (() => DllCall("GetTickCount64", "UInt64"))
-		this.Sleep := IsSet(sleep) ? sleep : ((ms) => Sleep(ms))
+		this.Sleep := IsSet(sleeper) ? sleeper : ((ms) => Sleep(ms))
 		this.Launches := []
 	}
 	Reserve() {

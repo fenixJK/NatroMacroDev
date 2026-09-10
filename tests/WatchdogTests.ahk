@@ -13,6 +13,9 @@ class WatchdogProcessFixture {
 	Release() => this.Events.Push("release")
 }
 TestWatchdogRecovery() {
+	defaults := nm_WatchdogRecovery()
+	Assert(IsInteger(defaults.Clock.Call()), "Production watchdog uses the native monotonic clock")
+	defaults.Sleep.Call(1)
 	clock := {now: 0}, events := []
 	watch := nm_WatchdogRecovery(() => clock.now, (ms) => clock.now += ms)
 	closeMain := () => events.Push("main"), closePlayers := () => events.Push("players")
