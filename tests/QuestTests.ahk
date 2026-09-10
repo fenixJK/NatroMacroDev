@@ -123,6 +123,7 @@ nm_ToAnyBooster(*) => UnexpectedObservation()
 
 TestQuestUnknownPublication() {
 	global
+	HoneyQuestProgress := PolarQuestProgress := RileyQuestProgress := BuckoQuestProgress := BlackQuestProgress := BrownQuestProgress := ""
 	for family in ["Honey", "Polar", "Riley", "Bucko", "Black", "Brown"] {
 		%family%QuestProgress := "Complete"
 		MainGui[family "QuestProgress"] := {Text: "Complete"}
