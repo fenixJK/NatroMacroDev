@@ -36,6 +36,12 @@ TestDiscordHelp() {
 		reconstructed .= embed["description"]
 	}
 	AssertEqual(reconstructed, text, "Pagination preserves every setting, separator and final page")
+	occurrences := Map()
+	for line in StrSplit(reconstructed, "`n")
+		occurrences[line] := occurrences.Get(line, 0) + 1
+	for settingName, definition in settings
+		if HasProp(definition, "regex")
+			AssertEqual(occurrences.Get(settingName, 0), 1, "Every eligible setting appears exactly once")
 	text := StrReplace(Format("{:4095}", ""), " ", "x") "🐝" StrReplace(Format("{:5000}", ""), " ", "y")
 	pages := nm_DiscordHelpPages(text, "Unicode", 123, "123"), reconstructed := ""
 	for page in pages {
