@@ -26,6 +26,12 @@ and the 100-bar limit. A separate Windows GUI fixture exercises actual full-clie
 and right-half screen capture and rejection of a hidden client. Synthetic
 images do not establish that these colors uniquely identify current game enemies.
 
+[Windows run 34420916584](https://github.com/fenixJK/NatroMacroDev/actions/runs/34420916584)
+verified code `0c58935ede2bd3a8cc65cd9df70a2a506e3dec8f`: 35 regression groups on
+each AHK architecture, native geometry/pointer/health capture, six script and four
+emitted worker validations per architecture, and 35 updater scenarios on each
+PowerShell version. No AHK warnings occurred.
+
 Remaining gates:
 
 - Record current game examples for every boss/bug family, camera zoom and DPI.

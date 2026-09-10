@@ -432,3 +432,39 @@ records, independent families, all six consumers, travel exceptions and actual I
 write failure before travel. The remaining quest observation, acquisition, planner,
 game acceptance and live interruption gates are documented in
 [quest verification](quest-verification.md). Full production recovery remains active.
+
+
+## Combat health reader checkpoint
+
+Code checkpoint: `0c58935ede2bd3a8cc65cd9df70a2a506e3dec8f`.
+[Windows run 34420916584](https://github.com/fenixJK/NatroMacroDev/actions/runs/34420916584)
+passed **35 regression groups on each AHK architecture**, native geometry/pointer
+and health-capture integration, six script validations, four emitted worker
+validations per architecture, and **35 updater scenarios on each PowerShell
+version**. No AHK warnings occurred; the existing checkout action's Node deprecation
+notice remains a separate CI maintenance item.
+
+The shared combat reader now measures every bar independently, includes the final
+pixel in its percentage denominator and uses the actual bitmap dimensions for
+King Beetle's half-window scan. It masks matches in an owned copy, releases graphics
+before their bitmap through `finally`, and releases cached templates before main
+GDI+ shutdown. Planter reader templates now also have main-process exit cleanup.
+
+The capture wrapper requires a focused current client and rejects geometry changes
+after observation. Missing captures and actual native search/read errors throw into
+the existing input-release/failure handler rather than becoming empty health lists.
+The old kill-success heuristics are unchanged and remain an open correctness issue.
+
+CI exposed two fixture assumptions: numeric map keys distinguished rounded float
+percentages from integers, and GDI+ permits cloning a locked source image. The tests
+now compare numeric values directly, verify reading the owned clone leaves the
+source intact, and lock a search template to exercise a real native search error.
+Additional tests cover 100 repeated reads after errors, cache release/rebuild, the
+detection cap and actual full/right-half capture of an owned Windows GUI.
+
+[Combat verification](combat-verification.md) keeps current game imagery, clipped or
+occluded bars, positive kill confirmation, recoverable combat action boundaries,
+health/time estimation and measured long-run resource/performance checks open.
+No live game verification or performance gain is claimed. The full production plan
+remains active, including the other feature, state, reporting, optimization, proposed
+feature and release gates already recorded above.
