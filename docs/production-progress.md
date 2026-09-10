@@ -1200,3 +1200,45 @@ byte bounds, and archive contents are not an atomic filesystem snapshot. Kernel
 worker ownership, command delivery migration, shared rate limits, durable outbox
 recovery and the rest of the production plan remain active. No live verification,
 merge, deployment or production release is claimed.
+
+## Queued command replies checkpoint
+
+Code checkpoint: `4d5d36875aeb6c3a7e47d5c2fcc20b4607b333ed`.
+[Windows run 34434105801](https://github.com/fenixJK/NatroMacroDev/actions/runs/34434105801)
+passed **54 regression groups on each AHK architecture**, the native Windows
+integration suites, seven production-script and four emitted-worker validations
+per architecture, **43 attachment checks** and **35 updater scenarios** on each
+PowerShell version. No AHK warnings occurred. The checkout Node runtime deprecation
+notice remains.
+
+Ordinary Status command replies now use a command adapter over the existing
+Status/live-honey outbox. Embeds, help pages, setting values, structured reports,
+screenshots, individual-file uploads, attachment-completion replies and item-search
+responses return queue acceptance without starting or waiting for HTTP. Endpoint
+and token are captured at handoff. The base synchronous library API remains
+available; only the pre-shutdown system-restart reply still uses it in Status.
+
+File/image preparation copies payload bytes before handoff, preserving source
+lifetime independence. Item-search screenshots release their bitmap even if
+preparation or queue handoff throws. SendImage now returns the transport result.
+Capacity/closed-queue rejection logs a failed handoff without replaying the command
+action. Replies share FIFO order, capacity, bounded retries and failure logging
+with other Status reports. Acceptance is not a delivery receipt, and a reply may
+arrive after the action it describes.
+
+Scripted tests exercise the actual command adapter for shared queue identity,
+raw text/references, fractional 429 delay, captured destination/token, explicit
+channels, help/settings/report paths, image/file lifetime and capacity/closed
+rejection. The native WinHTTP fixture now submits its gated JSON request through
+the production command adapter and releases the server only after caller/polling
+progress. Existing multipart tests still confirm encoded image validity after
+bitmap disposal. No real Discord command or game action is sent.
+
+[Reporting verification](reporting-verification.md) records limits. Bot polling,
+authorization lookups, restart notification, capture/encoding and command actions
+can still delay the helper. A retrying earlier report can delay subsequent replies.
+Per-job retry delays still need preservation across distinct jobs and shared rate
+coordination across helpers. Abrupt exit can lose pending replies; lost responses
+can cause duplicates on retry. Durable recovery, full asynchronous command
+execution, live verification and the full production plan remain active. No merge,
+deployment or production release is claimed.

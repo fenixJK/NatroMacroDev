@@ -1,7 +1,7 @@
 # Automated Discord reporting
 
-Status updates, night announcements, forwarded report JSON and hourly reports now
-use an asynchronous queue. The queue owns encoded message/attachment bytes; callers
+Status updates, night announcements, forwarded report JSON, hourly reports and
+ordinary Status command replies now use an asynchronous queue. The queue owns encoded message/attachment bytes; callers
 can release the source bitmap after preparation. A status entry leaves its input
 buffer only after the outbox accepts it (or its destination is disabled).
 
@@ -46,9 +46,9 @@ Ordinary status screenshots are not retained on disk. Status input is capped at
 The outbox itself is in memory. Normal exit records unconfirmed items locally;
 abrupt process termination can lose ordinary queued statuses/images. A lost HTTP
 response can also cause a duplicate on retry: this is not exactly-once delivery.
-Each helper currently has its own queue, and legacy bot polling/command replies
-still use synchronous requests with bounded waits. Live honey uses the Status
-helper's existing queue. Global
+Each helper currently has its own queue. Bot polling, authorization lookups and the
+pre-shutdown restart reply still use synchronous requests with bounded waits.
+Ordinary command replies and live honey use the Status helper's existing queue. Global
 rate-limit coordination across those paths remains open.
 
 ## Verification scope
@@ -66,9 +66,9 @@ bitmap has been disposed. No test contacts Discord or uses real credentials.
 
 Still required for F23 and the broader production plan:
 
-- Move synchronous command replies onto the common delivery contract. Their
-  payload builders now serialize objects, including the structured
-  timer, planter, shrine, blender and memory-match displays.
+- Migrate synchronous bot polling/authorization and coordinate the pre-shutdown
+  reply with process exit. Ordinary replies, including structured timer, planter,
+  shrine, blender and memory-match displays, now use the common queue.
 - Coordinate rate limits and dispatch across helpers, commands and bot polling;
   persist ordinary queued reports with explicit destination identity and recovery.
 - Add user-visible pending/failed report management and controlled resend; verify
@@ -94,8 +94,9 @@ shared object builder. Missing-reference fallback remains a JSON boolean. File
 and image replies use the same reference builder, and setting-value fields use
 bounded, Unicode-safe serialized names/values with `<blank>` for an empty value.
 Reply IDs must be decimal strings of at most 20 digits. These encoding changes
-preserve synchronous command delivery and its return value; they do not provide
-queue retries or guaranteed acknowledgement for those paths.
+preserve the base library's synchronous delivery and response value. Status now
+uses the queued command adapter described below; queue acceptance is not an HTTP
+acknowledgement.
 
 Windows regression tests invoke the actual `SendEmbed` and missing-file caller
 with only HTTP transport replaced. They check quotes, backslashes, actual and
@@ -114,8 +115,9 @@ possible and preserve Unicode pairs when a single line exceeds the description
 limit. Page titles show position, the first page replies to the command, and all
 pages disable parsed mentions. Regression tests cover more than ten pages and
 verify every eligible setting appears exactly once, including the last page.
-Delivery still uses the existing synchronous API, so these tests do not prove
-multi-page delivery through a Discord outage or rate limit.
+Status submits each page through the command queue. The encoding tests alone do
+not prove multi-page delivery through a Discord outage or rate limit; queue capacity
+can reject later pages, recording those failed handoffs locally.
 
 Planter, timer, blender, shrine and memory-match displays now use shared report
 builders. They accept one supplied settings snapshot and timestamp without writing
@@ -183,7 +185,8 @@ Discord. Legacy queue, report and attachment tests remain in the full suite.
 This remains an in-memory delivery protocol. A lost POST response may create a
 duplicate during bounded retries, and restart loses the message ID. Cancellation
 does not revoke an already delivered request. Native calls and delayed queue pumps
-make timing cooperative, and other synchronous commands can still delay work.
+make timing cooperative, and synchronous bot polling/authorization, shutdown
+notification and command actions can still delay work.
 Cross-helper rate coordination, durable receipts/recovery, live Discord behavior,
 game capture accuracy and measured resource/performance effects remain open.
 
@@ -212,10 +215,46 @@ Archive creation uses the system Windows PowerShell executable on both AHK
 architectures; no Discord request is sent.
 
 Remote upload permissions still permit individual files only. This helper retains
-the library's existing local folder capability. Delivery and archive preparation
-remain synchronous. Abrupt parent termination can orphan the WScript archive worker
+the library's existing local folder capability. Base-library delivery and archive
+preparation remain synchronous; Status hands encoded file bytes to the command
+queue. Abrupt parent termination can orphan the WScript archive worker
 or its temporary files; kernel-owned worker migration remains work. Archive source
 contents are not a filesystem snapshot, and this is not a reparse-point sandbox.
+
+## Command reply delivery
+
+Status uses `nm_DiscordCommandReply` for ordinary replies: embeds, help pages,
+setting values, structured reports, screenshots, individual-file uploads, attachment
+completion messages and item-search responses. The adapter reuses the base payload
+builders and the same outbox as Status/live honey. It returns queue acceptance
+without creating a request or waiting for a response. It snapshots endpoint and
+token at handoff; later configuration changes do not reroute queued replies.
+JSON references and disabled parsed mentions retain their existing behavior.
+
+File and image preparation finishes before queue handoff, so encoded bytes survive
+source bitmap disposal, file changes and archive cleanup. The item-search screenshot
+also releases its bitmap if encoding or handoff throws. `SendImage` now returns its
+transport result, allowing queued callers to observe acceptance. Full or closed
+queues reject and log the handoff; Status does not retry the underlying command
+action when its reply cannot be queued. Acceptance does not mean delivery, and a
+delayed reply may describe an action performed earlier.
+
+The existing queue supplies bounded capacity, retries, timeout, age expiry and
+failure logging. Native HTTP tests submit through the production command adapter,
+hold the server response behind a gate and release it only after polling returns.
+Scripted tests check shared queue identity, reply references, fractional 429 delay,
+destination/token snapshots, help/settings/report handoffs, source lifetime,
+capacity rejection and closed queues. No Discord command or game action is sent.
+
+The system-restart notification intentionally retains its bounded synchronous
+attempt before shutdown. General library callers retain the old synchronous API.
+Bot polling/member lookups, capture/encoding, local archive preparation and command
+actions can still block helper progress. Pending replies share the queue's FIFO
+ordering with other reports, so an earlier retry delay can hold later replies.
+This is not full asynchronous command execution or durable delivery: abrupt exit
+can lose queued replies, and retries after a lost response can duplicate messages.
+Cross-helper/global rate coordination, preserving server delays across distinct
+jobs, shutdown/restart recovery and live verification remain work.
 
 ## Counter consistency
 
