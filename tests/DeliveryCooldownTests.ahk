@@ -42,6 +42,20 @@ TestDeliveryCooldown() {
 	second.Add(), second.queue.Pump()
 	AssertEqual(second.started, 0, "Replacing a queue preserves the shared coordinator's delay")
 	second.queue.Close()
+
+	fixture := TestDeliveryFixture([])
+	fixture.queue.Factory := (job) => TestDelayedRateRequest(fixture, {status: 429, retryAfter: 3})
+	fixture.queue.MaxAttempts := 1
+	fixture.Add(), fixture.queue.Pump()
+	AssertEqual(fixture.queue.Cooldown.Deadline({token: "fixture-token"}, fixture.tick), 9000,
+		"Server delay starts after response handling advances the clock")
+}
+
+class TestDelayedRateRequest extends TestDeliveryRequest {
+	Poll() {
+		this.owner.tick += 5000
+		return this.response
+	}
 }
 
 TestLocalCooldown() {

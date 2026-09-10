@@ -74,6 +74,7 @@ class nm_DeliveryQueue {
 				this.Retry(job, current, 0, "Network request failed")
 				return
 			}
+			current := this.Clock.Call() ; response handling may have consumed time
 			if !IsObject(response) {
 				if current - job.started >= this.Timeout
 					this.Retry(job, current, 0, "Network request timed out; delivery is uncertain")
