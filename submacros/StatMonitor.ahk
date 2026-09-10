@@ -23,6 +23,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "JSON.ahk"
 #Include "Discord.ahk"
 #Include "HourlyReportDelivery.ahk"
+#Include "StatCounters.ahk"
 
 #Warn VarUnset, Off
 
@@ -1507,8 +1508,7 @@ SetStatus(wParam, lParam, *){
 * @author SP
 ***********************************************************************************************/
 IncrementStat(wParam, lParam, *){
-	stats[wParam][2] += lParam
-	return 0
+	return nm_StatCounters.Receive(stats, wParam, lParam)
 }
 
 /************************************************************************************************************

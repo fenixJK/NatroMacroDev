@@ -12,6 +12,8 @@
 #Include "%A_ScriptDir%\..\lib\JSON.ahk"
 #Include "%A_ScriptDir%\..\lib\BlenderAccounting.ahk"
 #Include "%A_ScriptDir%\..\lib\TimeTracking.ahk"
+#Include "%A_ScriptDir%\..\lib\IncrementStat.ahk"
+#Include "%A_ScriptDir%\StatCounterTests.ahk"
 #Include "%A_ScriptDir%\..\lib\CollectionRecovery.ahk"
 #Include "%A_ScriptDir%\..\lib\DispenserCollection.ahk"
 #Include "%A_ScriptDir%\..\lib\CollectionInterrupts.ahk"
@@ -54,6 +56,7 @@
 ; Unexpected game observation/input throws; native GUI checks run separately.
 TestNow := 10000
 TestQuestMode := false
+TestStatsMode := false
 webhook := "https://discord.invalid/test", bottoken := "fixture-token", discordMode := 0
 MainChannelCheck := 0, MainChannelID := "", commandPrefix := "!", command_buffer := []
 TestCollectionMode := false, TestCollectionReads := 0, TestCollectionThrow := false
@@ -91,7 +94,7 @@ SetWorkingDir testDirectory
 passed := failed := 0
 try {
 	for test in [TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
-		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures, TestCollectionInterrupts, TestDiscordPayload, TestDeliveryQueue, TestHourlyReportDelivery, TestLocalHttpDelivery, TestGeometryCache, TestInventoryEngine, TestInventoryReader, TestPointerLease, TestInventoryDrag, TestQuestObservation, TestQuestFrames, TestQuestActions, TestQuestUnknownPublication, TestQuestRecovery, TestQuestTurnInRecovery, TestHealthObservation, TestBossHealthEstimation, TestBossHealthReporting, TestImageObservation, TestCombatPresence, TestRemoteCapabilities, TestAttachmentWorker, TestSupportReport, TestGatherProfiles, TestReconnectSession, TestRecoveryActivity, TestPlanterDialog] {
+		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures, TestCollectionInterrupts, TestDiscordPayload, TestDeliveryQueue, TestHourlyReportDelivery, TestLocalHttpDelivery, TestGeometryCache, TestInventoryEngine, TestInventoryReader, TestPointerLease, TestInventoryDrag, TestQuestObservation, TestQuestFrames, TestQuestActions, TestQuestUnknownPublication, TestQuestRecovery, TestQuestTurnInRecovery, TestHealthObservation, TestBossHealthEstimation, TestBossHealthReporting, TestImageObservation, TestCombatPresence, TestRemoteCapabilities, TestAttachmentWorker, TestSupportReport, TestGatherProfiles, TestReconnectSession, TestRecoveryActivity, TestPlanterDialog, TestStatCounters] {
 		try {
 			test.Call()
 			passed++
@@ -628,7 +631,8 @@ nm_NightInterrupt() => TestQuestMode ? true : UnexpectedObservation()
 nm_MondoInterrupt() => UnexpectedObservation()
 disconnectcheck() => UnexpectedObservation()
 nm_activeHoney() => UnexpectedObservation()
-PostSubmacroMessage(*) => TestQuestMode ? 0 : UnexpectedObservation()
+PostSubmacroMessage(target, message, wParam := 0, lParam := 0) => TestStatsMode
+	? TestStatPost(target, message, wParam, lParam) : TestQuestMode ? 0 : UnexpectedObservation()
 
 TestConversionDisconnect() {
 	global TestTick

@@ -44,6 +44,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "PlanterObservation.ahk"
 #Include "BlenderAccounting.ahk"
 #Include "TimeTracking.ahk"
+#Include "IncrementStat.ahk"
 #Include "CollectionRecovery.ahk"
 #Include "nm_InventorySearch.ahk"
 #Include "WorkerScripts.ahk"
@@ -12703,11 +12704,7 @@ nm_Bugrun(){
 			}
 			LastBugrunSpider:=nowUnix()
 			IniWrite LastBugrunSpider, "settings\nm_config.ini", "Collect", "LastBugrunSpider"
-			TotalBugKills:=TotalBugKills+1
-			SessionBugKills:=SessionBugKills+1
-			PostSubmacroMessage("StatMonitor", 0x5555, 3, 1)
-			IniWrite TotalBugKills, "settings\nm_config.ini", "Status", "TotalBugKills"
-			IniWrite SessionBugKills, "settings\nm_config.ini", "Status", "SessionBugKills"
+			nm_IncrementStat("BugKills", 1)
 			if(BugrunSpiderLoot){
 				if(!DisableToolUse)
 					Click "Down"
@@ -12822,11 +12819,7 @@ nm_Bugrun(){
 							return
 					}
 				}
-				TotalBugKills:=TotalBugKills+2
-				SessionBugKills:=SessionBugKills+2
-				PostSubmacroMessage("StatMonitor", 0x5555, 3, 2)
-				IniWrite TotalBugKills, "settings\nm_config.ini", "Status", "TotalBugKills"
-				IniWrite SessionBugKills, "settings\nm_config.ini", "Status", "SessionBugKills"
+				nm_IncrementStat("BugKills", 2)
 				if(BugrunLadybugsLoot){
 					if(!DisableToolUse)
 						Click "Down"
@@ -12932,11 +12925,7 @@ nm_Bugrun(){
 						return
 				}
 			}
-			TotalBugKills:=TotalBugKills+1
-			SessionBugKills:=SessionBugKills+1
-			PostSubmacroMessage("StatMonitor", 0x5555, 3, 1)
-			IniWrite TotalBugKills, "settings\nm_config.ini", "Status", "TotalBugKills"
-			IniWrite SessionBugKills, "settings\nm_config.ini", "Status", "SessionBugKills"
+			nm_IncrementStat("BugKills", 1)
 			if(BugrunLadybugsLoot){
 				if(!DisableToolUse)
 					Click "Down"
@@ -13032,11 +13021,7 @@ nm_Bugrun(){
 			;done with ladybugs
 			LastBugrunLadybugs:=nowUnix()
 			IniWrite LastBugrunLadybugs, "settings\nm_config.ini", "Collect", "LastBugrunLadybugs"
-			TotalBugKills:=TotalBugKills+2
-			SessionBugKills:=SessionBugKills+2
-			PostSubmacroMessage("StatMonitor", 0x5555, 3, 2)
-			IniWrite TotalBugKills, "settings\nm_config.ini", "Status", "TotalBugKills"
-			IniWrite SessionBugKills, "settings\nm_config.ini", "Status", "SessionBugKills"
+			nm_IncrementStat("BugKills", 2)
 			;loot
 			if(((BugrunLadybugsCheck || QuestLadybugs || RileyLadybugs || RileyAll) && BugrunLadybugsLoot) || ((BugrunRhinoBeetlesCheck || QuestRhinoBeetles || BuckoRhinoBeetles || RileyAll) && BugrunRhinoBeetlesLoot)){
 				if(!DisableToolUse)
@@ -13156,11 +13141,7 @@ nm_Bugrun(){
 				LastBugrunRhinoBeetles:=nowUnix()
 				IniWrite LastBugrunRhinoBeetles, "settings\nm_config.ini", "Collect", "LastBugrunRhinoBeetles"
 			}
-			TotalBugKills:=TotalBugKills+1
-			SessionBugKills:=SessionBugKills+1
-			PostSubmacroMessage("StatMonitor", 0x5555, 3, 1)
-			IniWrite TotalBugKills, "settings\nm_config.ini", "Status", "TotalBugKills"
-			IniWrite SessionBugKills, "settings\nm_config.ini", "Status", "SessionBugKills"
+			nm_IncrementStat("BugKills", 1)
 			;loot
 			if(BugrunRhinoBeetlesLoot){
 				if(!DisableToolUse)
@@ -13248,11 +13229,7 @@ nm_Bugrun(){
 					LastBugrunRhinoBeetles:=nowUnix()
 					IniWrite LastBugrunRhinoBeetles, "settings\nm_config.ini", "Collect", "LastBugrunRhinoBeetles"
 				}
-				TotalBugKills:=TotalBugKills+2
-				SessionBugKills:=SessionBugKills+2
-				PostSubmacroMessage("StatMonitor", 0x5555, 3, 2)
-				IniWrite TotalBugKills, "settings\nm_config.ini", "Status", "TotalBugKills"
-				IniWrite SessionBugKills, "settings\nm_config.ini", "Status", "SessionBugKills"
+				nm_IncrementStat("BugKills", 2)
 				;loot
 				if(BugrunRhinoBeetlesLoot){
 					if(!DisableToolUse)
@@ -13405,11 +13382,7 @@ nm_Bugrun(){
 				LastBugrunMantis:=nowUnix()
 				IniWrite LastBugrunMantis, "settings\nm_config.ini", "Collect", "LastBugrunMantis"
 			}
-			TotalBugKills:=TotalBugKills+2
-			SessionBugKills:=SessionBugKills+2
-			PostSubmacroMessage("StatMonitor", 0x5555, 3, 2)
-			IniWrite TotalBugKills, "settings\nm_config.ini", "Status", "TotalBugKills"
-			IniWrite SessionBugKills, "settings\nm_config.ini", "Status", "SessionBugKills"
+			nm_IncrementStat("BugKills", 2)
 			;loot
 			if(((BugrunMantisCheck || QuestMantis || BuckoMantis || RileyAll) && BugrunMantisLoot) || ((BugrunRhinoBeetlesCheck || QuestRhinoBeetles || BuckoRhinoBeetles) && BugrunRhinoBeetlesLoot || RileyAll)){
 				if(!DisableToolUse)
@@ -13545,11 +13518,7 @@ nm_Bugrun(){
 				}
 				LastBugrunWerewolf:=nowUnix()
 				IniWrite LastBugrunWerewolf, "settings\nm_config.ini", "Collect", "LastBugrunWerewolf"
-				TotalBugKills:=TotalBugKills+1
-				SessionBugKills:=SessionBugKills+1
-				PostSubmacroMessage("StatMonitor", 0x5555, 3, 1)
-				IniWrite TotalBugKills, "settings\nm_config.ini", "Status", "TotalBugKills"
-				IniWrite SessionBugKills, "settings\nm_config.ini", "Status", "SessionBugKills"
+				nm_IncrementStat("BugKills", 1)
 				if(BugrunWerewolfLoot){
 					if(!DisableToolUse)
 						Click "Down"
@@ -13659,11 +13628,7 @@ nm_Bugrun(){
 				;done with Mantis
 				LastBugrunMantis:=nowUnix()
 				IniWrite LastBugrunMantis, "settings\nm_config.ini", "Collect", "LastBugrunMantis"
-				TotalBugKills:=TotalBugKills+2
-				SessionBugKills:=SessionBugKills+2
-				PostSubmacroMessage("StatMonitor", 0x5555, 3, 2)
-				IniWrite TotalBugKills, "settings\nm_config.ini", "Status", "TotalBugKills"
-				IniWrite SessionBugKills, "settings\nm_config.ini", "Status", "SessionBugKills"
+				nm_IncrementStat("BugKills", 2)
 				;loot
 				if(BugrunMantisLoot){
 					if(!DisableToolUse)
@@ -13841,11 +13806,7 @@ nm_Bugrun(){
 				;done with Scorpions
 				LastBugrunScorpions:=nowUnix()
 				IniWrite LastBugrunScorpions, "settings\nm_config.ini", "Collect", "LastBugrunScorpions"
-				TotalBugKills:=TotalBugKills+2
-				SessionBugKills:=SessionBugKills+2
-				PostSubmacroMessage("StatMonitor", 0x5555, 3, 2)
-				IniWrite TotalBugKills, "settings\nm_config.ini", "Status", "TotalBugKills"
-				IniWrite SessionBugKills, "settings\nm_config.ini", "Status", "SessionBugKills"
+				nm_IncrementStat("BugKills", 2)
 				;loot
 				if(BugrunScorpionsLoot){
 					if(!DisableToolUse)
@@ -14010,11 +13971,7 @@ nm_Bugrun(){
 				}
 				;loot
 				if(TBdead) {
-					TotalBossKills:=TotalBossKills+1
-					SessionBossKills:=SessionBossKills+1
-					PostSubmacroMessage("StatMonitor", 0x5555, 1, 1)
-					IniWrite TotalBossKills, "settings\nm_config.ini", "Status", "TotalBossKills"
-					IniWrite SessionBossKills, "settings\nm_config.ini", "Status", "SessionBossKills"
+					nm_IncrementStat("BossKills", 1)
 					nm_setStatus("Looting")
 					nm_Move(12000*MoveSpeedFactor, FwdKey)
 					nm_Move(18000*MoveSpeedFactor, BackKey)
@@ -14172,11 +14129,7 @@ nm_Bugrun(){
 					;check for amulet
 					if !nm_AmuletPrompt(((KingBeetleAmuletMode = 1) ? 1 : 3), "King Beetle")
 						nm_setStatus("Looting", "King Beetle"), nm_loot(13.5, 7, "right", 1)							
-					TotalBossKills:=TotalBossKills+1
-					SessionBossKills:=SessionBossKills+1
-					PostSubmacroMessage("StatMonitor", 0x5555, 1, 1)
-					IniWrite TotalBossKills, "settings\nm_config.ini", "Status", "TotalBossKills"
-					IniWrite SessionBossKills, "settings\nm_config.ini", "Status", "SessionBossKills"
+					nm_IncrementStat("BossKills", 1)
 					LastKingBeetle:=nowUnix()
 					IniWrite LastKingBeetle, "settings\nm_config.ini", "Collect", "LastKingBeetle"
 					break
@@ -14320,11 +14273,7 @@ nm_Bugrun(){
 
 				;loot
 				if(SSdead) {
-					TotalBossKills:=TotalBossKills+1
-					SessionBossKills:=SessionBossKills+1
-					PostSubmacroMessage("StatMonitor", 0x5555, 1, 1)
-					IniWrite TotalBossKills, "settings\nm_config.ini", "Status", "TotalBossKills"
-					IniWrite SessionBossKills, "settings\nm_config.ini", "Status", "SessionBossKills"
+					nm_IncrementStat("BossKills", 1)
 					LastStumpSnail:=nowUnix()
 					IniWrite LastStumpSnail, "settings\nm_config.ini", "Collect", "LastStumpSnail"
 					nm_PublishBossHealth("Snail", 100)
@@ -14596,11 +14545,7 @@ nm_Bugrun(){
 				;loot
 				if(CCdead) {
 					nm_setStatus("Defeated", "Commando Chick")
-					TotalBossKills:=TotalBossKills+1
-					SessionBossKills:=SessionBossKills+1
-					PostSubmacroMessage("StatMonitor", 0x5555, 1, 1)
-					IniWrite TotalBossKills, "settings\nm_config.ini", "Status", "TotalBossKills"
-					IniWrite SessionBossKills, "settings\nm_config.ini", "Status", "SessionBossKills"
+					nm_IncrementStat("BossKills", 1)
 					LastCommando := nm_CollectionRecovery.Interacted("LastCommando")
 					commandoConfirmed := true
 					nm_PublishBossHealth("Chick", 100)
@@ -14755,11 +14700,7 @@ nm_Bugrun(){
 					KeyWait "F14", "D T5 L"
 					KeyWait "F14", "T20 L"
 					nm_endWalk()
-					TotalBossKills:=TotalBossKills+1
-					SessionBossKills:=SessionBossKills+1
-					PostSubmacroMessage("StatMonitor", 0x5555, 1, 1)
-					IniWrite TotalBossKills, "settings\nm_config.ini", "Status", "TotalBossKills"
-					IniWrite SessionBossKills, "settings\nm_config.ini", "Status", "SessionBossKills"
+					nm_IncrementStat("BossKills", 1)
 					nm_setStatus("Looting", "Coco Crab")
 					nm_loot(9, 4, "right")
 					nm_loot(9, 4, "left")
@@ -16092,11 +16033,7 @@ DisconnectCheck(testCheck := 0)
 		ReconnectDelay := 0
 	}
 	else if (MacroState = 2) {
-		TotalDisconnects:=TotalDisconnects+1
-		SessionDisconnects:=SessionDisconnects+1
-		PostSubmacroMessage("StatMonitor", 0x5555, 6, 1)
-		IniWrite TotalDisconnects, "settings\nm_config.ini", "Status", "TotalDisconnects"
-		IniWrite SessionDisconnects, "settings\nm_config.ini", "Status", "SessionDisconnects"
+		nm_IncrementStat("Disconnects", 1)
 		nm_setStatus("Disconnected", "Reconnecting")
 	}
 
@@ -16897,24 +16834,6 @@ nm_OpenChat(msg:="") {
     SetKeyDelay 50
 	Send "{" SC_Slash "}" msg "`n"
     SetKeyDelay PrevKeyDelay
-}
-nm_IncrementStat(stat, amount:=1){ ; //todo: add to Quests/Bugrun when they are rewritten
-	global TotalBossKills, SessionBossKills
-	, TotalViciousKills, SessionViciousKills
-	, TotalBugKills, SessionBugKills
-	, TotalPlanters, SessionPlanters
-	, TotalQuestsDone, SessionQuestsDone
-	, TotalDisconnects, SessionDisconnects
-	StatEnum := Map("BossKills",1
-		,"ViciousKills",2
-		,"BugKills",3
-		,"Planters",4
-		,"QuestsDone",5
-		,"Disconnects",6
-	)
-	IniWrite (++Total%stat%), "settings\nm_config.ini", "Status", "Total" stat
-	IniWrite (++Session%stat%), "settings\nm_config.ini", "Status", "Session" stat
-	PostSubmacroMessage("StatMonitor", 0x5555, StatEnum[stat], amount)
 }
 nm_hotbar(boost:=0){
 	global state, fieldOverrideReason, GatherStartTime, ActiveHotkeys, bitmaps
@@ -18484,11 +18403,7 @@ nm_bugDeathCheck(){
 			BugDeathCheckLockout:=nowUnix()
 			LastBugrunLadybugs:=nowUnix()
 			IniWrite LastBugrunLadybugs, "settings\nm_config.ini", "Collect", "LastBugrunLadybugs"
-			TotalBugKills:=TotalBugKills+1
-			SessionBugKills:=SessionBugKills+1
-			PostSubmacroMessage("StatMonitor", 0x5555, 3, 1)
-			IniWrite TotalBugKills, "settings\nm_config.ini", "Status", "TotalBugKills"
-			IniWrite SessionBugKills, "settings\nm_config.ini", "Status", "SessionBugKills"
+			nm_IncrementStat("BugKills", 1)
 		}
 	}
 	;rhino beetles
@@ -18499,16 +18414,10 @@ nm_bugDeathCheck(){
 			LastBugrunRhinoBeetles:=nowUnix()
 			IniWrite LastBugrunRhinoBeetles, "settings\nm_config.ini", "Collect", "LastBugrunRhinoBeetles"
 			if(InStr(objective,"bamboo")) {
-				TotalBugKills:=TotalBugKills+2
-				SessionBugKills:=SessionBugKills+2
-				PostSubmacroMessage("StatMonitor", 0x5555, 3, 2)
+				nm_IncrementStat("BugKills", 2)
 			} else {
-				TotalBugKills:=TotalBugKills+1
-				SessionBugKills:=SessionBugKills+1
-				PostSubmacroMessage("StatMonitor", 0x5555, 3, 1)
+				nm_IncrementStat("BugKills", 1)
 			}
-			IniWrite TotalBugKills, "settings\nm_config.ini", "Status", "TotalBugKills"
-			IniWrite SessionBugKills, "settings\nm_config.ini", "Status", "SessionBugKills"
 		}
 	}
 	;spider
@@ -18518,11 +18427,7 @@ nm_bugDeathCheck(){
 			BugDeathCheckLockout:=nowUnix()
 			LastBugrunSpider:=nowUnix()
 			IniWrite LastBugrunSpider, "settings\nm_config.ini", "Collect", "LastBugrunSpider"
-			TotalBugKills:=TotalBugKills+1
-			SessionBugKills:=SessionBugKills+1
-			PostSubmacroMessage("StatMonitor", 0x5555, 3, 1)
-			IniWrite TotalBugKills, "settings\nm_config.ini", "Status", "TotalBugKills"
-			IniWrite SessionBugKills, "settings\nm_config.ini", "Status", "SessionBugKills"
+			nm_IncrementStat("BugKills", 1)
 		}
 	}
 	;mantis/rhino beetle
@@ -18532,11 +18437,7 @@ nm_bugDeathCheck(){
 			BugDeathCheckLockout:=nowUnix()
 			LastBugrunMantis:=nowUnix()
 			IniWrite LastBugrunMantis, "settings\nm_config.ini", "Collect", "LastBugrunMantis"
-			TotalBugKills:=TotalBugKills+1
-			SessionBugKills:=SessionBugKills+1
-			PostSubmacroMessage("StatMonitor", 0x5555, 3, 1)
-			IniWrite TotalBugKills, "settings\nm_config.ini", "Status", "TotalBugKills"
-			IniWrite SessionBugKills, "settings\nm_config.ini", "Status", "SessionBugKills"
+			nm_IncrementStat("BugKills", 1)
 		}
 		searchRet := nm_imgSearch("rhino.png",30,"lowright")
 		If (searchRet[1] = 0) {
@@ -18544,11 +18445,7 @@ nm_bugDeathCheck(){
 				BugDeathCheckLockout:=nowUnix()
 			LastBugrunRhinoBeetles:=nowUnix()
 			IniWrite LastBugrunRhinoBeetles, "settings\nm_config.ini", "Collect", "LastBugrunRhinoBeetles"
-			TotalBugKills:=TotalBugKills+1
-			SessionBugKills:=SessionBugKills+1
-			PostSubmacroMessage("StatMonitor", 0x5555, 3, 1)
-			IniWrite TotalBugKills, "settings\nm_config.ini", "Status", "TotalBugKills"
-			IniWrite SessionBugKills, "settings\nm_config.ini", "Status", "SessionBugKills"
+			nm_IncrementStat("BugKills", 1)
 		}
 	}
 	;mantis/werewolf
@@ -18558,22 +18455,14 @@ nm_bugDeathCheck(){
 			BugDeathCheckLockout:=nowUnix()
 			LastBugrunMantis:=nowUnix()
 			IniWrite LastBugrunMantis, "settings\nm_config.ini", "Collect", "LastBugrunMantis"
-			TotalBugKills:=TotalBugKills+2
-			SessionBugKills:=SessionBugKills+2
-			PostSubmacroMessage("StatMonitor", 0x5555, 3, 2)
-			IniWrite TotalBugKills, "settings\nm_config.ini", "Status", "TotalBugKills"
-			IniWrite SessionBugKills, "settings\nm_config.ini", "Status", "SessionBugKills"
+			nm_IncrementStat("BugKills", 2)
 		}
 		searchRet := nm_imgSearch("werewolf.png",30,"lowright")
 		If (searchRet[1] = 0) {
 			BugDeathCheckLockout:=nowUnix()
 			LastBugrunWerewolf:=nowUnix()
 			IniWrite LastBugrunWerewolf, "settings\nm_config.ini", "Collect", "LastBugrunWerewolf"
-			TotalBugKills:=TotalBugKills+1
-			SessionBugKills:=SessionBugKills+1
-			PostSubmacroMessage("StatMonitor", 0x5555, 3, 1)
-			IniWrite TotalBugKills, "settings\nm_config.ini", "Status", "TotalBugKills"
-			IniWrite SessionBugKills, "settings\nm_config.ini", "Status", "SessionBugKills"
+			nm_IncrementStat("BugKills", 1)
 		}
 	}
 	;werewolf
@@ -18583,11 +18472,7 @@ nm_bugDeathCheck(){
 			BugDeathCheckLockout:=nowUnix()
 			LastBugrunWerewolf:=nowUnix()
 			IniWrite LastBugrunWerewolf, "settings\nm_config.ini", "Collect", "LastBugrunWerewolf"
-			TotalBugKills:=TotalBugKills+1
-			SessionBugKills:=SessionBugKills+1
-			PostSubmacroMessage("StatMonitor", 0x5555, 3, 1)
-			IniWrite TotalBugKills, "settings\nm_config.ini", "Status", "TotalBugKills"
-			IniWrite SessionBugKills, "settings\nm_config.ini", "Status", "SessionBugKills"
+			nm_IncrementStat("BugKills", 1)
 		}
 	}
 	;scorpions
@@ -18597,11 +18482,7 @@ nm_bugDeathCheck(){
 			BugDeathCheckLockout:=nowUnix()
 			LastBugrunScorpions:=nowUnix()
 			IniWrite LastBugrunScorpions, "settings\nm_config.ini", "Collect", "LastBugrunScorpions"
-			TotalBugKills:=TotalBugKills+1
-			SessionBugKills:=SessionBugKills+1
-			PostSubmacroMessage("StatMonitor", 0x5555, 3, 1)
-			IniWrite TotalBugKills, "settings\nm_config.ini", "Status", "TotalBugKills"
-			IniWrite SessionBugKills, "settings\nm_config.ini", "Status", "SessionBugKills"
+			nm_IncrementStat("BugKills", 1)
 		}
 	}
 }
@@ -19819,11 +19700,7 @@ ba_harvestPlanter(planterNum){
 		IniWrite 0, "settings\nm_config.ini", "Planters", "PlanterEstPercent" planterNum
 		IniWrite PlanterGlitter%planterNum%, "settings\nm_config.ini", "Planters", "PlanterGlitter" planterNum
 		IniWrite PlanterGlitterC%planterNum%, "settings\nm_config.ini", "Planters", "PlanterGlitterC" planterNum
-		TotalPlantersCollected:=TotalPlantersCollected+1
-		SessionPlantersCollected:=SessionPlantersCollected+1
-		PostSubmacroMessage("StatMonitor", 0x5555, 4, 1)
-		IniWrite TotalPlantersCollected, "settings\nm_config.ini", "Status", "TotalPlantersCollected"
-		IniWrite SessionPlantersCollected, "settings\nm_config.ini", "Status", "SessionPlantersCollected"
+		nm_IncrementStat("Planters", 1)
 		;gather loot
 		if (GatherPlanterLoot = 1)
 		{
@@ -20423,11 +20300,7 @@ mp_HarvestPlanter(PlanterIndex) {
 		IniWrite PlanterHarvestFull%PlanterIndex%, "settings\nm_config.ini", "Planters", "PlanterHarvestFull" PlanterIndex
 		IniWrite PlanterHarvestTime%PlanterIndex%, "settings\nm_config.ini", "Planters", "PlanterHarvestTime" PlanterIndex
 
-		TotalPlantersCollected:=TotalPlantersCollected+1
-		SessionPlantersCollected:=SessionPlantersCollected+1
-		PostSubmacroMessage("StatMonitor", 0x5555, 4, 1)
-		IniWrite TotalPlantersCollected, "settings\nm_config.ini", "Status", "TotalPlantersCollected"
-		IniWrite SessionPlantersCollected, "settings\nm_config.ini", "Status", "SessionPlantersCollected"
+		nm_IncrementStat("Planters", 1)
 		;gather loot
 		if (MGatherPlanterLoot = 1)
 			{

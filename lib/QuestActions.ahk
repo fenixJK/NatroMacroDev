@@ -135,12 +135,8 @@ nm_TryQuestTurnIn(family, reader) {
 			return false
 		questName := family = "Honey" ? "Honey Hunt" : %family%Quest
 		nm_setStatus("Starting", family " Quest: " questName)
-		if family != "Honey" {
-			TotalQuestsComplete++, SessionQuestsComplete++
-			PostSubmacroMessage("StatMonitor", 0x5555, 5, 1)
-			IniWrite TotalQuestsComplete, "settings\nm_config.ini", "Status", "TotalQuestsComplete"
-			IniWrite SessionQuestsComplete, "settings\nm_config.ini", "Status", "SessionQuestsComplete"
-		}
+		if family != "Honey"
+			nm_IncrementStat("QuestsDone")
 		if family = "Black" || family = "Brown" {
 			Last%family%Quest := nowUnix()
 			IniWrite Last%family%Quest, "settings\nm_config.ini", "Quests", "Last" family "Quest"
