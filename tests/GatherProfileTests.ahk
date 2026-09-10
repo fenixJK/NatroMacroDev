@@ -61,6 +61,9 @@ TestGatherProfileControls() {
 	FieldPatternSizeArr := Map("XS",1,"S",2,"M",3,"L",4,"XL",5)
 	MacroState := 0, CurrentFieldNum := 3, GatherRefreshes := 0
 	FieldName1 := FieldPattern1 := "", FieldPatternShift1 := 0
+	FieldPatternSize1 := FieldReturnType1 := FieldRotateDirection1 := FieldSprinklerLoc1 := ""
+	FieldDriftCheck1 := FieldPatternInvertFB1 := FieldPatternInvertLR1 := FieldPatternReps1 := 0
+	FieldRotateTimes1 := FieldSprinklerDist1 := FieldUntilMins1 := FieldUntilPack1 := 0
 	initial := Map("Name","Sunflower","Pattern","Squares","DriftCheck",0,"PatternInvertFB",0,"PatternInvertLR",0,"PatternReps",2,"PatternShift",0,"PatternSize","M","ReturnType","Walk","RotateDirection","None","RotateTimes",1,"SprinklerDist",2,"SprinklerLoc","Center","UntilMins",10,"UntilPack",50)
 	try {
 		for key, value in initial {
