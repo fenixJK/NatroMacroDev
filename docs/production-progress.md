@@ -1286,3 +1286,56 @@ session changes and reboot do not preserve it, and interrupted publication remai
 uncertain. Durable cooldowns/outbox recovery, proactive bucket headers, all-request
 coordination, live verification and the full production plan remain active. No
 merge, deployment or production release is claimed.
+
+## Asynchronous bot polling and authorization checkpoint
+
+Code checkpoint: `a336b89a482f4f941cd40b66b0cbcde2ab7ea7f1`.
+[Windows run 34435871294](https://github.com/fenixJK/NatroMacroDev/actions/runs/34435871294)
+passed **60 regression groups on each AHK architecture**, native Windows suites
+including opposite-architecture cooldown sharing, seven production-script and four
+emitted-worker validations per architecture, **43 attachment checks** and **35
+updater scenarios** on each PowerShell version. No AHK warnings occurred. The
+checkout Node runtime deprecation notice remains.
+
+Status now polls messages and reads channel/member identity through a separate
+bounded asynchronous GET queue. One read can be active alongside one outgoing
+request, sharing the same observed bot-token cooldown. Reads use a ten-second
+request deadline, twenty-second job age, three attempts and bounded usable response
+text. Transient failure backoff remains recoverable and honors longer server
+deadlines. Permanent channel/credential failures and repeated unusable data pause
+the session with local diagnostics. Legacy synchronous library methods remain for
+custom callers; Status no longer uses them for polling or role lookup.
+
+Startup establishes a watermark without executing historical commands, and the
+readiness announcement follows that response. Later pages validate identities and
+structure before admission, order/deduplicate IDs exactly, ignore bot/webhook
+messages, cap the command buffer at 100 and leave the cursor before an unadmitted
+command. Large unavailable pages shrink toward one without losing the cursor.
+Commands older than five minutes, more than a minute in the future or lacking a
+valid UTC timestamp are skipped; received commands expire after a minute in the
+buffer. This depends on the Windows clock being correct.
+
+Role-based dispatch waits for a current channel/guild and matching member response.
+Role evidence lasts five seconds, and dispatch rechecks the current token, channel,
+prefix and allowlist. Configuration changes discard buffered work and invalidate
+late responses. All API identities must be decimal strings, with exact comparison
+for the requested channel/member. The existing local capability gate still precedes
+actions, and HTTP callbacks never execute game actions. Explicit-user authorization
+uses the existing local allowlist contract without a role request.
+
+Tests cover startup replay, ordering/duplicates, exact string identities, invalid
+pages, cursor/capacity, role expiry/mismatch, stale timestamps, adaptive pages,
+configuration changes, late responses, disablement, outages, 429 and permanent
+failures. A native loopback server requires GET with no body and the fixture token,
+then supplies baseline/new messages and channel/member JSON. The controller must
+produce a currently authorized command without executing it. Another native check
+rejects oversized usable response text. No real Discord command or Roblox action
+is sent.
+
+[Reporting verification](reporting-verification.md) records limits. WinHTTP may
+allocate a full response before the text-length check. Role revocation can remain
+unseen within its short evidence window. Restart establishes a new watermark rather
+than recovering pending commands, and game actions lack transactional receipts.
+Live Discord permissions/content intent/backlog behavior, resource soaks, durable
+action recovery, the synchronous pre-shutdown notification and the full production
+plan remain active. No merge, deployment or production release is claimed.

@@ -46,11 +46,12 @@ Ordinary status screenshots are not retained on disk. Status input is capped at
 The outbox itself is in memory. Normal exit records unconfirmed items locally;
 abrupt process termination can lose ordinary queued statuses/images. A lost HTTP
 response can also cause a duplicate on retry: this is not exactly-once delivery.
-Each helper currently has its own queue. Bot polling, authorization lookups and the
-pre-shutdown restart reply still use synchronous requests with bounded waits.
+Each helper currently has its own outgoing queue. Status also has a separate,
+bounded GET queue for bot polling and authorization. The pre-shutdown restart reply
+still uses a synchronous request with bounded waits.
 Ordinary command replies and live honey use the Status helper's existing queue.
 Queued helpers now share observed 429 cooldowns in the Windows session as described
-below. Polling/authorization and the synchronous restart reply do not yet participate.
+below. Polling/authorization participate; the synchronous restart reply does not.
 
 ## Verification scope
 
@@ -67,10 +68,10 @@ bitmap has been disposed. No test contacts Discord or uses real credentials.
 
 Still required for F23 and the broader production plan:
 
-- Migrate synchronous bot polling/authorization and coordinate the pre-shutdown
-  reply with process exit. Ordinary replies, including structured timer, planter,
-  shrine, blender and memory-match displays, now use the common queue.
-- Extend shared rate-limit coordination to synchronous bot requests, parse proactive
+- Coordinate the pre-shutdown reply with process exit. Ordinary replies, including
+  structured timer, planter, shrine, blender and memory-match displays, use the
+  outgoing queue; polling/authorization use the bounded read queue.
+- Extend shared rate-limit coordination to remaining synchronous library requests, parse proactive
   bucket headers and coordinate dispatch. Persist ordinary queued reports with
   explicit destination identity and recovery.
 - Add user-visible pending/failed report management and controlled resend; verify
@@ -187,8 +188,8 @@ Discord. Legacy queue, report and attachment tests remain in the full suite.
 This remains an in-memory delivery protocol. A lost POST response may create a
 duplicate during bounded retries, and restart loses the message ID. Cancellation
 does not revoke an already delivered request. Native calls and delayed queue pumps
-make timing cooperative, and synchronous bot polling/authorization, shutdown
-notification and command actions can still delay work.
+make timing cooperative, and synchronous shutdown notification and command actions
+can still delay work. Polling/authorization now use the read queue described below.
 Complete request-path rate coordination, durable receipts/recovery, live Discord behavior,
 game capture accuracy and measured resource/performance effects remain open.
 
@@ -250,13 +251,77 @@ capacity rejection and closed queues. No Discord command or game action is sent.
 
 The system-restart notification intentionally retains its bounded synchronous
 attempt before shutdown. General library callers retain the old synchronous API.
-Bot polling/member lookups, capture/encoding, local archive preparation and command
+Capture/encoding, local archive preparation and command
 actions can still block helper progress. Pending replies share the queue's FIFO
 ordering with other reports, so an earlier retry delay can hold later replies.
 This is not full asynchronous command execution or durable delivery: abrupt exit
 can lose queued replies, and retries after a lost response can duplicate messages.
 Coordination with synchronous requests, shutdown/restart recovery and live
 verification remain work. Queued-message cooldown retention is described next.
+
+## Bot polling and authorization
+
+Status now reads messages, channel identity and member roles through a separate
+GET queue. It has one queued/active read, a ten-second request deadline, twenty-second
+job age limit and three attempts per read. It shares the Windows cooldown coordinator
+with outgoing reports, so an observed bot-token delay applies to reads and writes.
+One read and one outgoing request may be active concurrently; this is not a single
+global dispatch lock. Successful message polling waits a second before the next
+page, while role lookup steps can proceed on subsequent pumps.
+
+The first response establishes a watermark without executing historical commands.
+Status announces readiness only after that watermark exists. Later pages are
+validated before admission, sorted by exact string IDs and deduplicated. Bots,
+webhooks and non-command messages are ignored. The command buffer holds at most
+100 entries; the cursor stops before a command it cannot admit. Queued commands
+expire after a minute. At admission, a command's UTC timestamp must be within the
+previous five minutes and no more than a minute in the future; old, future or
+invalid timestamps are logged and skipped. This depends on the Windows clock being
+correct. Commands posted before the initial watermark, and stale outage backlog,
+are intentionally not replayed.
+
+The adapter exposes at most 1,048,576 UTF-16 characters of response text to the
+controller, with an explicit usable-body flag. WinHTTP may allocate the full body
+before the length check; this is not a streaming receive cap. Message pages start
+at 100 entries and shrink toward one if usable body data is unavailable, preserving
+the cursor. Repeated malformed/unusable data at the minimum size pauses polling.
+Message content, attachment URLs and role lists also have bounds. Channel, guild,
+member, author and message identities must be decimal strings; channel/member
+responses must match the identity requested. Numeric coercion cannot supply an ID.
+
+Explicit-user permissions need no member lookup. Role-based commands wait for a
+validated channel/guild and a fresh response for that command's author. Role results
+are usable for at most five seconds. Permission is checked again at dispatch against
+the current token, channel, prefix and allowlist. Changes invalidate the session and
+discard buffered commands; late responses from old sessions cannot authorize or
+populate the new one. The existing local capability checks still run before the
+command action. Read callbacks never perform game actions. A role change on Discord
+after the lookup can remain unseen within the five-second window.
+
+Transient failures retry with backoff up to a minute and retain longer server
+deadlines. They do not permanently disable recovery. HTTP 401/403, missing channel
+or five consecutive unusable responses pause the session with a local log; changing
+configuration or restarting the helper permits retry. Failed member lookup does
+not grant access. Closing/disablement cancels outstanding read ownership. General
+legacy synchronous library methods remain available for custom callers, and the
+system-restart notification still attempts delivery before shutdown.
+
+Tests exercise startup replay suppression, ordering/deduplication, exact IDs,
+wrong-channel and malformed-page rejection, capacity/cursor handling, command/role
+expiry, stale timestamps, page reduction, configuration changes, late responses,
+role mismatch, disablement, outages, rate limits and permanent failures. Native
+loopback tests require GET with no request body and the expected fixture credential,
+return baseline/new messages plus channel/member data, and verify resulting role
+authorization. A native oversized-body check must return no usable text. These
+tests do not execute remote commands or contact Discord.
+
+The cursor and command buffer remain in memory. Restart intentionally establishes
+a new watermark; it does not recover unexecuted commands. Network completion does
+not prove a game action occurred, and actions are not transactional. Real permissions,
+message-content intent, backlog pagination and timing still require live Discord
+verification. See the official [message API contract](https://docs.discord.com/developers/resources/message#get-channel-messages)
+and [member API contract](https://docs.discord.com/developers/resources/guild#get-guild-member).
+Measured responsiveness, long-session soak and durable action receipts remain work.
 
 ## Shared queued-request cooldowns
 
@@ -304,8 +369,8 @@ cleanup checks handle counts. A loopback HTTP server sends a 2.5-second header a
 a shorter JSON delay, then independently rejects a following message if it arrives
 too early. The first message exhausts its attempts before the second is submitted.
 
-This covers queued sends in one Windows session. Synchronous bot polling/member
-lookups and restart notification still bypass the coordinator. Proactive use of
+This covers queued sends and bot polling/member lookups in one Windows session.
+Restart notification and custom synchronous library calls still bypass it. Proactive use of
 bucket/remaining/reset headers, precise route scheduling, durable cooldowns,
 cross-session or other-machine coordination, live Discord verification and
 performance measurements remain open.
