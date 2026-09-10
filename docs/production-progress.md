@@ -366,3 +366,46 @@ live-game verification, complete coordinate migration or performance improvement
 claimed. The full recovery plan remains active, including quests, remaining feature
 correctness, reporting/state/resource work, refactoring, optimizations, proposed
 features and the existing release/live-verification gates.
+
+## Quest completion evidence checkpoint
+
+Code checkpoint: `6ee9de2f048e66134f61d7a004fdb86590cb83d0`.
+[Windows run 34419566125](https://github.com/fenixJK/NatroMacroDev/actions/runs/34419566125)
+passed **32 AHK regression groups on each architecture**, native geometry/pointer
+integration, all six script validations, four emitted worker validations per
+architecture, and **35 updater scenarios per PowerShell version**, without AHK
+warnings.
+
+All six quest families now distinguish complete, incomplete and unknown. The new
+`QuestObservation` module re-captures the title and rows together and requires an
+explicit completed background, rather than accepting arbitrary non-border colors.
+The background was measured from a historical screenshot attached to an upstream
+bug report; its provenance and limitations are recorded in
+[quest verification](quest-verification.md).
+
+Readers reject failed title/gap recognition and incomplete visible row sets, reset
+stale names, and stop inferring completion from having no next action. Brown's
+variable objective list keeps one entry per row, marks unmatched text unknown, and
+requires a fresh endpoint when fewer than four objectives are recognized. Unknown
+results replace stale completed text and clear pending quest actions; gather polling
+no longer treats unknown as a completed step.
+
+`QuestActions.ahk` contains the real six action consumers exercised by the tests.
+Visits require explicit completion. The five previously counted quest families
+require newly observed incomplete progress after visiting before incrementing
+counters; Black/Brown cooldown timestamps use the same condition. Honey re-reads
+before announcing a new quest. Its existing counter behavior is unchanged.
+
+During CI, an overly broad test-setup edit affected older fixture initialization;
+that edit was corrected, and isolated quest fixtures received the explicit global
+declarations required by AHK. The final recorded run passes the older regression
+suite and all new quest tests.
+
+F20 remains open for live/recorded game images, long-log scrolling and initial quest
+acquisition, bounded persisted retries for unknown/unconfirmed visits, planner
+separation, remaining native resource/input paths, dynamic end-of-log reconciliation
+and positive game acceptance. In particular, removing false hourly-success records
+requires a separate retry delay for failed Black/Brown visits. These remaining
+requirements are not hidden by the new green CI result. The full recovery plan,
+other feature/state/reporting fixes, optimizations, proposed features and release
+verification gates remain active.
