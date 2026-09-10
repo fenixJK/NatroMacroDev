@@ -334,6 +334,14 @@ up, longer delays extend the deadline, and shorter replies cannot reduce it.
 The clock is read again after HTTP polling so response-processing time cannot
 consume part of the new cooldown before it is established.
 Pathological numeric durations saturate instead of overflowing into an early send.
+Native shared coordinators also add a 32 ms allowance to the deadline because
+[GetTickCount64 typically advances in 10–16 ms steps](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-gettickcount64).
+A timestamp rounded down can otherwise permit a retry before the real interval
+elapses: run 34460904251 measured 2.4972408 seconds against a 2.5-second minimum.
+The allowance is published to other helpers and included in overflow saturation.
+Exact injected test clocks retain zero allowance. This is a conservative guard
+for ordinary Windows timer resolution, not a high-resolution scheduling guarantee
+for arbitrary clocks or unusual virtualized timer behavior.
 The existing HTTP adapter takes the longer numeric body/header delay, following
 Discord's [Retry-After guidance](https://docs.discord.com/developers/topics/rate-limits).
 
@@ -370,6 +378,10 @@ nonblocking contention, pending publication and abandoned-lock recovery. Fixture
 cleanup checks handle counts. A loopback HTTP server sends a 2.5-second header and
 a shorter JSON delay, then independently rejects a following message if it arrives
 too early. The first message exhausts its attempts before the second is submitted.
+Additional deterministic fixtures sweep response arrival phases across 10, 15.625
+and 16 ms clock steps and verify that the earliest eligible tick preserves the
+real requested interval. Native HTTP fixtures log the server's elapsed measurement;
+their 2.5-second acceptance threshold has not been relaxed.
 
 This covers queued sends and bot polling/member lookups in one Windows session.
 Restart notification and custom synchronous library calls still bypass it. Proactive use of

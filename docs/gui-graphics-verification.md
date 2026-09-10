@@ -82,3 +82,12 @@ the drag coordinate mode before its redraw and cleanup checks. Saved order uses
 a shared validated store, and the renderer no longer mutates the array before
 persistence succeeds. [Priority settings verification](priority-settings-verification.md)
 records Windows run 34458814651 and the remaining physical-input/live-game scope.
+
+## Auto-Jelly rolling follow-up
+
+The rolling loop now releases its temporary captures, mutation effects and
+HBITMAPs in finally paths. Startup rejection restores the GUI, clears the running
+guard and disables Escape, with two native rejection/retry checks. The GUI probe
+also exercises all 68 bundled bee templates against the complete search set.
+[Auto-Jelly run verification](auto-jelly-run-verification.md) records input and
+observation guards and the remaining WinRT OCR, consumption and live-game limits.

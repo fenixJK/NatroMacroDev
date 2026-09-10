@@ -1734,3 +1734,42 @@ interrupts. These writers are serialized, not a dedicated single writer for all
 settings, and IniWrite remains non-atomic across crashes. Other settings still
 use legacy IPC. No Windows/Roblox machine is available. The full production goal
 remains active; no merge, deployment or release is claimed.
+
+## Auto-Jelly rolling and native retry timing checkpoint
+
+Code checkpoint: `33fa34d5a4c7efb2a5c714f87731f2b365dfb07a`.
+[Windows run 34461512517](https://github.com/fenixJK/NatroMacroDev/actions/runs/34461512517)
+passed **65 regression groups on both AHK architectures**, native process/GUI
+suites, **nine production-script, four test-entry and seven emitted-worker
+validations** per architecture, plus **eight file-channel checks, 43 attachment
+checks and 35 updater scenarios** per PowerShell version. No AHK warnings occurred;
+the checkout Node runtime deprecation notice remains.
+
+Auto-Jelly now rejects failed offset detection, missing selections and unavailable
+English mutation OCR before rolling. Bee-only runs skip OCR initialization. Its
+input/capture surface retains one focused client and its observed geometry, rejects
+changed or out-of-bounds regions, and releases owned mouse input in finally.
+The result delay checks cancellation every 25 ms. Native image-search errors,
+missing identities and ambiguous results stop the loop. Temporary captures,
+effects and HBITMAPs have finally-based cleanup. Run teardown disables Escape,
+restores the GUI and permits another start even after early rejection.
+
+Native fixtures exercise real input/capture, cancellation and geometry rejection.
+The generated GUI checks all 68 bundled templates against the entire template set,
+then rejects startup twice through the real run function and verifies GUI retry
+and Escape-hook teardown. CI exposed incorrect native dialog-button lookup in the
+test; it now locates the actual OK control and waits until that control exists.
+
+CI also exposed an early Discord retry: the independent HTTP server measured
+2.4972408 seconds against a 2.5-second minimum. Native shared cooldowns now include
+a 32 ms allowance for ordinary coarse Windows clock steps. Deterministic arrival
+phase tests cover 10, 15.625 and 16 ms clocks, while the unchanged server assertion
+passed at 2.570507 seconds on 32-bit and 2.5659045 seconds on 64-bit. Shared mapping
+and cross-architecture recovery checks still pass.
+
+[Auto-Jelly run verification](auto-jelly-run-verification.md) records the contracts
+and limits. Legacy WinRT OCR still needs bounded waits and complete COM/HSTRING/
+stream cleanup; consumption budgets, hover-handler review and live game receipts
+remain open. The timer allowance is not a guarantee for arbitrary timer behavior.
+No Windows/Roblox machine is available. The full production goal remains active;
+no merge, deployment or release is claimed.
