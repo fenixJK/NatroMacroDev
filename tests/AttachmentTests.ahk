@@ -16,6 +16,7 @@ TestAttachmentWorker() {
 	notify := (message, ok, id) => replies.Push([message, ok, id])
 	nm_AttachmentDownloads.Active := {worker: worker, directory: A_WorkingDir "\missing-receiving", id: "42", tick: DllCall("GetTickCount64", "UInt64"), stopping: false}
 	try {
+		nm_AttachmentDownloads.OnDiagnostic := (*) => TestAttachmentDiagnosticFailure()
 		nm_AttachmentDownloads.Pump(notify)
 		AssertEqual(replies.Length, 0, "In-flight download does not block or report premature completion")
 		AssertDeliveryError(() => nm_AttachmentDownloads.Start("https://cdn.discordapp.com/a", "43"), "Second download is rejected while the worker owns the inbox")
@@ -81,7 +82,14 @@ TestAttachmentWorker() {
 			nm_AttachmentDownloads.Close()
 			SetWorkingDir originalDirectory
 		}
-	} finally nm_AttachmentDownloads.Active := 0
+	} finally {
+		nm_AttachmentDownloads.Active := 0
+		nm_AttachmentDownloads.OnDiagnostic := 0
+	}
+}
+
+TestAttachmentDiagnosticFailure() {
+	throw Error("Fixture diagnostic failure must not alter completion")
 }
 
 TestAttachmentNotifyFailure(calls) {

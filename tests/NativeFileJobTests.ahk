@@ -13,6 +13,10 @@ TestNativeFileJobs() {
 			RequireProcess(result["ok"] = (mode = "echo"), "Only a complete successful file result is accepted")
 			if mode != "echo"
 				RequireProcess(result["reason"] = "worker", "Failure and absent results expose only a fixed reason")
+			diagnostic := fileJob.Diagnostics()
+			RequireProcess(diagnostic["stage"] = (mode = "echo" ? "result-written" : "request-parsed"), "Diagnostics distinguish completed action from exception or premature exit")
+			RequireProcess(diagnostic["milestonesMs"][1] >= 0 && diagnostic["milestonesMs"][2] >= diagnostic["milestonesMs"][1], "Worker progress uses the parent's monotonic clock")
+			RequireProcess(diagnostic["startupMs"] >= 0 && diagnostic["cpuMs"] >= 0, "Worker creation and CPU timings are available")
 		} finally fileJob.Close()
 	}
 	DllCall("GetProcessHandleCount", "Ptr", -1, "UIntP", &after := 0)
@@ -23,6 +27,7 @@ TestNativeFileJobs() {
 	childHandle := 0
 	try {
 		WaitProcessReady(fileJob)
+		RequireProcess(fileJob.Diagnostics()["stage"] = "request-parsed", "A stalled action retains its last confirmed stage")
 		childHandle := DllCall("OpenProcess", "UInt", 0x101001, "Int", false, "UInt", NumGet(fileJob.View, 12, "Int"), "Ptr")
 		RequireProcess(childHandle && DllCall("IsProcessInJob", "Ptr", childHandle, "Ptr", fileJob.Job, "IntP", &owned := 0) && owned, "File worker descendants remain in its job")
 		fileJob.Close()
