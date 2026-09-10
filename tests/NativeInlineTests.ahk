@@ -8,7 +8,16 @@ TestNativeInlineWorkers() {
 		Loop 2000
 			source .= "; Large source sent as UTF-8 through owned pipes`n"
 		worker := nm_InlineWorker(source, otherRuntime)
-		RequireProcess(worker.Output() == "Ω🐝|" A_WorkingDir, "Opposite-architecture generated code preserves Unicode and root stdin include context")
+		actual := worker.Output(), expected := "Ω🐝|" A_WorkingDir
+		if actual != expected {
+			actualCodes := "", expectedCodes := ""
+			Loop Parse actual
+				actualCodes .= Format("{:X} ", Ord(A_LoopField))
+			Loop Parse expected
+				expectedCodes .= Format("{:X} ", Ord(A_LoopField))
+			FileAppend "Inline actual codepoints: " actualCodes "`nExpected: " expectedCodes "`n", "*"
+		}
+		RequireProcess(actual == expected, "Opposite-architecture generated code preserves Unicode and root stdin include context")
 		worker.Close(), worker := 0
 		RequireProcess(nm_InlineScripts.Validate('#Requires AutoHotkey v2.0.12`nMsgBox "Must not execute"', otherRuntime) = "", "Production validation parses without executing source")
 		RequireProcess(nm_InlineScripts.Validate("broken(`n", otherRuntime) != "", "Production validation returns parse errors")

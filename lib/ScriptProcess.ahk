@@ -41,6 +41,8 @@ class nm_ScriptProcess {
 			try {
 				if WinGetPID("ahk_id " this.ScriptHwnd) = this.Pid
 					DllCall("PostMessageW", "Ptr", this.ScriptHwnd, "UInt", 0x10, "Ptr", 0, "Ptr", 0)
+			} catch TargetError {
+				; The verified script window can disappear before the close request.
 			} finally DetectHiddenWindows hiddenBefore
 			deadline := DllCall("GetTickCount64", "UInt64") + 500
 			while this.Running() && DllCall("GetTickCount64", "UInt64") < deadline

@@ -8,6 +8,8 @@ class nm_InlineWorker extends nm_ContainedProcessJob {
 		try {
 			deadline := this.Started + 20000
 			Loop {
+				if !this.View || !this.Process
+					throw Error("Generated worker startup was cancelled")
 				phase := NumGet(this.View, 8, "Int"), pid := NumGet(this.View, 12, "UInt")
 				if pid && !this.ChildPid {
 					this.ChildPid := pid
@@ -40,7 +42,11 @@ class nm_InlineWorker extends nm_ContainedProcessJob {
 	}
 	Output(timeoutMs := 20000) {
 		deadline := DllCall("GetTickCount64", "UInt64") + timeoutMs
-		while this.Running() {
+		Loop {
+			if !this.Process || !this.View
+				throw Error("Generated worker result was cancelled")
+			if !this.Running()
+				break
 			if DllCall("GetTickCount64", "UInt64") >= deadline
 				throw Error("Generated worker result timed out")
 			Sleep 20
@@ -57,6 +63,12 @@ class nm_InlineWorker extends nm_ContainedProcessJob {
 		return output
 	}
 	Close(graceful := true) {
+		criticalBefore := A_IsCritical
+		Critical "On"
+		try this.CloseOwned(graceful)
+		finally Critical criticalBefore
+	}
+	CloseOwned(graceful) {
 		if graceful && this.Child && this.ChildRunning() && (hwnd := this.Window()) {
 			DllCall("PostMessageW", "Ptr", hwnd, "UInt", 0x10, "Ptr", 0, "Ptr", 0)
 			deadline := DllCall("GetTickCount64", "UInt64") + 500
