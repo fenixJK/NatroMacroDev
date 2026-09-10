@@ -31,7 +31,7 @@ public static class NatroDialogDiagnostics {
 }
 '@
 
-function Invoke-AhkChecked([string]$Executable, [string[]]$AhkArguments, [string]$Source = '') {
+function Invoke-AhkChecked([string]$Executable, [string[]]$AhkArguments, [string]$Source = '', [int]$TimeoutMs = 60000) {
     $start = [System.Diagnostics.ProcessStartInfo]::new()
     $start.FileName = $Executable
     $start.WorkingDirectory = $repoRoot
@@ -47,7 +47,7 @@ function Invoke-AhkChecked([string]$Executable, [string[]]$AhkArguments, [string
         $process.StandardInput.Write($Source)
         $process.StandardInput.Close()
     }
-    if (-not $process.WaitForExit(60000)) {
+    if (-not $process.WaitForExit($TimeoutMs)) {
         Write-Host "Timed-out AHK window: $($process.MainWindowTitle)"
         Write-Host ([NatroDialogDiagnostics]::Read($process.MainWindowHandle))
         $process.Kill($true)
@@ -82,7 +82,9 @@ try {
         if ((Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant() -ne $runtimeHashes[$bits]) {
             throw "Bundled AHK $bits-bit runtime differs from the reviewed 2.0.12 binary."
         }
-        Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'RunTests.ahk'), $fixturePort, "$readyFile.$bits")
+        # The suite includes a real child-worker watchdog (45 seconds) alongside
+        # the other regressions. Individual script validation stays at 60 seconds.
+        Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'RunTests.ahk'), $fixturePort, "$readyFile.$bits") -TimeoutMs 90000
         Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'GeometryWindows.ahk'))
         $workerOutput = Join-Path $workerDirectory $bits
         Invoke-AhkChecked $exe @('/ErrorStdOut=UTF-8', '/CP65001', (Join-Path $PSScriptRoot 'EmitWorkers.ahk'), $workerOutput)

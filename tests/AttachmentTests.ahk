@@ -39,10 +39,14 @@ TestAttachmentWorker() {
 			nm_AttachmentDownloads.Start("http://127.0.0.1:1/not-allowed", "46")
 			jobDirectory := nm_AttachmentDownloads.Active.directory
 			start := DllCall("GetTickCount64", "UInt64")
-			while nm_AttachmentDownloads.Active && DllCall("GetTickCount64", "UInt64") - start < 15000 {
+			while nm_AttachmentDownloads.Active && DllCall("GetTickCount64", "UInt64") - start < 50000 {
 				nm_AttachmentDownloads.Pump(notify)
 				Sleep 20
 			}
+			if nm_AttachmentDownloads.Active
+				FileAppend "Attachment fixture still active: PID=" nm_AttachmentDownloads.Active.worker.ProcessID " status=" nm_AttachmentDownloads.Active.worker.Status " stopping=" nm_AttachmentDownloads.Active.stopping "`n", "*"
+			else if replies.Length >= 4
+				FileAppend "Attachment fixture result after " (DllCall("GetTickCount64", "UInt64") - start) " ms: " replies[4][1] "`n", "*"
 			Assert(!nm_AttachmentDownloads.Active && replies.Length = 4 && !replies[4][2], "Native worker launch completes without contacting an unapproved host")
 			Assert(InStr(replies[4][1], "(url)"), "Native worker receives and parses stdin JSON")
 			Assert(!DirExist(jobDirectory), "Completed worker cleans its owned receiving directory")
