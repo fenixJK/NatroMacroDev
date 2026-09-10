@@ -95,7 +95,10 @@ No live Roblox scenario has been run for this checkpoint.
 The shared `nm_imgSearch` helper delegates to `ImageObservation.ahk`. Its named
 regions use inclusive bounds within a fresh client snapshot, including odd sizes
 and small quest panels. A native search uses screen coordinates temporarily and
-restores the caller's mode. Missing assets, invalid regions, native decode/search
+restores the caller's mode. Verified geometry is published for legacy callers that
+combine the returned client-relative point with windowX/windowY. Those downstream
+input calls still need their own freshness/ownership guards. Missing assets, invalid
+regions, native decode/search
 errors and changed focus/geometry throw through the existing failure handler;
 they no longer forcibly kill the process or return usable stale coordinates.
 A completed no-match retains the existing `[1, 0, 0]` interface.

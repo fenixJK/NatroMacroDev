@@ -3,6 +3,7 @@ class ImageObservationTestSurface {
 		this.Result := {found: 1, x: 20, y: 30}, this.Client := {width: 801, height: 601})
 	Snapshot() => this.Client
 	Current(snapshot) => this.Valid
+	Publish(snapshot) => this.Published := snapshot
 	Search(snapshot, region, spec) {
 		this.Reads++
 		if this.ThrowOnSearch
@@ -33,6 +34,7 @@ TestImageObservation() {
 		surface := ImageObservationTestSurface()
 		result := nm_ImageObservation.Find("observation-fixture.png", 30, "full", "none", surface)
 		Assert(result[1] = 0 && result[2] = 20 && result[3] = 30, "Legacy found result preserves client-relative coordinates")
+		Assert(surface.Published = surface.Client, "Verified geometry is published for legacy coordinate consumers")
 		surface.Result := {found: 0}
 		AssertEqual(nm_ImageObservation.Find("observation-fixture.png", 30, "full", "none", surface)[1], 1, "Completed no-match is distinct from observation failure")
 		for mode in ["missing", "unfocused", "changed", "exception", "outside", "invalid", "region"] {

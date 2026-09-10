@@ -118,6 +118,8 @@ TestNativeSharedImage(capturedGui) {
 		surface := nm_ImageSearchSurface(capturedGui.Hwnd)
 		result := nm_ImageObservation.Find("native-needle.png", 0, "full", "none", surface)
 		Require(result[1] = 0 && result[2] = 10 && result[3] = 30, "Native image result uses client-relative coordinates")
+		client := nm_ClientSnapshot(capturedGui.Hwnd)
+		Require(windowX = client.x && windowY = client.y && windowWidth = client.width, "Legacy geometry agrees with the verified native result")
 		Require(A_CoordModePixel = "Client", "Native search restores caller coordinate mode")
 		result := nm_ImageObservation.Find("native-needle.png", 0, "right", "none", surface)
 		Require(result[1] = 0 && result[2] = 200 && result[3] = 30, "Native right region excludes the left match")

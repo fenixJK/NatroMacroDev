@@ -44,6 +44,7 @@ class nm_ImageObservation {
 		result := surface.Search(snapshot, region, spec)
 		if !surface.Current(snapshot)
 			throw Error("Roblox window changed during image search")
+		surface.Publish(snapshot)
 		if result.found = 0
 			return [1, 0, 0]
 		if result.found != 1 || result.x < region.left || result.x > region.right
@@ -57,6 +58,7 @@ class nm_ImageSearchSurface {
 	__New(hwnd := 0) => this.Hwnd := hwnd
 	Snapshot() => nm_ClientSnapshot(this.Hwnd ? this.Hwnd : GetRobloxHWND())
 	Current(snapshot) => nm_WindowOwnsFocus(snapshot.hwnd) && nm_SameClient(snapshot, nm_ClientSnapshot(snapshot.hwnd))
+	Publish(snapshot) => nm_PublishClientSnapshot(snapshot)
 	Search(snapshot, region, spec) {
 		previousMode := A_CoordModePixel
 		CoordMode "Pixel", "Screen"
