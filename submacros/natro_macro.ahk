@@ -34,6 +34,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "RuntimePolicy.ahk"
 #Include "RemoteCapabilities.ahk"
 #Include "SupportReport.ahk"
+#Include "GatherProfiles.ahk"
 #Include "PlanterRecovery.ahk"
 #Include "PlanterObservation.ahk"
 #Include "BlenderAccounting.ahk"
@@ -4871,80 +4872,62 @@ nm_SaveFieldDefault(GuiCtrl, *){
 	}
 }
 nm_CopyGatherSettings(GuiCtrl, *){
-	static q := Chr(34), ob := Chr(123), cb := Chr(125)
-	local i := SubStr(GuiCtrl.Name, -1)
-	A_Clipboard := ob q "Name" q ":" q FieldName%i% q ","
-		. q "Pattern" q ":" q FieldPattern%i% q ","
-		. q "DriftCheck" q ":" FieldDriftCheck%i% ","
-		. q "PatternInvertFB" q ":" FieldPatternInvertFB%i% ","
-		. q "PatternInvertLR" q ":" FieldPatternInvertLR%i% ","
-		. q "PatternReps" q ":" FieldPatternReps%i% ","
-		. q "PatternShift" q ":" FieldPatternShift%i% ","
-		. q "PatternSize" q ":" q FieldPatternSize%i% q ","
-		. q "ReturnType" q ":" q FieldReturnType%i% q ","
-		. q "RotateDirection" q ":" q FieldRotateDirection%i% q ","
-		. q "RotateTimes" q ":" FieldRotateTimes%i% ","
-		. q "SprinklerDist" q ":" FieldSprinklerDist%i% ","
-		. q "SprinklerLoc" q ":" q FieldSprinklerLoc%i% q ","
-		. q "UntilMins" q ":" FieldUntilMins%i% ","
-		. q "UntilPack" q ":" FieldUntilPack%i% cb
+	global
+	local slot := SubStr(GuiCtrl.Name, -1), values := Map(), key
+	try {
+		for key in nm_GatherProfiles.Keys
+			values[key] := Field%key%%slot%
+		A_Clipboard := nm_GatherProfiles.Export(values, fieldnamelist, patternlist)
+	} catch as err
+		MsgBox err.Message, "Could not copy gather profile", 0x1030
 }
 nm_PasteGatherSettings(GuiCtrl, *){
 	global
-	static validation := Map("DriftCheck", "^(0|1)$"
-		, "PatternInvertFB", "^(0|1)$"
-		, "PatternInvertLR", "^(0|1)$"
-		, "PatternReps", "^[1-9]$"
-		, "PatternShift", "^(0|1)$"
-		, "PatternSize", "i)^(XS|S|M|L|XL)$"
-		, "ReturnType", "i)^(Walk|Reset)$"
-		, "RotateDirection", "i)^(None|Left|Right)$"
-		, "RotateTimes", "^[1-4]$"
-		, "SprinklerDist", "^([1-9]|10)$"
-		, "SprinklerLoc", "i)^(Center|Upper Left|Upper|Upper Right|Right|Lower Right|Lower|Lower Left|Left)$"
-		, "UntilMins", "^\d{1,4}$"
-		, "UntilPack", "^(5|10|15|20|25|30|35|40|45|50|55|60|65|70|75|80|85|90|95|100)$"), q := Chr(34)
-	local i := SubStr(GuiCtrl.Name, -1), obj, ctrl
-
-	If (!RegExMatch(A_Clipboard, "^\s*\{.*\}\s*$")){
-		MsgBox "Your String Format is incorrect!`nMake sure you also copy the " q "{" q " and the " q "}" q, "WARNING!!", 0x1030 " T60"
-		Return
+	local slot := SubStr(GuiCtrl.Name, -1), patch, key, value, ctrl, wasCritical := A_IsCritical
+	if MacroState != 0 {
+		MsgBox "Stop the macro before importing a gather profile.", "Stop before importing", 0x1040
+		return
 	}
-	obj := json.parse(A_Clipboard)
-	if obj.Has("Name") {
-		if ObjHasValue(fieldnamelist, obj["Name"]) {
-			FieldName%i% := obj["Name"]
-			IniWrite obj["Name"], "settings\nm_config.ini", "Gather", "FieldName" i
-			MainGui["FieldName" i].Text := FieldName%i%
-		} else
-			MsgBox "The Field Name you tried to import is NOT valid!`nMake sure you copied the string correctly.`nSpecific: " obj["Name"], "WARNING!!", 0x1030 " T60"
+	try patch := nm_GatherProfiles.Parse(A_Clipboard, fieldnamelist, patternlist)
+	catch as err {
+		MsgBox err.Message "`nNo settings were imported.", "Invalid gather profile", 0x1030
+		return
 	}
-	if obj.Has("Pattern") {
-		if ObjHasValue(patternlist, obj["Pattern"]) {
-			FieldPattern%i% := obj["Pattern"]
-			IniWrite obj["Pattern"], "settings\nm_config.ini", "Gather", "FieldPattern" i
-			MainGui["FieldPattern" i].Text := FieldPattern%i%
-		} else
-			MsgBox "The Pattern you tried to import is NOT valid!`nMake sure you copied the string correctly and have the pattern installed.`nSpecific: " obj["Pattern"], "WARNING!!", 0x1030 " T60"
-	}
-	for k,v in validation {
-		if obj.Has(k) {
-			if (obj[k] ~= v) {
-				Field%k%%i% := obj[k]
-				IniWrite obj[k], "settings\nm_config.ini", "Gather", "Field" k i
-				ctrl := MainGui["Field" k i]
-				switch ctrl.Type, 0 {
-					case "DDL", "Text":
-					ctrl.Text := obj[k]
-					default:
-					ctrl.Value := obj[k]
-				}
-			} else
-				MsgBox "The item you tried to import is NOT valid!`nMake sure you copied the string correctly.`nSpecific: " k ":" obj[k], "WARNING!!", 0x1030 " T60"
+	Critical
+	try {
+		; Resolve every control before persistence; missing controls cannot cause a
+		; half-applied import. Commit precedes publication of the new in-memory state.
+		if MacroState != 0
+			throw Error("The macro started before the import could be applied")
+		for key in patch
+			ctrl := MainGui["Field" key slot]
+		if patch.Has("PatternSize")
+			ctrl := MainGui["FieldPatternSize" slot "UpDown"]
+		if patch.Has("UntilPack")
+			ctrl := MainGui["FieldUntilPack" slot "UpDown"]
+		nm_GatherStore.Commit(slot, patch)
+		for key, value in patch {
+			Field%key%%slot% := value
+			ctrl := MainGui["Field" key slot]
+			if ctrl.Type = "DDL" || ctrl.Type = "Text"
+				ctrl.Text := value
+			else
+				ctrl.Value := value
 		}
-	}
-	nm_FieldSelect%i%()
+		if patch.Has("PatternSize")
+			MainGui["FieldPatternSize" slot "UpDown"].Value := FieldPatternSizeArr[patch["PatternSize"]]
+		if patch.Has("UntilPack")
+			MainGui["FieldUntilPack" slot "UpDown"].Value := patch["UntilPack"] // 5
+		if slot = 1
+			CurrentFieldNum := 1
+		if CurrentFieldNum = slot
+			MainGui["CurrentField"].Text := CurrentField := FieldName%slot%
+		nm_TabGatherUnLock()
+	} catch as err
+		MsgBox err.Message "`nIf saving succeeded, restart the macro to reload the saved profile.", "Gather import failed", 0x1030
+	finally Critical wasCritical
 }
+
 nm_WebhookEasterEgg(){
 	global WebhookEasterEgg
 	FieldName1 := MainGui["FieldName1"].Text
@@ -21272,6 +21255,10 @@ nm_setGlobalStr(wParam, lParam, *)
 	static sections := ["Boost","Collect","Gather","Planters","Quests","Settings","Status","Blender","Shrine"]
 
 	local var := arr[wParam], section := sections[lParam]
+	; A delayed name notification must not reset defaults after an import has
+	; already published that same name and its explicitly chosen profile.
+	if section = "Gather" && RegExMatch(var, "^FieldName[1-3]$") && %var% = IniRead("settings\nm_config.ini", section, var)
+		return 0
 	try %var% := IniRead("settings\nm_config.ini", section, var)
 	nm_UpdateGUIVar(var)
 	return 0
@@ -21284,7 +21271,10 @@ nm_setGlobalInt(wParam, lParam, *)
 	#Include "%A_ScriptDir%\..\lib\enum\EnumInt.ahk"
 
 	local var := arr[wParam]
-	try %var% := lParam
+	if RegExMatch(var, "^Field(?:PatternReps|PatternShift|PatternInvertFB|PatternInvertLR|UntilMins|UntilPack|SprinklerDist|RotateTimes|DriftCheck)[1-3]$")
+		try %var% := IniRead("settings\nm_config.ini", "Gather", var)
+	else
+		try %var% := lParam
 	nm_UpdateGUIVar(var)
 	return 0
 }

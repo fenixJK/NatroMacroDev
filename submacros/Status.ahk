@@ -28,6 +28,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "RemoteCapabilities.ahk"
 #Include "AttachmentDownload.ahk"
 #Include "SupportReport.ahk"
+#Include "GatherProfiles.ahk"
 
 SetWorkingDir A_ScriptDir "\.."
 CoordMode "Mouse", "Client"
@@ -2508,8 +2509,11 @@ UpdateStr(var, value, section)
 {
 	global
 	static sections := Map("Boost",1,"Collect",2,"Gather",3,"Planters",4,"Quests",5,"Settings",6,"Status",7,"Blender",8,"Shrine",9)
+	if section = "Gather"
+		nm_GatherStore.WriteKey(var, value)
+	else
+		IniWrite value, "settings\nm_config.ini", section, var
 	try %var% := value
-	IniWrite value, "settings\nm_config.ini", section, var
 	DetectHiddenWindows 1
 	if WinExist("natro_macro ahk_class AutoHotkey")
 		PostMessage 0x5553, settings[var].enum, sections[section]
@@ -2520,8 +2524,11 @@ UpdateStr(var, value, section)
 UpdateInt(var, value, section)
 {
 	global
+	if section = "Gather"
+		nm_GatherStore.WriteKey(var, value)
+	else
+		IniWrite value, "settings\nm_config.ini", section, var
 	try %var% := value
-	IniWrite value, "settings\nm_config.ini", section, var
 	DetectHiddenWindows 1
 	if WinExist("natro_macro ahk_class AutoHotkey")
 		PostMessage 0x5552, settings[var].enum, value
