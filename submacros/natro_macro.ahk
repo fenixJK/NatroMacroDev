@@ -32,6 +32,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "ErrorHandling.ahk"
 #Include "HashFile.ahk"
 #Include "RuntimePolicy.ahk"
+#Include "PrioritySettings.ahk"
 #Include "StartupControl.ahk"
 #Include "ReconnectSession.ahk"
 #Include "OwnedProcessJob.ahk"
@@ -8577,6 +8578,7 @@ nm_priorityListGui(*) {
 	local config := Map(), name, script, exec
 	for name in nm_GuiScripts.Keys("priority")
 		config[name] := %name%
+	config["priorityListNumeric"] := nm_PrioritySettings.Read().Order
 	script := nm_GuiScripts.Build("priority", config)
 	exec := nm_InlineScripts.Start("priority_gui", script, exe_path64)
 	return (PGUIPID := exec.ProcessID)
@@ -8667,10 +8669,13 @@ robloxFPSGui(*) {
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 nm_Start(){
 	ActivateRoblox()
-	global serverStart := nowUnix()
-	Loop 
+	global serverStart := nowUnix(), priorityListNumeric, priorityList
+	Loop {
+		priorityListNumeric := nm_PrioritySettings.Read().Order
+		priorityList := nm_BuildPriorityList(priorityListNumeric)
 		for i in priorityList
 			(%"nm_" i%)()
+	}
 	nm_planter() => (mp_Planter(),ba_planter())
 }
 
@@ -19066,7 +19071,10 @@ nm_Startup(request) {
 
 	;//todo: make startup errors an array
 	
-	try priorityList := nm_BuildPriorityList(priorityListNumeric)
+	try {
+		priorityListNumeric := nm_PrioritySettings.Read().Order
+		priorityList := nm_BuildPriorityList(priorityListNumeric)
+	}
 	catch as err {
 		nm_setStatus("Error", err.Message)
 		return
@@ -19559,6 +19567,10 @@ nm_setGlobalInt(wParam, lParam, *)
 {
 	global
 	Critical
+	if wParam = 366 {
+		try priorityListNumeric := nm_PrioritySettings.Read().Order
+		return 0
+	}
 	; enumeration
 	#Include "%A_ScriptDir%\..\lib\enum\EnumInt.ahk"
 

@@ -4,6 +4,7 @@
 #Include "%A_ScriptDir%\lib"
 #Include Gdip_All.ahk
 #Include "%A_ScriptDir%\lib\GuiGraphics.ahk"
+#Include "%A_ScriptDir%\lib\PrioritySettings.ahk"
 resources := nm_GuiGraphics()
 OnExit(ExitFunc)
 DetectHiddenWindows 1
@@ -12,10 +13,13 @@ bitmaps := resources.Bitmaps
 #Include "%A_ScriptDir%\nm_image_assets\webhook_gui\bitmaps.ahk"
 
 ;;config
-defaultList := ["Night", "Mondo", "Planter", "Bugrun", "Collect", "QuestRotate", "Boost", "GoGather"]
-priorityList := []
-for i in StrSplit(config["priorityListNumeric"])
-	priorityList.push(defaultList[i])
+defaultList := nm_BuildPriorityList("12345678")
+try priorityState := nm_PrioritySettings.State(config["priorityListNumeric"])
+catch as priorityError {
+	FileAppend "Priority settings could not be loaded: " priorityError.Message, "*", "UTF-8-RAW"
+	ExitApp 1
+}
+priorityList := priorityState.Tasks
 
 priorityGui := Gui("-Caption +E0x80000 +E0x8000000 +LastFound +AlwaysOnTop +ToolWindow +OwnDialogs -DPIScale")
 priorityGui.OnEvent("Close", (*) => ExitApp()), priorityGui.OnEvent("Escape", (*) => ExitApp())
@@ -69,10 +73,7 @@ nm_priorityGui(movingItem?, mouseY?, drop?) {
 		index := ((mouseY > priorityList.Length * 34+3) ? priorityList.Length*34+3 : mouseY < 44 ? 44 : mouseY) // 34
 		Gdip_DrawLine(G , pPen:=Gdip_CreatePen(accentColors[1], 2), 15, (index*34+3), w-15,  (index*34+3)), Gdip_DeletePen(pPen)
 	}
-	if IsSet(drop) {
-		index := ((mouseY > priorityList.Length * 34 + 3) ? priorityList.Length*34+3 : mouseY < 44 ? 44 : mouseY) // 34
-		priorityList.InsertAt(index, priorityList.RemoveAt(ObjHasValue(priorityList, movingItem)))
-	}
+
 	lower := 0
 	;;Priority List
 	for i, v in priorityList {
@@ -124,27 +125,34 @@ WM_LBUTTONDOWN(*) {
 		case "close":
 			ExitApp()
 		case "Reset":
-			priorityList := ["Night", "Mondo", "Planter", "Bugrun", "Collect", "QuestRotate", "Boost", "GoGather"]
-			updateInt("priorityListNumeric", 12345678)
-			nm_priorityGui()
+			nm_SavePriority(12345678)
 		case "ToolTip":
 			Msgbox("Priority List`r`n`r`nDrag and drop to reorder the priority list.`r`nPress Reset to reset the priority list back to default.`n`nNote:`n - The priority list will not override interrupts, e.g., for bug kills or vicious bee.`n - In one loop each task will be completed.`n - The DEFAULT priority is usually optimal for most players.","Priority List",0x40040)
 		default:
+			if !RegExMatch(priorityGui[hCtrl].name, "^p([1-8])$", &row)
+				return
 			MouseGetPos(,&y)
 			priorityGui.GetPos(,&wy)
-			index := SubStr(priorityGui[hCtrl].name,2)
-			offset := y - wy-(index*34+3)
+			index := Integer(row[1]), offset := y - wy-(index*34+3)
+			started := A_TickCount, cancelled := false
 			ReplaceSystemCursors("IDC_HAND")
-			While GetKeyState("LButton", "P") {
-				MouseGetPos(,&y)
-				y-=offset + wy
-				nm_priorityGui(priorityList[index], y)
-			}
-			ReplaceSystemCursors()
-			nm_priorityGui(priorityList[index], y, 1)
-			for k,v in priorityList
-				out .= ObjHasValue(defaultList, v)
-			updateInt("priorityListNumeric", out)
+			try {
+				While GetKeyState("LButton", "P") {
+					if A_TickCount - started >= 15000 || GetKeyState("Escape", "P") {
+						cancelled := true
+						break
+					}
+					MouseGetPos(,&y)
+					y-=offset + wy
+					nm_priorityGui(priorityList[index], y)
+					Sleep 15
+				}
+			} finally ReplaceSystemCursors()
+			if !cancelled {
+				destination := Max(1, Min(8, y // 34))
+				nm_SavePriority(nm_PrioritySettings.Move(priorityState.Order, index, destination).Order)
+			} else
+				nm_priorityGui()
 	}
 }
 ReplaceSystemCursors(IDC := "")
@@ -176,13 +184,18 @@ ReplaceSystemCursors(IDC := "")
 		}
 	}
 }
-UpdateInt(name, value)
-{
-	IniWrite value, "settings\nm_config.ini", "settings", name
-	if WinExist("natro_macro.ahk ahk_class AutoHotkey")
-		PostMessage 0x5552, 366, value
-	if WinExist("Status.ahk ahk_class AutoHotkey")
-		PostMessage 0x5552, 366, value
+nm_SavePriority(order) {
+	global priorityState, priorityList
+	try next := nm_PrioritySettings.Commit(order, priorityState.Order)
+	catch as err {
+		nm_priorityGui()
+		MsgBox err.Message, "Could not save priority", 0x40010
+		return false
+	}
+	priorityState := next, priorityList := next.Tasks
+	nm_priorityGui()
+	nm_PrioritySettings.Notify()
+	return true
 }
 
 ExitFunc(*)

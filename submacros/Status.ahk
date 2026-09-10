@@ -29,6 +29,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "Roblox.ahk"
 #Include "ErrorHandling.ahk"
 #Include "RuntimePolicy.ahk"
+#Include "PrioritySettings.ahk"
 #Include "RemoteCapabilities.ahk"
 #Include "AttachmentDownload.ahk"
 #Include "SupportReport.ahk"
@@ -1421,24 +1422,15 @@ nm_command(command)
 				nm_DiscordCommandReply.SendEmbed("``" ((StrLen(params[3]) > 0) ? params[3] : "<blank>") "`` is not a valid setting!`n``?set bugrun`` must be followed by ``on``, ``off``, ``1``, or ``0``", 16711731, , , , id)
 			}
 			case "priority", "priorityList", "priorityListNumeric":
-			value:=((params[3] = "default") ? 12345678 : params[3]),v := Settings["PriorityListNumeric"]
-			if (value ~= v.regex)
-			{
-				for i,j in listArr:=StrSplit(value) {
-					for k, v in listArr
-						if (k !== i && j == v) {
-							nm_DiscordCommandReply.SendEmbed("``" ((StrLen(value) > 0) ? value : "<blank>") "`` is not an acceptable value for ``PriorityListNumeric``!`n``" commandPrefix "help priority`` for help", 16711731, , , , id)
-							return command_buffer.RemoveAt(1)
-						}
-					if !defaultPriorityList.Has(i)
-						continue
-					newList .= "`n" i " - " defaultPriorityList[j]
-				}
+			value := params[3] = "default" ? 12345678 : params[3]
+			try {
+				newList := nm_PrioritySettings.Describe(value)
 				UpdateInt("PriorityListNumeric", value, "Settings")
-				nm_DiscordCommandReply.SendEmbed("**New Priority List**: ``````" newList "```````n`nnumeric: ``" (priorityListNumeric ?? IniRead(A_ScriptDir . "\..\settings\nm_config.ini", "settings", "PriorityListNumeric")) "``", 2829617, , , , id)
+			} catch as err {
+				nm_DiscordCommandReply.SendEmbed("Could not save priority: " err.Message, 16711731,,,,id)
+				return command_buffer.RemoveAt(1)
 			}
-			else
-				nm_DiscordCommandReply.SendEmbed("``" ((StrLen(value) > 0) ? value : "<blank>") "`` is not an acceptable value for ``PriorityListNumeric``!`n``" commandPrefix "help priority`` for help", 16711731, , , , id)
+			nm_DiscordCommandReply.SendEmbed("**Saved Priority List**: ``````" newList "```````n`nnumeric: ``" value "```nTakes effect at the next task cycle.", 2829617,,,,id)
 			default:
 			Loop 1
 			{
@@ -1465,15 +1457,14 @@ nm_command(command)
 		case "get":
 		switch params[2], 0 {
 			case "priority", "priorityList", "priorityListNumeric":
-			prioritystring := '``````ansi'
-			for i, j in StrSplit(priorityListNumeric ?? IniRead(A_ScriptDir "\..\settings\nm_config.ini", "settings", "PriorityListNumeric", '12345678')) {
-				if !defaultPriorityList.Has(i) {
-					UpdateInt("PriorityListNumeric", 12345678, "settings")
-					nm_DiscordCommandReply.SendEmbed("1 - " defaultPriorityList[1] "`n2 - " defaultPriorityList[2] "`n3 - " defaultPriorityList[3] "`n4 - " defaultPriorityList[4] "`n5 - " defaultPriorityList[5] "`n6 - " defaultPriorityList[6], 0x2b2d31 ,,,, id)
-				}
-				prioritystring .= "`n" . i " - " defaultPriorityList[i]
+			try {
+				value := nm_PrioritySettings.Read().Order
+				prioritystring := nm_PrioritySettings.Describe(value)
+			} catch as err {
+				nm_DiscordCommandReply.SendEmbed("Could not read priority: " err.Message, 16711731,,,,id)
+				return command_buffer.RemoveAt(1)
 			}
-			nm_DiscordCommandReply.SendEmbed(prioritystring .= "`n```````n`nnumeric: ``" (priorityListNumeric ?? IniRead(A_ScriptDir "\..\settings\nm_config.ini", "settings", "PriorityListNumeric", '12345678')) "``", 0x2b2d31, , , , id)
+			nm_DiscordCommandReply.SendEmbed("**Saved Priority List**: ``````" prioritystring "```````n`nnumeric: ``" value "``", 0x2b2d31,,,,id)
 
 			default:
 			k := StrReplace(Trim(SubStr(command.content, InStr(command.content, name)+StrLen(name))), " ")
@@ -1894,6 +1885,11 @@ UpdateStr(var, value, section)
 UpdateInt(var, value, section)
 {
 	global
+	if var = "PriorityListNumeric" {
+		priorityListNumeric := nm_PrioritySettings.Commit(value).Order
+		nm_PrioritySettings.Notify()
+		return
+	}
 	if section = "Gather"
 		nm_GatherStore.WriteKey(var, value)
 	else
@@ -1910,6 +1906,10 @@ nm_setGlobalInt(wParam, lParam, *)
 {
 	global
 	Critical
+	if wParam = 366 {
+		try priorityListNumeric := nm_PrioritySettings.Read().Order
+		return 0
+	}
 	local var
 	; enumeration
 	#Include %A_ScriptDir%\..\lib\enum\EnumInt.ahk

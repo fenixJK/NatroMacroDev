@@ -2,7 +2,7 @@
 ; These functions perform no input, file, window, or network operations.
 
 nm_BuildPriorityList(order) {
-	if !(order ~= "^[1-8]{8}$")
+	if IsObject(order) || !(order ~= "^[1-8]{8}$")
 		throw ValueError("Task priority must contain each number from 1 to 8 exactly once.")
 	names := ["Night", "Mondo", "Planter", "Bugrun", "Collect", "QuestRotate", "Boost", "GoGather"]
 	result := [], seen := Map()

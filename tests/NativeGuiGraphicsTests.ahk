@@ -43,9 +43,10 @@ TestNativeGeneratedGuis() {
 			source := "SetWorkingDir " nm_GuiScripts.Literal(directory) "`nSetTimer nm_ProbeGui, -50`n"
 				. nm_GuiScripts.Build(kind, config) "`n"
 				. 'nm_ProbeGui() {`n'
-				. ' global guiReady, resources, config, Bomber, mythicStop, selectAll`n'
+				. ' global guiReady, resources, config, Bomber, mythicStop, selectAll, priorityState`n'
 				. ' if !IsSet(guiReady) || !guiReady {`n SetTimer nm_ProbeGui, -50`n return`n }`n'
 				. ' Critical "On"`n try {`n'
+				. (kind = "priority" ? ' if !nm_SavePriority(87654321) || priorityState.Order != 87654321 || nm_PrioritySettings.Read().Order != 87654321`n throw Error("Priority editor failed to save and publish order")`n if !nm_SavePriority(12345678) || priorityState.Order != 12345678`n throw Error("Priority editor failed to reset")`n' : "")
 				. (kind = "bee" ? ' if Bomber != 1 || mythicStop != 1 || selectAll != 0 || FileRead("settings\mutations.ini") != ' nm_GuiScripts.Literal(iniFixture) '`n throw Error("Auto-Jelly settings validation or read-only startup failed")`n' : "")
 				. ' before := DllCall("GetGuiResources", "Ptr", -1, "UInt", 0, "UInt")`n'
 				. ' Loop 50`n ' render '()`n'
