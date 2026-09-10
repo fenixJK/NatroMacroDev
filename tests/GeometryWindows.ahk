@@ -17,6 +17,7 @@
 #Include "%A_ScriptDir%\..\lib\InlineScripts.ahk"
 #Include "%A_ScriptDir%\NativeGuiGraphicsTests.ahk"
 #Include "%A_ScriptDir%\..\lib\AutoJellySafety.ahk"
+#Include "%A_ScriptDir%\..\lib\AutoJellyLimits.ahk"
 #Include "%A_ScriptDir%\NativeAutoJellyTests.ahk"
 #Include "%A_ScriptDir%\..\lib\AutoJellyOcr.ahk"
 #Include "%A_ScriptDir%\NativeAutoJellyOcrTests.ahk"

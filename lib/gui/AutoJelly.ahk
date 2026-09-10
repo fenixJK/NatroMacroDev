@@ -23,6 +23,7 @@ CoordMode('Mouse', 'Screen')
 #Include "%A_ScriptDir%\lib\AutoJellySafety.ahk"
 #Include "%A_ScriptDir%\lib\AutoJellyOcr.ahk"
 #Include "%A_ScriptDir%\lib\AutoJellyMouse.ahk"
+#Include "%A_ScriptDir%\lib\AutoJellyLimits.ahk"
 resources := nm_GuiGraphics()
 OnExit((*) => (closefunction()), -1)
 stopToggle(*) {
@@ -54,7 +55,7 @@ getConfig() {
 		%name% := value
 }
 ;===Dimensions===
-w:=500,h:=397
+w:=500,h:=437
 ;===Bee Array===
 beeArr := ["Bomber", "Brave", "Bumble", "Cool", "Hasty", "Looker", "Rad", "Rascal", "Stubborn", "Bubble", "Bucko", "Commander", "Demo", "Exhausted", "Fire", "Frosty", "Honey", "Rage", "Riley", "Shocked", "Baby", "Carpenter", "Demon", "Diamond", "Lion", "Music", "Ninja", "Shy", "Buoyant", "Fuzzy", "Precise", "Spicy", "Tadpole", "Vector"]
 mutationsArr := [
@@ -90,6 +91,7 @@ startGui() {
 		{name:"selectall", options:"x" w-330 " y220 w40 h18"},
 		{name:"mutations", options:"x" w-170 " y220 w40 h18"},
 		{name:"close", options:"x" w-40 " y5 w28 h28"},
+		{name:"limits", options:"x10 y" h-80 " w" w-20 " h30"},
 		{name:"roll", options:"x10 y" h-42 " w" w-56 " h30"},
 		{name:"help", options:"x" w-40 " y" h-42 " w28 h28"}
 	]
@@ -103,7 +105,7 @@ startGui() {
 		mgui.AddText("v" j.name " x" 10+mod(A_Index-1,4)*120 " y" 260+y*25 " w40 h18")
 	}
 	for i, j in extrasettings {
-		x := 10 + (w-12)/extrasettings.length * (i-1), y:=(316+h-42)//2-10
+		x := 10 + (w-12)/extrasettings.length * (i-1), y:=325
 		mgui.AddText("v" j.name " x" x " y" y " w40 h18")
 	}
 	surface := resources.CreateSurface(w, h)
@@ -179,7 +181,7 @@ DrawGUI() {
 	Gdip_DrawLine(G, Pen:=Gdip_CreatePen("0xFFFEC6DF", 2), 10, 315, w-12, 315), Gdip_DeletePen(Pen)
 	;two more switches for "stop on mythic" and "stop on gifted"
 	for i, j in extrasettings {
-		x := 10 + (tw:=(w-12)/extrasettings.length) * (i-1), y:=(316+h-42)//2-10
+		x := 10 + (tw:=(w-12)/extrasettings.length) * (i-1), y:=325
 		Gdip_FillRoundedRectanglePath(G, brush:=Gdip_BrushCreateSolid("0xFF262832"), x, y, 40, 18, 9), Gdip_DeleteBrush(brush)
 		Gdip_FillEllipse(G, brush:=Gdip_BrushCreateSolid("0xFFFEC6DF"), %j.name% ? x+18 : x-2, y-2, 22, 22)
 		Gdip_TextToGraphics(G, j.text, "s14 x" x+46 " y" y " vCenter c" brush, "Comic Sans MS", tw,20), Gdip_DeleteBrush(brush)
@@ -191,6 +193,9 @@ DrawGUI() {
 		else
 			Gdip_DrawLines(G, Pen:=Gdip_CreatePen("0xFF006600", 2), [[x+25, y+9], [x+28, y+12], [x+33, y+5]]), Gdip_DeletePen(Pen)
 	}
+	Gdip_TextToGraphics(G, "Limits: " RollClickLimit " clicks / " RollMinuteLimit " min - Edit", "x10 y" h-78 " Center vCenter s13 cfffec6df", "Comic Sans MS", w-20, 26)
+	if hovercontrol = "limits"
+		Gdip_FillRoundedRectanglePath(G, brush:=Gdip_BrushCreateSolid("0x30FEC6DF"), 10, h-80, w-20, 30, 10), Gdip_DeleteBrush(brush)
 	if hovercontrol = "roll"
 		Gdip_FillRoundedRectanglePath(G, brush:=Gdip_BrushCreateSolid("0x30FEC6DF"), 10, h-42, w-56, 30, 10), Gdip_DeleteBrush(brush)
 	if hovercontrol = "help"
@@ -216,6 +221,9 @@ WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
 			PostMessage 0x00A1, 2, 0,, "ahk_id " mgui.Hwnd
 		case "close":
 			mouseUI.BeginClose(hwnd)
+		case "limits":
+			mouseUI.Stop()
+			SetTimer nm_AutoJellyEditLimits, -1
 		case "roll":
 			mouseUI.Stop()
 			SetTimer blc_start, -1
@@ -249,7 +257,14 @@ nm_AutoJellyHover(name) {
 	DrawGUI()
 }
 nm_AutoJellyHelp() {
-	Msgbox("This feature allows you to roll royal jellies until you obtain your specified bees and/or mutations!`n`nTo use:`n- Select the bees and mutations you want`n- Make sure your in-game Auto-Jelly settings are right`n- Put a neonberry on the bee you want to change (if trying `n  to obtain a mutated bee) `n- Use one royal jelly on the bee and click Yes`n- Click on Roll.`n`nTo stop: `n- Press the escape key`n`nAdditional options:`n- Stop on Gifteds stops on any gifted bee, `n  ignoring the mutation and your bee selection`n- Stop on Mythics stops on any mythic bee, `n  ignoring the mutation and your bee selection", "Auto-Jelly Help", "0x40040")
+	Msgbox("This feature allows you to roll royal jellies until you obtain your specified bees and/or mutations!`n`nTo use:`n- Select the bees and mutations you want`n- Make sure your in-game Auto-Jelly settings are right`n- Put a neonberry on the bee you want to change (if trying `n  to obtain a mutated bee) `n- Use one royal jelly on the bee and click Yes`n- Click on Roll.`n`nRun limits:`n- Click Limits to set maximum clicks and elapsed minutes`n- Either limit stops the run; clicks are not an item count`n`nTo stop: `n- Press the escape key`n`nAdditional options:`n- Stop on Gifteds stops on any gifted bee, `n  ignoring the mutation and your bee selection`n- Stop on Mythics stops on any mythic bee, `n  ignoring the mutation and your bee selection", "Auto-Jelly Help", "0x40040")
+}
+nm_AutoJellyEditLimits() {
+	nm_AutoJellyLimitsDialog.Open(mgui, RollClickLimit, RollMinuteLimit, nm_AutoJellySaveLimits)
+}
+nm_AutoJellySaveLimits(limits) {
+	global RollClickLimit := limits.Clicks, RollMinuteLimit := limits.Minutes
+	DrawGUI()
 }
 blc_start() {
 	global stopping
@@ -265,6 +280,7 @@ blc_start() {
 				selectedBees.Push(bee)
 		if !selectedBees.Length
 			throw Error("Select at least one bee before starting Auto-Jelly")
+		budget := nm_AutoJellyRunBudget(RollClickLimit, RollMinuteLimit)
 		if mutations {
 			for mutation in mutationsArr
 				if %mutation.name%
@@ -286,7 +302,7 @@ blc_start() {
 		yOffset := GetYOffset(hwndRoblox, &offsetFailed, false)
 		if offsetFailed
 			throw Error("Could not detect the in-game GUI offset. Check graphics settings, language and window visibility.")
-		surface := nm_AutoJellySurface(hwndRoblox, yOffset, (*) => stopping, anchor)
+		surface := nm_AutoJellySurface(hwndRoblox, yOffset, (*) => stopping, anchor, budget)
 		while !stopping {
 			surface.Click()
 			surface.Wait(800)
@@ -359,6 +375,7 @@ closeFunction(*) {
 	global xPos, yPos, stopping
 	stopping := true
 	nm_AutoJellySurface.Release()
+	nm_AutoJellyLimitsDialog.Close()
 	try {
 		mgui.getPos(&xp, &yp)
 		if !(xp < 0) && !(xp > A_ScreenWidth) && !(yp < 0) && !(yp > A_ScreenHeight)

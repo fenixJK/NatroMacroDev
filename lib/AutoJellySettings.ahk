@@ -8,6 +8,7 @@ class nm_AutoJellySettings {
 		sections["bees"] := "Bomber Brave Bumble Cool Hasty Looker Rad Rascal Stubborn Bubble Bucko Commander Demo Exhausted Fire Frosty Honey Rage Riley Shocked Baby Carpenter Demon Diamond Lion Music Ninja Shy Buoyant Fuzzy Precise Spicy Tadpole Vector selectAll"
 		sections["GUI"] := "xPos yPos"
 		sections["extrasettings"] := "mythicStop giftedStop"
+		sections["limits"] := "RollClickLimit RollMinuteLimit"
 		fields.CaseSense := false
 		for section, names in sections
 			for name in StrSplit(names, " ")
@@ -20,7 +21,7 @@ class nm_AutoJellySettings {
 		fields := this.Schema(), values := Map(), seen := Map(), section := ""
 		values.CaseSense := seen.CaseSense := false
 		for name in fields
-			values[name] := name = "xPos" ? centerX : name = "yPos" ? centerY : 0
+			values[name] := name = "xPos" ? centerX : name = "yPos" ? centerY : name = "RollClickLimit" ? 100 : name = "RollMinuteLimit" ? 10 : 0
 		Loop Parse text, "`n", "`r" {
 			line := Trim(A_LoopField, " `t`r")
 			if !line || SubStr(line, 1, 1) = ";"
@@ -46,6 +47,10 @@ class nm_AutoJellySettings {
 		if field.section = "GUI" {
 			if RegExMatch(value, "^-?\d{1,5}$") && value >= -32768 && value <= 32767
 				return Integer(value)
+		} else if field.section = "limits" {
+			maximum := field.name = "RollClickLimit" ? 1000000 : 1440
+			if RegExMatch(value, "^\d{1,7}$") && value >= 1 && value <= maximum
+				return Integer(value)
 		} else if value == "0" || value == "1"
 			return Integer(value)
 		throw ValueError("Invalid Auto-Jelly setting: " field.name)
@@ -66,11 +71,21 @@ class nm_AutoJellySettings {
 		if !path
 			path := this.Path
 		fields := this.Schema()
-		if !fields.Has(name) || fields[name].section = "GUI"
+		if !fields.Has(name) || fields[name].section = "GUI" || fields[name].section = "limits"
 			throw ValueError("Unknown Auto-Jelly selection")
 		field := fields[name], next := 1 - this.Validate(field, current)
 		; Caller publishes next only after this write succeeds.
 		IniWrite next, path, field.section, field.name
 		return next
+	}
+	static Limits(clicks, minutes) {
+		fields := this.Schema()
+		return {Clicks: this.Validate(fields["RollClickLimit"], clicks), Minutes: this.Validate(fields["RollMinuteLimit"], minutes)}
+	}
+	static SaveLimits(clicks, minutes, path := "") {
+		limits := this.Limits(clicks, minutes)
+		; Publish both validated fields with one section write; caller updates UI afterward.
+		IniWrite "RollClickLimit=" limits.Clicks "`nRollMinuteLimit=" limits.Minutes, path ? path : this.Path, "limits"
+		return limits
 	}
 }

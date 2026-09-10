@@ -22,6 +22,53 @@ nm_ProbeBeeAssets() {
 	}
 }
 
+nm_ProbeBeeLimits() {
+	global mgui, RollClickLimit, RollMinuteLimit
+	before := FileRead("settings\mutations.ini"), previous := {Clicks: RollClickLimit, Minutes: RollMinuteLimit}
+	criticalBefore := A_IsCritical
+	Critical "Off"
+	try {
+		mgui["limits"].GetPos(&x, &y, &width, &height)
+		mgui["roll"].GetPos(, &rollY)
+		if x < 0 || y < 345 || width < 400 || y + height > rollY
+			throw Error("Limits row overlaps existing controls")
+		nm_AutoJellyEditLimits()
+		panel := nm_AutoJellyLimitsDialog.Window
+		if !panel || DllCall("IsWindowEnabled", "Ptr", mgui.Hwnd)
+			throw Error("Limits editor must disable its owner until closed")
+		panel["Clicks"].Value := "0"
+		if nm_AutoJellyLimitsDialog.Save() || !InStr(panel["Error"].Text, "RollClickLimit")
+			throw Error("Limits editor accepted zero clicks or did not explain rejection")
+		if FileRead("settings\mutations.ini") != before || RollClickLimit != previous.Clicks
+			throw Error("Invalid limit changed stored or displayed settings")
+		nm_AutoJellyLimitsDialog.Close()
+		if !DllCall("IsWindowEnabled", "Ptr", mgui.Hwnd)
+			throw Error("Cancel did not restore the owner window")
+		nm_AutoJellyEditLimits()
+		panel := nm_AutoJellyLimitsDialog.Window
+		panel["Clicks"].Value := "3", panel["Minutes"].Value := "2"
+		if !nm_AutoJellyLimitsDialog.Save() || nm_AutoJellyLimitsDialog.Window
+			throw Error("Valid limits did not save and close")
+		stored := nm_AutoJellySettings.Load()
+		if RollClickLimit != 3 || RollMinuteLimit != 2 || stored["RollClickLimit"] != 3 || stored["RollMinuteLimit"] != 2
+			throw Error("Saved and displayed run limits differ")
+		nm_AutoJellyEditLimits()
+		panel := nm_AutoJellyLimitsDialog.Window
+		if panel["Clicks"].Value != 3 || panel["Minutes"].Value != 2
+			throw Error("Reopened limits editor lost saved values")
+		panel["Clicks"].Value := "4"
+		nm_AutoJellyLimitsDialog.Close()
+		if nm_AutoJellySettings.Load()["RollClickLimit"] != 3
+			throw Error("Cancel saved an uncommitted edit")
+	} finally {
+		nm_AutoJellyLimitsDialog.Close()
+		FileDelete "settings\mutations.ini"
+		FileAppend before, "settings\mutations.ini", "UTF-8"
+		nm_AutoJellySaveLimits(previous)
+		Critical criticalBefore
+	}
+}
+
 nm_ProbeBeeMouse() {
 	global mgui, mouseUI, hovercontrol
 	criticalBefore := A_IsCritical, foreign := Gui("-DPIScale", "Foreign mouse fixture"), closes := 0

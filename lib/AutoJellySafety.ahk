@@ -3,8 +3,9 @@ class nm_AutoJellyCancelled extends Error {
 }
 class nm_AutoJellySurface {
 	static Held := false
-	__New(hwnd, offset, cancelled, anchor := unset) {
+	__New(hwnd, offset, cancelled, anchor := unset, budget := unset) {
 		this.Hwnd := hwnd, this.Offset := offset, this.Cancelled := cancelled
+		this.Budget := IsSet(budget) ? budget : 0
 		this.Anchor := IsSet(anchor) ? anchor.Clone() : nm_ClientSnapshot(hwnd)
 		if !IsInteger(offset) || !IsObject(this.Anchor) || this.Anchor.hwnd != hwnd
 			throw Error("Invalid Auto-Jelly client or offset")
@@ -14,6 +15,8 @@ class nm_AutoJellySurface {
 	Check() {
 		if this.Cancelled.Call() || GetKeyState("Escape", "P")
 			throw nm_AutoJellyCancelled("Auto-Jelly stopped")
+		if this.Budget
+			this.Budget.CheckTime()
 		if !nm_WindowOwnsFocus(this.Hwnd) || !nm_SameClient(this.Anchor, nm_ClientSnapshot(this.Hwnd))
 			throw Error("Roblox focus or window geometry changed. Auto-Jelly stopped.")
 		return this.Anchor
@@ -54,6 +57,8 @@ class nm_AutoJellySurface {
 		Critical "On"
 		try {
 			snapshot := this.Check()
+			if this.Budget
+				this.Budget.CheckClick()
 			this.Region("bee"), this.Region("mutation")
 			x := Round(0.5*snapshot.width + 10), y := this.Offset + Round(0.4*snapshot.height + 230)
 			if x < 0 || y < 0 || x >= snapshot.width || y >= snapshot.height
@@ -63,6 +68,8 @@ class nm_AutoJellySurface {
 			CoordMode "Mouse", "Screen"
 			MouseMove snapshot.x + x, snapshot.y + y, 0
 			this.Check()
+			if this.Budget
+				this.Budget.Reserve()
 			nm_AutoJellySurface.Held := true, owns := true
 			SendEvent "{LButton down}"
 		} finally {

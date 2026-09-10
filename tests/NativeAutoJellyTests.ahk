@@ -35,6 +35,20 @@ TestNativeAutoJellySafety() {
 		AutoJellyNativeFailure(ObjBindMethod(surface, "Wait", 800))
 		Require(cancelled && clicks = 1, "Cancellation interrupts wait before any subsequent action")
 		AutoJellyNativeFailure((*) => nm_AutoJellyObservation.Match(Gdip_ImageSearch(0, 0)))
+		cancelled := false, tick := 1000, budget := nm_AutoJellyRunBudget(1, 1, (*) => tick)
+		surface := nm_AutoJellySurface(panel.Hwnd, 0, (*) => cancelled,, budget)
+		surface.Click()
+		Sleep 50
+		Require(clicks = 2 && budget.Used = 1, "Native click consumes one reserved attempt")
+		AutoJellyNativeFailure(ObjBindMethod(surface, "Click"))
+		Require(clicks = 2 && !GetKeyState("LButton"), "Exhausted click budget blocks extra native input")
+		bitmap := surface.Capture("bee")
+		Require(bitmap > 0, "Final allowed click still permits result observation")
+		Gdip_DisposeImage(bitmap), bitmap := 0
+		tick := 61000
+		AutoJellyNativeFailure(ObjBindMethod(surface, "Capture", "bee"))
+		AutoJellyNativeFailure(ObjBindMethod(surface, "Wait", 800))
+		Require(clicks = 2 && !GetKeyState("LButton"), "Expired time budget stops capture/wait without another click")
 	} finally {
 		nm_AutoJellySurface.Release()
 		if bitmap

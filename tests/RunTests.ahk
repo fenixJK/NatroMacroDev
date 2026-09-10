@@ -4,6 +4,8 @@
 #Include "%A_ScriptDir%\..\lib\RuntimePolicy.ahk"
 #Include "%A_ScriptDir%\..\lib\AutoJellySettings.ahk"
 #Include "%A_ScriptDir%\AutoJellySettingsTests.ahk"
+#Include "%A_ScriptDir%\..\lib\AutoJellyLimits.ahk"
+#Include "%A_ScriptDir%\AutoJellyLimitsTests.ahk"
 #Include "%A_ScriptDir%\..\lib\AutoJellySafety.ahk"
 #Include "%A_ScriptDir%\AutoJellySafetyTests.ahk"
 #Include "%A_ScriptDir%\..\lib\AutoJellyOcr.ahk"
@@ -116,7 +118,7 @@ DirCreate testDirectory "\settings"
 SetWorkingDir testDirectory
 passed := failed := 0
 try {
-	for test in [TestAutoJellyOcr, TestAutoJellySafety, TestPrioritySettings, TestAutoJellySettings, TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
+	for test in [TestAutoJellyLimits, TestAutoJellyOcr, TestAutoJellySafety, TestPrioritySettings, TestAutoJellySettings, TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
 		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures, TestCollectionInterrupts, TestDiscordPayload, TestDeliveryQueue, TestHourlyReportDelivery, TestLocalHttpDelivery, TestGeometryCache, TestInventoryEngine, TestInventoryReader, TestPointerLease, TestInventoryDrag, TestQuestObservation, TestQuestFrames, TestQuestActions, TestQuestUnknownPublication, TestQuestRecovery, TestQuestTurnInRecovery, TestHealthObservation, TestBossHealthEstimation, TestBossHealthReporting, TestImageObservation, TestCombatPresence, TestRemoteCapabilities, TestAttachmentWorker, TestSupportReport, TestGatherProfiles, TestReconnectSession, TestRecoveryActivity, TestPlanterDialog, TestStatCounters, TestDiscordRepliesEncoding, TestDiscordHelp, TestDiscordReports, TestLiveHoneyDelivery, TestLocalLiveHoney, TestUploadOwnership, TestCommandDelivery, TestDeliveryCooldown, TestLocalCooldown, TestBotInbox, TestBotRoles, TestBotRecovery, TestLocalBotInbox, TestStartupControl, TestWatchdogRecovery] {
 		try {
 			test.Call()

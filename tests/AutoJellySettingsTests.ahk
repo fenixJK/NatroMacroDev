@@ -1,10 +1,12 @@
 TestAutoJellySettings() {
 	defaults := nm_AutoJellySettings.Parse("", 123, 456)
-	AssertEqual(defaults.Count, 48, "Complete fixed Auto-Jelly schema")
+	AssertEqual(defaults.Count, 50, "Complete fixed Auto-Jelly schema")
 	AssertEqual(defaults["xPos"], 123, "Missing position uses caller center")
 	for name, value in defaults
-		if name != "xPos" && name != "yPos"
+		if name != "xPos" && name != "yPos" && name != "RollClickLimit" && name != "RollMinuteLimit"
 			AssertEqual(value, 0, "Missing selection starts disabled")
+	AssertEqual(defaults["RollClickLimit"], 100, "Existing installations receive a finite click default")
+	AssertEqual(defaults["RollMinuteLimit"], 10, "Existing installations receive a finite duration default")
 	text := "; Existing settings`r`n[BeEs]`r`n bomber = 1`r`nselectAll=0`r`nresources=0`r`nw=1`r`n[mutations]`r`nAbility=1`r`n[extrasettings]`r`nmythicStop=1`r`n[GUI]`r`nxPos=-123`r`nyPos=456`r`n[unknown]`r`nBomber=0`r`nSelectAll=1`r`n"
 	values := nm_AutoJellySettings.Parse(text)
 	AssertEqual(values["Bomber"], 1, "Case and whitespace accepted in correct section")
@@ -31,6 +33,7 @@ TestAutoJellySettings() {
 		AssertEqual(selected, 0, "Failed write leaves caller selection unchanged")
 		AssertThrows(ObjBindMethod(nm_AutoJellySettings, "Toggle", "resources", 0, path), "Internal global is not writable")
 		AssertThrows(ObjBindMethod(nm_AutoJellySettings, "Toggle", "xPos", 0, path), "Coordinates are not toggles")
+		AssertThrows(ObjBindMethod(nm_AutoJellySettings, "Toggle", "RollClickLimit", 1, path), "Run limits cannot be toggled off")
 		AssertThrows(ObjBindMethod(nm_AutoJellySettings, "Toggle", "Bomber", 2, path), "Invalid current selection cannot toggle")
 		FileDelete path
 		FileAppend "[bees]`nBomber=private-invalid-value", path
