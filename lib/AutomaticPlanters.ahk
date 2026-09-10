@@ -54,7 +54,6 @@ ba_PlaceNectarPlanters() {
 				if nectar = "None"
 					continue
 				needs.Push({name: nectar, percent: values[nectar], target: n%i%minPercent, priority: i})
-				total%SubStr(nectar, 1, 3)% := values[nectar]
 				lastField := Last%nectar%Field, alternatives := false, needCandidates := []
 				hasSipping := false
 				if GatherFieldSipping && !GotoPlanterField && !HarvestFullGrown

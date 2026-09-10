@@ -91,7 +91,6 @@ NectarAdapterSetup() {
 	PlanterField1 := PlanterField2 := PlanterField3 := "None"
 	PlanterNectar1 := PlanterNectar2 := PlanterNectar3 := "None"
 	PlanterEstPercent1 := PlanterEstPercent2 := PlanterEstPercent3 := 0
-	totalCom := totalMot := 0
 	PlanterHarvestTime1 := PlanterHarvestTime2 := PlanterHarvestTime3 := 2147483647
 	Loop 3 {
 		i := A_Index
