@@ -27,8 +27,8 @@ class nm_RemoteCapabilities {
 				mode := subcommand = "mode" ? params[3] : screenshotMode
 				return StrLower(mode) = "roblox" ? "" : "DesktopCapture"
 			case "", "help", "stop", "reload", "pause", "unpause", "start", "rejoin", "keep", "replace",
-				"planter", "planters", "timers", "timer", "time", "prefix", "set", "get", "shiftlock",
-				"shrine", "blender", "mm", "memorymatch", "finditem": return ""
+				"planter", "planters", "timers", "timer", "time", "prefix", "set", "get": return ""
+			case "shiftlock", "shrine", "blender", "mm", "memorymatch", "finditem": return ""
 			default: return "CustomCommands"
 		}
 	}
