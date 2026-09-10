@@ -90,8 +90,10 @@ verification.
 Browser/game processes intentionally survive helper completion. Timing out after
 a successful external launch can leave its outcome unknown; terminating the
 helper does not undo a browser tab, protocol dispatch or process already created.
-The parent still depends on short native startup/poll/termination calls returning,
-and main-thread scheduling can delay polling. This is not a hard real-time bound
+A hard parent crash can bypass its exit cleanup and leave a helper alive;
+OS-enforced job ownership and crash cancellation remain open. The parent still
+depends on short native startup/poll/termination calls returning, and main-thread
+scheduling can delay polling. This is not a hard real-time bound
 on every OS operation. Positive hive receipts, full input coordination, live
 browser/UAC/Roblox-update behavior and crash-atomic timer updates remain open.
 
@@ -100,7 +102,8 @@ all fallback combinations, disconnects in every stage, slow loading, an occupied
 hive, pause/stop during loading or walking, and recovery exhaustion. No live game
 scenario has been marked passed.
 
-The native lifecycle follows Microsoft's documentation for
+The Explorer-shell launcher retains the Lexikos public-domain ShellRun approach
+credited in the original main program. The native lifecycle follows Microsoft's documentation for
 [CreateProcessW](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw),
 [process handles](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-process_information)
 and [image-name verification](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-queryfullprocessimagenamew).

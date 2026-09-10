@@ -789,3 +789,65 @@ receipts, broader background/input coordination, and crash-atomic timer updates
 remain open. Live Windows/Roblox scenarios remain unverified. The full production
 objective remains active, including remaining features, state/reporting work,
 measured optimizations, proposed additions and release verification.
+
+## Owned reconnect helpers and process cleanup checkpoint
+
+Code checkpoint: `eaede17d4fc62df28b7cc92fc18ef8a2330be870`.
+[Windows run 34428722978](https://github.com/fenixJK/NatroMacroDev/actions/runs/34428722978)
+passed **45 regression groups on each AHK architecture**, native geometry and
+owned-process integrations, seven script and four emitted-worker validations per
+architecture, **43 attachment checks** and **35 updater scenarios** on each
+PowerShell version. No AHK warnings occurred. The existing checkout action's Node
+runtime deprecation notice remains. Production script validation now precedes
+runtime tests so helper syntax errors are surfaced before starting fixtures.
+
+Browser/deeplink launches and player cleanup now run in an owned AHK helper. The
+parent creates the helper directly through CreateProcessW, keeps the returned
+process handle, and passes bounded JSON through a uniquely named shared-memory
+mapping. Requests do not put private codes in command-line arguments or temporary
+request files. The worker constructs canonical Bee Swarm URLs/protocol targets
+from validated types and codes; unrelated extra URL parameters are not forwarded.
+The Explorer-shell browser path retains the existing de-elevation approach and
+uses ordinary Run as its exception fallback.
+
+Each helper has a 20-second deadline, also checked against the reconnect budget.
+Timeout/normal exit cleanup terminates only the owned helper when needed and waits
+up to two seconds for a terminal state before releasing its process and mapping
+handles. Failure to establish termination is fatal rather than an ordinary retry,
+and the retained job is available to exit cleanup. Spawned browser/game processes
+intentionally survive helper completion; a timeout cannot undo an external launch
+already dispatched. The outer reconnect controller consumes helper failures as
+failed attempts and retains its finite attempt/time limits.
+
+CloseRoblox no longer sends foreground Esc/L/Enter or uses WMI substring matching.
+A native process snapshot selects the exact RobloxPlayerBeta.exe basename. Image,
+user SID and session are checked through an opened process handle before requesting
+WM_CLOSE for that process's windows and terminating remaining verified players.
+The same handles remain owned through termination. Studio, installers, shared UWP
+hosts and command lines merely containing Roblox are excluded. The five-second
+post-close delay is retained. This identification does not verify an Authenticode
+publisher and does not add support for the unsupported UWP client.
+
+A nested main-process ownership gate now covers reconnect and CloseRoblox.
+Background actions are suppressed while recovery owns the game, and normal/error
+cleanup releases the gate. Gate tests exercise suppression, nested release and
+failure cleanup. Native process tests exercise Unicode/quoted shared requests,
+repeated handle cleanup, invalid production requests, a real timeout followed by
+confirmed process termination, exact player selection and the production cleanup
+worker leaving a Roblox-named Studio decoy alive. Fixtures refuse to run if an
+existing player is present. They do not launch the real game or a browser.
+
+CI first exposed an unavailable 64-bit InterlockedExchange export: the request
+fixture reached completion but remained in an error dialog. Completion now uses
+the process-exit signal before consuming shared-memory results. A separate native
+fixture working-directory error was corrected, and invalid-request coverage now
+requires a worker-authored rejection instead of accepting a generic startup
+failure. Both fixes were verified in the final run above; timeouts were not raised.
+
+[Reconnect verification](reconnect-verification.md) records the remaining limits.
+Hard parent crashes can bypass exit cleanup; OS-enforced job ownership and crash
+cancellation remain open. Native startup/poll/termination calls and main-thread
+scheduling still prevent a hard real-time guarantee. Other-user/session testing,
+live browser/UAC/update behavior, full cross-process input ownership, positive
+hive receipts, timer crash consistency and the rest of the production plan remain
+active. No live Roblox scenario, deployment or production release is claimed.
