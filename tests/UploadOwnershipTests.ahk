@@ -1,9 +1,13 @@
 class TestUploadFailure extends discord {
-	static SendMessageAPI(*) => throw Error("Fixture delivery failure")
+	static SendMessageAPI(*) {
+		throw Error("Fixture delivery failure")
+	}
 }
 
 class TestUploadEncodingFailure extends discord {
-	static CreateFormData(*) => throw Error("Fixture encoding failure")
+	static CreateFormData(*) {
+		throw Error("Fixture encoding failure")
+	}
 }
 
 TestUploadOwnership() {
@@ -23,7 +27,7 @@ TestUploadOwnership() {
 	AssertEqual(TestDiscordReplies.SendFile(large, "123"), -1, "Oversized file is rejected")
 	AssertEqual(FileGetSize(large), 10485761, "Oversized source is not deleted")
 
-	name := "archive-" DllCall("GetCurrentProcessId") " [Ω] ' ; $(throw 7)"
+	name := "archive-" DllCall("GetCurrentProcessId") " [Ω] ' " Chr(59) " $(throw 7)"
 	directory := A_WorkingDir "\" name, collision := A_Temp "\" name ".zip"
 	DirCreate directory
 	FileAppend "folder contents", directory "\entry.txt", "UTF-8-RAW"
