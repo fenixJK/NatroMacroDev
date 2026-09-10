@@ -1,6 +1,6 @@
 nm_CopyGatherSettings(GuiCtrl, *){
 	global
-	local slot := SubStr(GuiCtrl.Name, -1), values := Map(), key
+	local slot := SubStr(GuiCtrl.Name, -1), values := Map(), key, err
 	try {
 		for key in nm_GatherProfiles.Keys
 			values[key] := Field%key%%slot%
@@ -10,7 +10,7 @@ nm_CopyGatherSettings(GuiCtrl, *){
 }
 nm_PasteGatherSettings(GuiCtrl, *){
 	global
-	local slot := SubStr(GuiCtrl.Name, -1), patch, key, value, ctrl, wasCritical := A_IsCritical
+	local slot := SubStr(GuiCtrl.Name, -1), patch, key, value, ctrl, err, wasCritical := A_IsCritical
 	if MacroState != 0 {
 		MsgBox "Stop the macro before importing a gather profile.", "Stop before importing", 0x1040
 		return
@@ -54,4 +54,3 @@ nm_PasteGatherSettings(GuiCtrl, *){
 		MsgBox err.Message "`nIf saving succeeded, restart the macro to reload the saved profile.", "Gather import failed", 0x1030
 	finally Critical wasCritical
 }
-

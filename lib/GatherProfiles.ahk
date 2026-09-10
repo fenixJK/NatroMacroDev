@@ -129,10 +129,11 @@ class nm_GatherStore {
 				throw Error("Gather settings section exceeds the write limit")
 			sectionBuffer := Buffer(size * 2, 0), offset := 0
 			for key, value in section
-				offset += StrPut(key "=" value, sectionBuffer.Ptr + offset * 2, "UTF-16")
+				offset += StrPut(key "=" value, sectionBuffer.Ptr + offset, (sectionBuffer.Size - offset) // 2, "UTF-16")
+			if offset != sectionBuffer.Size - 2
+				throw Error("Gather section encoding length did not match its allocation")
 			if !DllCall("WritePrivateProfileSectionW", "Str", "Gather", "Ptr", sectionBuffer, "Str", A_WorkingDir "\" this.Path)
 				throw Error("Gather settings could not be saved")
 		} finally DllCall("CloseHandle", "Ptr", handle)
 	}
 }
-

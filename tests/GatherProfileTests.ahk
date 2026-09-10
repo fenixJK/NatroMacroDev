@@ -60,6 +60,7 @@ TestGatherProfileControls() {
 	fieldnamelist := ["Sunflower", "Rose"], patternlist := ["Squares", "Lines"]
 	FieldPatternSizeArr := Map("XS",1,"S",2,"M",3,"L",4,"XL",5)
 	MacroState := 0, CurrentFieldNum := 3, GatherRefreshes := 0
+	FieldName1 := FieldPattern1 := "", FieldPatternShift1 := 0
 	initial := Map("Name","Sunflower","Pattern","Squares","DriftCheck",0,"PatternInvertFB",0,"PatternInvertLR",0,"PatternReps",2,"PatternShift",0,"PatternSize","M","ReturnType","Walk","RotateDirection","None","RotateTimes",1,"SprinklerDist",2,"SprinklerLoc","Center","UntilMins",10,"UntilPack",50)
 	try {
 		for key, value in initial {
@@ -112,7 +113,8 @@ TestGatherStoreProcesses() {
 		DllCall("CloseHandle", "Ptr", handle), handle := 0
 		while worker.Status = 0 && A_TickCount - start < 10000
 			Sleep 10
-		Assert(worker.Status != 0 && worker.ExitCode = 0, "Independent writer finishes after release")
+		workerOutput := worker.Status != 0 ? worker.StdOut.ReadAll() : "still running"
+		Assert(worker.Status != 0 && worker.ExitCode = 0 && !InStr(workerOutput, "==> Warning:"), "Independent writer finishes after release: " workerOutput)
 		AssertEqual(IniRead(nm_GatherStore.Path, "Gather", "Concurrent"), 99, "Independent update survives")
 		FileDelete "gather-ready"
 		worker := ComObject("WScript.Shell").Exec('"' A_AhkPath '" /ErrorStdOut=UTF-8 "' A_ScriptDir '\GatherStoreWorker.ahk" "' A_WorkingDir '" read')
@@ -127,7 +129,8 @@ TestGatherStoreProcesses() {
 		FileAppend "stop", "gather-stop"
 		while worker.Status = 0 && A_TickCount - start < 10000
 			Sleep 10
-		Assert(worker.Status != 0 && worker.ExitCode = 0, "Independent reader never observes half of a committed field/pattern pair: " (worker.Status != 0 ? worker.StdOut.ReadAll() : "still running"))
+		workerOutput := worker.Status != 0 ? worker.StdOut.ReadAll() : "still running"
+		Assert(worker.Status != 0 && worker.ExitCode = 0 && !InStr(workerOutput, "==> Warning:"), "Independent reader never observes half of a committed field/pattern pair: " workerOutput)
 	} finally {
 		if handle
 			DllCall("CloseHandle", "Ptr", handle)

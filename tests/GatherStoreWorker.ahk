@@ -12,8 +12,8 @@ try {
 	} else {
 		reads := 0
 		while !FileExist("gather-stop") {
-			section := nm_GatherStore.ReadSection()
-			if !((section["FieldName1"] = "Sunflower" && section["FieldPattern1"] = "Squares") || (section["FieldName1"] = "Rose" && section["FieldPattern1"] = "Lines"))
+			readSnapshot := nm_GatherStore.ReadSection()
+			if !((readSnapshot["FieldName1"] = "Sunflower" && readSnapshot["FieldPattern1"] = "Squares") || (readSnapshot["FieldName1"] = "Rose" && readSnapshot["FieldPattern1"] = "Lines"))
 				throw Error("Mixed field/pattern snapshot")
 			reads++
 			Sleep 1
