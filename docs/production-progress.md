@@ -1773,3 +1773,39 @@ stream cleanup; consumption budgets, hover-handler review and live game receipts
 remain open. The timer allowance is not a guarantee for arbitrary timer behavior.
 No Windows/Roblox machine is available. The full production goal remains active;
 no merge, deployment or release is claimed.
+
+## Auto-Jelly OCR lifetime and cancellation checkpoint
+
+Code checkpoint: `96feb88ca3c88bcd660cc9b4abf32b6475e7086b`.
+[Windows run 34462790854](https://github.com/fenixJK/NatroMacroDev/actions/runs/34462790854)
+passed **66 regression groups on both AHK architectures**, native process/GUI
+suites, **nine production-script, four test-entry and seven emitted-worker
+validations** per architecture, plus **eight file-channel checks, 43 attachment
+checks and 35 updater scenarios** per PowerShell version. No AHK warnings occurred;
+the checkout Node runtime deprecation notice remains.
+
+Auto-Jelly's legacy OCR helper has been replaced with a run-owned engine and
+decoder factory. Preflight selects installed English OCR recognizers directly.
+Each mutation read shares one ten-second budget across conversion, decoding and
+recognition, checks input cancellation/focus/geometry between polls and rejects
+late results. Failures unwind into the existing stop/GUI-retry path rather than
+exiting the settings process. COM references and HSTRINGs have explicit ownership;
+temporary streams/bitmaps are closed and engine resources are released before
+balanced Windows Runtime teardown.
+
+Async cleanup requests cancellation for Started operations and only calls Close
+after observing a terminal state. Native COM fixtures check reference counts and
+Cancel/Close ordering for pending, cancelled, completed and error states, including
+failures in status, cancellation and closing. Deterministic tests cover stalled
+and late operations, cancellation, exceptions and a shared budget across stages.
+Both Windows runners also recognized generated text repeatedly with their actual
+en-US OCR engine, recovered after decode-stage rejection and cancellation, and
+passed repeated engine teardown.
+
+[OCR verification](auto-jelly-ocr-verification.md) records the contract and limits.
+This bounds cooperative waits; it cannot preempt a synchronous native call that
+stops returning or force an uncooperative provider to stop internal work. It is
+not a native allocation soak or an in-game mutation corpus. Consumption budgets,
+positive roll receipts, hover-handler review and live game accuracy remain open.
+No Windows/Roblox machine is available. The full production goal remains active;
+no merge, deployment or release is claimed.

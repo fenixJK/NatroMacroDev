@@ -64,10 +64,11 @@ remains. No live game or production release is established by these checks.
 
 ## Remaining scope
 
-The legacy WinRT OCR implementation still needs bounded asynchronous waits and
-complete COM/HSTRING/stream cleanup on every failure path. These changes do not
-make cancellation prompt while that existing OCR helper is stalled. No click or
-royal-jelly consumption budget has been added, and an individual click may cause
+The legacy WinRT OCR helper has been replaced by a scoped engine and bounded
+polling; [OCR verification](auto-jelly-ocr-verification.md) records its later
+checkpoint and native failure/recognition tests. Synchronous native calls still
+cannot be preempted by the polling deadline. No click or royal-jelly consumption
+budget has been added, and an individual click may cause
 the game's own auto-jelly setting to consume multiple items. The first click still
 relies on the user's prepared game dialog; this is not visual confirmation of its
 button or a receipt proving that exactly one roll occurred. Missing results stop
@@ -76,8 +77,8 @@ after the attempted click rather than retrying it.
 Mutation trigger accuracy, nonempty but invalid OCR text, animation/stale-result
 handling, overlay/occlusion detection, live GUI offsets and in-game stop/resume
 behavior remain unverified. The legacy hover handler also contains a waiting loop
-and needs an event-handling review. Full-run error cleanup after actual OCR/game operations has not been
-exercised in Roblox. There is no Windows/Roblox machine available;
+and needs an event-handling review. Full-run error cleanup after actual game
+operations has not been exercised in Roblox. There is no Windows/Roblox machine available;
 CI evidence does not establish full Auto-Jelly or production readiness.
 
 ## Additional CI finding

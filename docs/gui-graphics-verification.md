@@ -91,3 +91,11 @@ guard and disables Escape, with two native rejection/retry checks. The GUI probe
 also exercises all 68 bundled bee templates against the complete search set.
 [Auto-Jelly run verification](auto-jelly-run-verification.md) records input and
 observation guards and the remaining WinRT OCR, consumption and live-game limits.
+
+## Auto-Jelly OCR ownership follow-up
+
+The run now owns its OCR engine/factories, deletes created and returned HSTRINGs,
+wraps each returned COM reference and closes its temporary streams/bitmaps on
+unwinding. Async polling has one shared deadline and input/cancellation checks.
+[OCR verification](auto-jelly-ocr-verification.md) records native COM cleanup
+fault tests, actual English recognition and the remaining native-call/game limits.
