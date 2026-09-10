@@ -6,6 +6,7 @@
 
 #Include "%A_ScriptDir%\..\lib\DeliveryQueue.ahk"
 #Include "%A_ScriptDir%\..\lib\DiscordPayload.ahk"
+#Include "%A_ScriptDir%\..\lib\UploadArchive.ahk"
 #Include "%A_ScriptDir%\..\lib\FailureLog.ahk"
 
 class discord
@@ -87,48 +88,38 @@ class discord
 			, "TXT", "text/plain"
 			, "INI", "text/plain")
 
-		if (attr := FileExist(filepath))
-		{
-			SplitPath filepath := RTrim(filepath, "\/"), &filename:=""
-			if (filename && InStr(attr, "D"))
-			{
-				; attempt to zip folder to temp
-				try
-				{
-					RunWait 'powershell.exe -WindowStyle Hidden -Command Compress-Archive -Path "' filepath '\*" -DestinationPath "$env:TEMP\' filename '.zip" -CompressionLevel Fastest -Force', , "Hide"
-					if !FileExist(filepath := A_Temp "\" filename ".zip")
-						throw
-				}
-				catch
-				{
-					this.SendEmbed('The folder ``' filepath '`` could not be zipped!`nThis function is only supported on Windows 10 or higher.', 16711731, , , , replyID)
+		archive := 0, source := filepath
+		try {
+			if !(attr := FileExist(filepath)) {
+				this.SendEmbed('``' source '`` does not exist or could not be read!', 16711731,,,, replyID)
+				return -2
+			}
+			if InStr(attr, "D") {
+				try archive := nm_UploadArchive(filepath)
+				catch {
+					this.SendEmbed('The folder ``' source '`` could not be archived.', 16711731,,,, replyID)
 					return -3
 				}
+				filepath := archive.Path
 			}
-			size := FileGetSize(filepath)
-			if (size > 10485760)
-			{
-				this.SendEmbed('``' filepath '`` is above the Discord file size limit of 10MiB!', 16711731, , , , replyID)
+			if FileGetSize(filepath) > 10485760 {
+				this.SendEmbed('``' source '`` is above the Discord file size limit of 10MiB!', 16711731,,,, replyID)
 				return -1
 			}
+			SplitPath filepath, &filename, , &ext
+			if archive {
+				SplitPath RTrim(source, "\/"), &folderName
+				filename := folderName ".zip"
+			}
+			ext := StrUpper(ext), params := []
+			(replyID > 0) && params.Push(Map("name","payload_json","content-type","application/json","content",JSON.stringify(nm_DiscordReplyObject(replyID))))
+			params.Push(Map("name","files[0]","filename",filename,"content-type",MimeTypes.Has(ext) ? MimeTypes[ext] : "application/octet-stream","file",filepath))
+			this.CreateFormData(&postdata, &contentType, params)
+			return this.SendMessageAPI(postdata, contentType)
+		} finally {
+			if archive
+				archive.Close()
 		}
-		else
-		{
-			this.SendEmbed('``' filepath '`` does not exist or could not be read!', 16711731, , , , replyID)
-			return -2
-		}
-
-		SplitPath filepath, &filename, , &ext
-		ext := StrUpper(ext)
-		params := []
-		(replyID > 0) && params.Push(Map("name","payload_json","content-type","application/json","content",JSON.stringify(nm_DiscordReplyObject(replyID))))
-		params.Push(Map("name","files[0]","filename",filename,"content-type",MimeTypes.Has(ext) ? MimeTypes[ext] : "application/octet-stream","file",filepath))
-		this.CreateFormData(&postdata, &contentType, params)
-		this.SendMessageAPI(postdata, contentType)
-
-		; delete any temp file created
-		if (SubStr(filepath, 1, StrLen(A_Temp)) = A_Temp)
-			try FileDelete filepath
 	}
 
 	static SendImage(pBitmap, imgname:="image.png", replyID:=0)
