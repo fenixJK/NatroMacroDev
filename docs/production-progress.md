@@ -894,3 +894,47 @@ or impose hard real-time bounds on every native API or delayed main-thread poll.
 Live browser/UAC/update behavior, full input coordination, other-user/session
 exclusions, positive hive receipts, crash-consistent timers and the remaining
 production plan stay active. No live Roblox scenario or release is claimed.
+
+## Shared planter dialog interaction checkpoint
+
+Code checkpoint: `a42bda05bb85c7ce794d9ea0a41ff18960d5d036`.
+[Windows run 34430667656](https://github.com/fenixJK/NatroMacroDev/actions/runs/34430667656)
+passed **46 regression groups on each AHK architecture**, native Windows input,
+geometry and process integrations, seven production script and four emitted-worker
+validations per architecture, **43 attachment checks** and **35 updater scenarios**
+on each PowerShell version. No AHK warnings occurred. The existing checkout Node
+runtime deprecation notice remains.
+
+Automatic and manual harvests now share the same dialog interaction controller.
+It presses E once, waits for delayed prompts, and clicks a recognized Yes/No pair
+at most once. Partial or stuck dialogs, blocked observations, stale input frames,
+focus loss and geometry changes return unconfirmed before the legacy state-clear
+branch. The recovery wrapper stops further attempts after that outcome and retains
+its persistent five-minute delay. A reappeared E prompt invalidates an earlier
+absence; the final wait is followed by another observation, without authorizing
+new input after the deadline. Existing full-grown-only and Harvest Now choices
+remain represented. The automatic Harvest Now flag is cleared in memory as well
+as INI when the legacy continuation path consumes it.
+
+The native surface releases its synthetic key on ordinary cleanup/exit, restores
+mouse coordinate mode and thread critical state, and checks focus/geometry after
+input. The configured key delay no longer falsely expires an already authorized
+press. Offset lookup does not activate Roblox and is reused only within the same
+client geometry for the interaction. Tests exercise real Windows button delivery,
+stale-frame refusal, delayed key input and focus changes while a key is held.
+Scripted tests cover delayed, stuck, partial and late dialogs, prompt reappearance,
+initial expiry and uncertain input stopping repeat harvest attempts.
+
+The first CI run rejected a local/global variable-shadowing warning. It was fixed;
+the native fixture also explicitly restores its original window focus before
+subsequent pointer checks. Run 34430567023 passed the initial fixes, and the final
+run above includes the additional deadline observations and regression cases.
+
+**F05 remains open.** Accepted/no-dialog are interaction outcomes, not positive
+harvest receipts, and the legacy branches still clear records and count harvests.
+[Planter verification](planter-verification.md) records this limit explicitly.
+Positive completion evidence for full-grown/stacked planters, crash-consistent
+state/counter updates, live inventory reconciliation, hard-kill key release and
+full input coordination remain unfinished. The polling limit is cooperative and
+no capture-performance improvement is claimed. The full production plan remains
+active; no live Roblox scenario, merge, release or deployment is claimed.

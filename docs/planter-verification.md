@@ -22,11 +22,29 @@ whether the game action happened separately from what the macro reported.
 | Early harvest with Yes/No dialog | Capture before E, the dialog, immediately after acceptance, and the settled scene. Identify a positive completion signal before changing records or collection counts. |
 | Full-grown harvest without a dialog | Capture the same sequence. Find a completion signal that also works for stacked/consumable planters; absence of an E button or progress bar alone is insufficient. |
 | Harvest cancellation/full-grown-only policy | Declining an early harvest preserves the record and updates its growth estimate only from valid observations. |
+| Delayed or stuck Yes/No dialog | E is pressed once and a recognized dialog is clicked at most once. A stuck or partially recognized dialog preserves the record and starts the recovery delay without four more input attempts. |
+| E prompt disappears then returns | An earlier disappearance must not be reused as the final no-dialog outcome. |
 | Lag, disconnect, death, focus loss or resize during harvest | These must produce an unconfirmed outcome, preserve identity/counters/cycle, and allow later reconciliation. |
 | Progress bar detection | Compare reported proportions with the game at several growth levels, camera angles and fields, including an obstructed/missing bar and unrelated green UI content. |
 
-The harvest functions still need a shared post-action confirmation and state-commit
-boundary. Their current success return values are not yet authoritative evidence
-that a harvest happened. The retry wrapper only contains reported failures.
+Automatic and manual harvests now share a bounded dialog interaction handler.
+It distinguishes declined, accepted, no-dialog and unconfirmed outcomes, checks
+focus and client geometry before input, releases its held key on normal cleanup,
+and stops repeat attempts after uncertain input. Image observations expire before
+new input; the configured key delay does not invalidate an already authorized
+press when focus and geometry remain unchanged. Offset lookup during this
+interaction does not activate Roblox. A returned E prompt invalidates an earlier
+absence, and the final wait is followed by a fresh observation before returning
+no-dialog. Expiry never authorizes another E press or dialog click. The eight-second
+polling deadline is cooperative; native capture/input calls and the final
+observation can finish after it. CI covers scripted dialog sequences and native Windows button/key/focus
+behavior, including stale observations and a longer configured key delay.
+
+**Accepted and no-dialog are still legacy continuation paths, not positive
+harvest receipts.** They still lead to record/counter changes. The harvest
+functions need a positive post-action confirmation and shared state-commit
+boundary before F05 can close. Missing E alone, or disappearance of Yes/No after
+a click, does not prove that a harvest happened. A process hard kill can also
+bypass ordinary key-release cleanup. These limits remain release gates.
 Synthetic bar tests establish behavior for controlled images, not recognition
 accuracy in Roblox. Do not mark these scenarios passed from CI results alone.
