@@ -1,7 +1,7 @@
 # Main helper and generated-script ownership
 
 Main cleanup selects the fixed helper names Heartbeat, Status, background,
-StatMonitor, PlanterTimers, reconnect-worker and inline-worker under this
+StatMonitor, PlanterTimers, reconnect-worker, inline-worker and receiving-cleanup under this
 installation's submacros directory. Discovery checks the full script-window
 title, expected runtime image, current user and session, and retains process
 handles. The heartbeat passed by the restarting watchdog is retained only when

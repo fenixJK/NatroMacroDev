@@ -84,9 +84,14 @@ allow publication. The file is flushed and moved into its final name in the same
 inbox without overwrite. The code checks received bytes even when the server
 omits Content-Length. It does not buffer an entire response in memory.
 
-Normal failures clean temporary data. The Status helper also has a polled
-45-second watchdog and stops its owned worker on normal shutdown, then removes
-that job's receiving directory. Other blocking legacy Status operations can delay
+Normal failures attempt to clean temporary data. The Status helper has a polled
+45-second watchdog including startup. After confirming the worker has stopped,
+it polls a contained receiving-cleanup helper for up to twenty seconds. Shutdown
+gives cleanup a five-second grace period; main may terminate Status sooner. Cleanup
+removes only the known partial file and empty receiving directory, preserving
+unexpected contents and rejecting linked paths. Unconfirmed temporary cleanup is
+reported without changing a confirmed successful download into a failed download.
+See [receiving cleanup verification](receiving-cleanup-verification.md). Other blocking legacy Status operations can delay
 the watchdog poll; the worker's network deadline is independent of those calls.
 Forced whole-process termination, power loss or filesystem failures can leave an
 abandoned receiving directory. Such data counts toward the quota and can be

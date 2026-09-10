@@ -1583,3 +1583,47 @@ reconciliation and live delivery remain open. The production goal remains active
 
 [File-worker verification](file-worker-verification.md) records the updated
 contract and evidence. No merge, deployment or production release is claimed.
+
+## Asynchronous receiving-directory cleanup checkpoint
+
+Code checkpoint: `af1e8c4499a5959a3e7dda3e005653c4b73404d4`.
+[Windows run 34454860093](https://github.com/fenixJK/NatroMacroDev/actions/runs/34454860093)
+passed **62 regression groups on both AHK architectures**, native process/GUI
+suites including receiving cleanup, **nine production-script, four test-entry
+and four emitted-worker validations** per architecture, and **eight file-channel
+checks, 43 attachment checks and 35 updater scenarios** per PowerShell version.
+No AHK warnings occurred. The checkout Node runtime deprecation notice remains.
+
+Status no longer performs receiving-directory deletion in its polling loop.
+After confirmed download-worker termination it starts an owned AHK cleanup helper,
+retains the active attachment slot and polls the result. Cleanup has a twenty-second
+cooperative deadline. Timeout or launch failure adds a retained-temporary-data
+message while preserving the actual download result. Ownership is released and
+one completion sent only after helper termination is confirmed. Shutdown permits
+five seconds of cleanup before stopping the helper and sends no completion reply.
+Main may terminate Status sooner; shutdown cleanup is best effort.
+
+The cleanup worker validates the absolute local receiving path, holds inspected
+ancestor handles without delete sharing, rejects reparse points and removes only
+the ordinary singly linked payload.partial and empty receiving directory through
+their verified handles. It performs no recursive deletion or historical scan.
+Unexpected contents, linked, read-only and locked files are retained. The published
+attachment and inbox lock are outside this operation. Kernel ownership prevents
+a cleanup process continuing after its owner crashes.
+
+Controller tests cover pending cleanup, busy rejection, timeout, creation failure,
+unchanged confirmed download success, callback isolation and exactly one reply.
+Native fixtures verify empty/partial/missing folders, traversal rejection,
+unexpected file retention, hardlinks, locked/read-only files and ancestor symlinks.
+The real attachment fixture verifies cleanup and shutdown from a Unicode path.
+CI caught reserved-name and File-class-shadowing mistakes in the new test fixture;
+both were corrected. Test entry points are now syntax-checked before execution.
+
+[Receiving cleanup verification](receiving-cleanup-verification.md) records the
+contract and limits. Directory preparation, process creation/termination and
+logging still involve native or filesystem calls; upload-archive cleanup remains
+synchronous. This is no claim of measured overall performance improvement or a
+fix for the intermittent PowerShell timeout. Crash-left file reconciliation,
+durable completion receipts, live main/Status shutdown and Discord delivery,
+concurrent hostile filesystem mutation and resource/performance soaks remain open.
+The full production goal remains active. No merge, deployment or release is claimed.

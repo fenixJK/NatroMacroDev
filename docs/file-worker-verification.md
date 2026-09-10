@@ -124,7 +124,9 @@ eight file-channel checks, 43 attachment checks and 35 updater scenarios on each
 PowerShell version. The final 32-bit/64-bit samples connected at 10578/3360 ms,
 returned results at 12656/4657 ms, and took 1891/47 ms for directory cleanup.
 Worker CPU usage was 562/671 ms. These are observed samples, not a cause established
-for the prior timeout; blocking filesystem cleanup in the owner remains open.
+for the prior timeout. The later [receiving cleanup change](receiving-cleanup-verification.md)
+moves that receiving-directory deletion into a contained worker. Directory
+preparation, logging and upload-archive cleanup still include owner-side file I/O.
 
 ## Remaining limits
 
