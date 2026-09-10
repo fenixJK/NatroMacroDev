@@ -32,6 +32,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "ErrorHandling.ahk"
 #Include "HashFile.ahk"
 #Include "RuntimePolicy.ahk"
+#Include "StartupControl.ahk"
 #Include "ReconnectSession.ahk"
 #Include "OwnedProcessJob.ahk"
 #Include "RecoveryActivity.ahk"
@@ -2129,8 +2130,6 @@ VBReasons := {
 CUSTOM_CURSOR := 1
 nm_WM_SETCURSOR(*) => CUSTOM_CURSOR
 
-ForceStart := 0
-RemoteStart := 0
 
 ;ensure Gui will be visible
 if (GuiX && GuiY)
@@ -2256,7 +2255,7 @@ nm_LocateRobloxSettingsXML(robloxtype)
 	}
 }
 ;//todo: add checkProblem() conditions from debug log
-nm_MsgBoxIncorrectRobloxSettings()
+nm_MsgBoxIncorrectRobloxSettings(interactive := true)
 {
 	global IgnoreIncorrectRobloxSettings
 	static RecommendedRobloxSettings := Map(
@@ -2286,11 +2285,7 @@ nm_MsgBoxIncorrectRobloxSettings()
 		)
 	)
 
-	GuiClose(*){
-		if (IsSet(IncSettingsGui) && IsObject(IncSettingsGui))
-			IncSettingsGui.Destroy(), IncSettingsGui := ""
-	}
-	GuiClose()
+	nm_StartupSettingsDialog.Close()
 	if IgnoreIncorrectRobloxSettings
 		return 0
 	robloxtype := nm_DetectRobloxType()
@@ -2311,33 +2306,19 @@ nm_MsgBoxIncorrectRobloxSettings()
 		}
 	}
 	if recommendations.Length {
-		rectext := JoinArray(recommendations, "`n")
-		IncSettingsGui := Gui("+AlwaysOnTop +Owner" MainGui.Hwnd, "Incorrect Roblox Settings Detected")
-		IncSettingsGui.SetFont("s9", "Tahoma")
-		IncSettingsGui.OnEvent("Close", (*) => GuiClose())
-		IncSettingsGui.SetFont("Bold s10 c" (robloxtype = RobloxTypes.NotFound || robloxtype = RobloxTypes.UWP ? "Red" : "0a7e00"), "Tahoma")
-		IncSettingsGui.Add("Text", "x10 y10 w400 +Center", "Default Roblox Installation: " robloxtype)
-		IncSettingsGui.SetFont("s9 cDefault", "Tahoma")
-		IncSettingsGui.Add("Text", "x10 y40 w400 +BackgroundTrans", "The detected Roblox installation might have incorrect settings, please do these:")
-		IncSettingsGui.SetFont("s9 cRed", "Tahoma")
-		IncSettingsGui.Add("Text", "x10 y70 w400 r" recommendations.Length " +BackgroundTrans", rectext)
-		IncSettingsGui.SetFont("s8 cDefault", "Tahoma")
-		IncSettingsGui.Add("Text", "x10 y" (80 + 14 * recommendations.Length) " w400 +BackgroundTrans", "You can safely ignore this message if you have already changed them.")
-		IncSettingsGui.SetFont("s9", "Tahoma")
-		IncSettingsGui.Add("CheckBox", "x10 y" (110 + 14 * recommendations.Length) " w200 vIncorrectSettingsCheckbox", "Do not show again")
-		IncSettingsGui.SetFont("s9 cDefault Norm", "Tahoma")
-		IncSettingsGui.Add("Button", "x320 y" (110 + 14 * recommendations.Length) " w90 h28 Default", "OK").OnEvent("Click"
-		, (*) => (
-			IncSettingsGui["IncorrectSettingsCheckbox"].Value
-				? (MsgBox("You ticked the 'Do not show again' checkbox, which means you won't get any warning messages about incorrect Roblox settings anymore. Are you sure that you want to do this?", "Are you sure?", 0x1034) = "Yes"
-					? (IniWrite((IgnoreIncorrectRobloxSettings := 1), "settings\nm_config.ini", "Settings", "IgnoreIncorrectRobloxSettings"), IncSettingsGui.Destroy())
-					: "")
-				: (IncSettingsGui.Destroy(), IgnoreIncorrectRobloxSettings := 1) ; disable for this session
-		))
-		IncSettingsGui.Show("AutoSize Center")
+		if interactive
+			nm_StartupSettingsDialog.Show(recommendations, robloxtype, MainGui.Hwnd, nm_IgnoreStartupSettings)
+		else
+			nm_setStatus("Error", "Incorrect Roblox settings: " JoinArray(recommendations, " / "))
 		return 1
 	}
 	return 0
+}
+nm_IgnoreStartupSettings(remember) {
+	global IgnoreIncorrectRobloxSettings
+	if remember
+		IniWrite 1, "settings\nm_config.ini", "Settings", "IgnoreIncorrectRobloxSettings"
+	IgnoreIncorrectRobloxSettings := 1
 }
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; AUTO-UPDATE
@@ -3529,10 +3510,8 @@ try {
 }
 
 SetTimer Background, 2000
-if (A_Args.Has(1) && (A_Args[1] = 1)){
-	ForceStart := 1
-	SetTimer start, -1000
-}
+if (A_Args.Has(1) && (A_Args[1] = 1))
+	nm_RequestStart("automatic", 1000)
 
 return
 
@@ -3543,7 +3522,7 @@ return
 nm_StartButton(GuiCtrl, *){
 	MouseGetPos , , , &hCtrl, 2
 	if (hCtrl = GuiCtrl.Hwnd)
-		SetTimer start, -50
+		nm_RequestStart("local", 50)
 }
 nm_PauseButton(GuiCtrl, *){
 	MouseGetPos , , , &hCtrl, 2
@@ -20334,6 +20313,7 @@ mp_HarvestPlanter(PlanterIndex) {
 nm_FailClosed(err) {
 	global MacroState, AFBrollingDice, AFBuseGlitter, AFBuseBooster, AutoFieldBoostActive
 	Critical
+	nm_StartSession.Cancel()
 	try nm_InventoryPointer.Cancel()
 	SetTimer Background, 0
 	AFBrollingDice := AFBuseGlitter := AFBuseBooster := AutoFieldBoostActive := 0
@@ -20352,6 +20332,8 @@ nm_FailClosed(err) {
 
 getout(*){
 	global
+	nm_StartSession.Cancel()
+	nm_StartupSettingsDialog.Close()
 	try nm_InventoryPointer.Cancel()
 	try nm_TimeTracking.Stop()
 	nm_saveGUIPos()
@@ -20365,7 +20347,10 @@ getout(*){
 	DllCall(A_WorkingDir "\nm_image_assets\Styles\USkin.dll\USkinExit")
 }
 
-Background() => nm_RecoveryActivity.RunBackground(nm_BackgroundActions)
+Background() {
+	if MacroState = 2 && nm_StartSession.Running()
+		nm_RecoveryActivity.RunBackground(nm_BackgroundActions)
+}
 nm_BackgroundActions(){
 	if (AFBrollingDice && nm_AFBReady() && state!="Disconnected")
 		nm_fieldBoostDice()
@@ -20386,50 +20371,76 @@ nm_BackgroundActions(){
 ; HOTKEYS
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;START MACRO
-/**
- * Force start: errors/info are suppressed.
- * RC start: errors/info are sent to status instead of msgboxes.
- */
-start(*){
-	global
-	UnlockStartButton() => (MainGui["StartButton"].Enabled := 1, Hotkey(StartHotkey, "On"), nm_LockTabs(0), nm_setStatus("Error", "Incorrect Roblox Configuration"))
+start(*) => nm_RequestStart("local", 1)
 
+nm_RequestStart(mode, delay) {
+	global MacroState, MainGui, StartHotkey
+	if MacroState != 0 || !(request := nm_StartSession.Reserve(mode))
+		return false
+	try {
+		nm_LockTabs()
+		MainGui["StartButton"].Enabled := 0
+		Hotkey StartHotkey, "Off"
+		request.Timer := (*) => request.Execute(nm_Startup, nm_RestoreStartupControls, nm_UnexpectedStartupReturn)
+		SetTimer request.Timer, -Max(1, delay)
+	} catch as err {
+		request.Close()
+		nm_RestoreStartupControls()
+		throw err
+	}
+	return true
+}
+
+nm_RestoreStartupControls() {
+	global MainGui, StartHotkey
+	MainGui["StartButton"].Enabled := 1
+	Hotkey StartHotkey, "On"
+	nm_LockTabs(0)
+}
+
+nm_UnexpectedStartupReturn(err) {
+	nm_Failures.Write(err, "Macro startup")
+	nm_FailClosed(err)
+}
+
+nm_Startup(request) {
+	global
+	local ForceStart := request.Mode = "automatic", RemoteStart := request.Mode != "local"
 	SetKeyDelay 100+KeyDelay
-	nm_LockTabs()
-	MainGui["StartButton"].Enabled := 0
-	Hotkey StartHotkey, "Off"
 	nm_setStatus("Begin", "Macro")
 
 	;//todo: make startup errors an array
 	
 	try priorityList := nm_BuildPriorityList(priorityListNumeric)
 	catch as err {
-		UnlockStartButton()
 		nm_setStatus("Error", err.Message)
 		return
 	}
 	
+	robloxtype := nm_DetectRobloxType()
+	if RemoteStart && (robloxtype = RobloxTypes.UWP || robloxtype = RobloxTypes.NotFound) {
+		nm_setStatus("Error","Unable to start macro. Invalid Roblox installation detected. Please install Roblox from https://www.roblox.com/download")
+		return
+	} else {
+		if robloxtype = RobloxTypes.UWP {
+			MsgBox "UWP Roblox installation is detected, Natro Macro currently does not support it.`nPlease install Roblox from https://www.roblox.com/download", "UWP Roblox Detected", 0x40010 " T60"
+			nm_setStatus("Error", "Unsupported Roblox installation")
+			return
+		}
+		if robloxtype = RobloxTypes.NotFound {
+			MsgBox "Unable to detect a Roblox installation.`nPlease install Roblox from https://www.roblox.com/download", "Roblox Not Found", 0x40010 " T60"
+			nm_setStatus("Error", "Roblox installation not found")
+			return
+		}
+	}
+
+	if nm_MsgBoxIncorrectRobloxSettings(!RemoteStart) {
+		if !RemoteStart
+			nm_setStatus("Error", "Incorrect Roblox Configuration")
+		return
+	}
+
 	if !ForceStart {
-		robloxtype := nm_DetectRobloxType()
-		if RemoteStart && (robloxtype = RobloxTypes.UWP || robloxtype = RobloxTypes.NotFound) {
-			nm_setStatus("Error","Unable to start macro. Invalid Roblox installation detected. Please install Roblox from https://www.roblox.com/download")
-			return UnlockStartButton()
-		} else {
-			if robloxtype = RobloxTypes.UWP {
-				MsgBox "UWP Roblox installation is detected, Natro Macro currently does not support it.`nPlease install Roblox from https://www.roblox.com/download", "UWP Roblox Detected", 0x40010 " T60"
-				return UnlockStartButton()
-			}
-			if robloxtype = RobloxTypes.NotFound {
-				MsgBox "Unable to detect a Roblox installation.`nPlease install Roblox from https://www.roblox.com/download", "Roblox Not Found", 0x40010 " T60"
-				return UnlockStartButton()
-			}
-		}
-
-		if !RemoteStart && !ForceStart {
-			if nm_MsgBoxIncorrectRobloxSettings()
-				return UnlockStartButton()
-		}
-
 		;Touchscreen WARNING @ start
 		if ((DllCall("GetSystemMetrics", "int", 94)) & 0x40 && DllCall("GetSystemMetrics", "int", 95) >= 2) {
 			if RemoteStart {
@@ -20464,7 +20475,7 @@ start(*){
 				Disable any non-essential tasks such as quests, bug runs, stingers, etc. Any time away from your gathering field can result in the loss of your field boost."
 				), "WARNING!!", 257 " T30"
 			} else {
-				nm_setstatus("Warning","Automatic Field Boost is ACTIVATED.`nIf you continue the following quantity of items can be used`nDice: " futureGlitter "`nGlitter: " futureGlitter)
+				nm_setstatus("Warning","Automatic Field Boost is ACTIVATED.`nIf you continue the following quantity of items can be used`nDice: " futureDice "`nGlitter: " futureGlitter)
 			}
 		}
 		;Field drift compensation warning
@@ -20530,52 +20541,25 @@ start(*){
 	nm_setShiftLock(0)
 	offsetY := GetYOffset((hRoblox := GetRobloxHWND()), &offsetfail)
 
-	;addition warnings after roblox window is confirmed
-	if !ForceStart {
-		;check UIPI
-		try PostMessage 0x100, 0x7, 0, , "ahk_id " hRoblox
-		catch {
-			if !RemoteStart 
-				MsgBox "
-				(
-				Your Roblox window is run as admin, but the macro is not!
-				This means the macro will be unable to send any inputs to Roblox.
-				You must either reinstall Roblox without administrative rights, or run Natro Macro as admin!
-
-				NOTE: It is recommended to stop the macro now, as this issue also causes hotkeys to not work while Roblox is active."
-				)", "WARNING!!", 0x1030 " T60"
-			else
-				nm_setStatus("Error","`nRoblox is run as admin, but the macro is not. The macro cannot work in this state.")
-		}
-		try PostMessage 0x101, 0x7, 0xC0000000, , "ahk_id " hRoblox
-		if (offsetfail = 1)
-			if !RemoteStart 
-				MsgBox "
-				(
-				Unable to detect in-game GUI offset!
-				This means the macro will NOT work correctly!
-
-				There are a few reasons why this can happen, including:
-				- Incorrect graphics settings
-				- Your 'Experience Language' is not set to English
-				- Something is covering the top of your Roblox window
-
-				Join our Discord server for support and our Knowledge Base post on this topic (Unable to detect in-game GUI offset)!
-				)", "WARNING!!", 0x1030 " T60"
-			else 
-				nm_setStatus("Error","`nUnable to detect in-game GUI offset! Please check that all of your settings are correct.")
+	; Automatic/remote starts suppress dialogs, never these prerequisites.
+	if !hRoblox || offsetfail {
+		if !RemoteStart
+			MsgBox "Unable to detect the Roblox window or in-game GUI offset. Check graphics, experience language and anything covering the top of the window.", "Cannot start macro", 0x1030 " T60"
+		nm_setStatus("Error", "Unable to detect the Roblox window or in-game GUI offset")
+		return
+	}
+	try {
+		PostMessage 0x100, 0x7, 0, , "ahk_id " hRoblox
+		PostMessage 0x101, 0x7, 0xC0000000, , "ahk_id " hRoblox
+	} catch {
+		if !RemoteStart
+			MsgBox "Unable to send input messages to Roblox. Check whether Roblox and Natro are running with different administrator permissions.", "Cannot start macro", 0x1030 " T60"
+		nm_setStatus("Error", "Roblox input access check failed")
+		return
 	}
 	nm_OpenMenu()
 	MouseMove windowX+350, windowY+offsetY+100
-	DetectHiddenWindows 1
-	MacroState:=2
-	if WinExist("Status.ahk ahk_class AutoHotkey")
-		try PostMessage 0x5552, 23, MacroState
-	if WinExist("Heartbeat.ahk ahk_class AutoHotkey")
-		try PostMessage 0x5552, 23, MacroState
-	if WinExist("background.ahk ahk_class AutoHotkey")
-		try PostMessage 0x5552, 23, MacroState
-	DetectHiddenWindows 0
+
 	;set stats
 	nm_ResetSessionStats()
 	nm_TimeTracking.Begin("Runtime")
@@ -20666,8 +20650,8 @@ start(*){
 			break
 		}
 	}
-	;start ancillary macros
-	try run
+	; Required helper launch failures must stop startup.
+	run
 	(
 	'"' exe_path32 '" /script "' A_WorkingDir '\submacros\background.ahk" "' 0 '" "' 0 '" "' StingerCheck '" "' 0 '" '
 	'"' AnnounceGuidingStar '" "' ReconnectInterval '" "' ReconnectHour '" "' ReconnectMin '" "' EmergencyBalloonPingCheck '" "' ConvertBalloon '" "' NightMemoryMatchCheck '" "' 0 '"'
@@ -20678,12 +20662,23 @@ start(*){
 		|| ((discordMode = 1) && (ReportChannelCheck = 1) && (ReportChannelID || MainChannelID))))
 		run '"' exe_path64 '" /script "' A_WorkingDir '\submacros\StatMonitor.ahk" "' VersionID '"'
 	;start main loop
+	request.MarkRunning()
+	DetectHiddenWindows 1
+	MacroState:=2
+	if WinExist("Status.ahk ahk_class AutoHotkey")
+		try PostMessage 0x5552, 23, MacroState
+	if WinExist("Heartbeat.ahk ahk_class AutoHotkey")
+		try PostMessage 0x5552, 23, MacroState
+	if WinExist("background.ahk ahk_class AutoHotkey")
+		try PostMessage 0x5552, 23, MacroState
+	DetectHiddenWindows 0
 	nm_setStatus("Begin", "Main Loop")
 	nm_Start()
 }
 ;STOP MACRO
 stop(*){
 	global
+	nm_StartSession.Cancel()
 	try nm_InventoryPointer.Cancel()
 	try {
 		Hotkey StopHotkey, "Off"
@@ -20697,13 +20692,18 @@ stop(*){
 	nm_setStatus("End", "Macro")
 	DetectHiddenWindows 1
 	MacroState:=0
+	for helper in ["Status", "Heartbeat", "background"]
+		try PostSubmacroMessage(helper, 0x5552, 23, 0)
 	Reload
 	Sleep 10000
+	; A failed reload must not resume the interrupted main loop.
+	nm_Failures.Write(Error("Reload did not replace the stopped macro"), "Macro stop")
+	ExitApp 1
 }
 ;PAUSE MACRO
 nm_Pause(*){
 	global
-	if(state="startup")
+	if !nm_StartSession.Running() || (MacroState != 1 && MacroState != 2)
 		return
 	if(A_IsPaused) {
 		nm_LockTabs()
@@ -20853,8 +20853,7 @@ nm_ForceLabel(wParam, *){
 	{
 		case 1:
 		if (MainGui["StartButton"].Enabled = 1){
-			global RemoteStart := 1
-			SetTimer start, -500
+			nm_RequestStart("remote", 500)
 		}
 
 		case 2:

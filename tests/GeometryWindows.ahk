@@ -10,6 +10,8 @@
 #Include "%A_ScriptDir%\..\lib\ImageObservation.ahk"
 #Include "%A_ScriptDir%\..\lib\RemoteCapabilities.ahk"
 #Include "%A_ScriptDir%\..\lib\PlanterDialog.ahk"
+#Include "%A_ScriptDir%\..\lib\StartupControl.ahk"
+#Include "%A_ScriptDir%\StartupWindowsTests.ahk"
 
 bitmaps := Map(), windowX := windowY := windowWidth := windowHeight := 0
 fixture := Gui("-DPIScale", "Natro geometry fixture")
@@ -27,6 +29,8 @@ try {
 	TestNativePointer(fixture)
 	TestNativeHealth()
 	TestNativeRemotePermissions(fixture)
+	TestNativeStartupDialogs(fixture)
+	Require(ActivateRoblox(fixture.Hwnd), "Restore fixture focus after startup settings dialogs")
 	fixture.Minimize()
 	Require(!nm_ClientSnapshot(fixture.Hwnd), "Minimized client is unusable")
 	Require(ActivateRoblox(fixture.Hwnd), "Explicit activation restores minimized target")
