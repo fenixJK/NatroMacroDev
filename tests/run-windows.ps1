@@ -112,7 +112,7 @@ try {
     if (-not $fixture.HasExited) { $fixture.Kill($true); $fixture.WaitForExit() }
     Remove-Item $readyFile -ErrorAction SilentlyContinue
     foreach ($bits in @('32', '64')) {
-        Remove-Item "$readyFile.$bits.received", "$readyFile.$bits.release" -ErrorAction SilentlyContinue
+        Remove-Item "$readyFile.$bits.received", "$readyFile.$bits.release", "$readyFile.$bits.rate" -ErrorAction SilentlyContinue
     }
     Remove-Item $workerDirectory -Recurse -Force -ErrorAction SilentlyContinue
 }

@@ -81,6 +81,8 @@ TestLocalCooldown() {
 			Sleep 10
 		}
 		AssertEqual(delivered.Length, 1, "Next native message finishes")
+		if !delivered[1] && FileExist(A_Args[2] ".rate")
+			FileAppend "Native cooldown server elapsed seconds: " FileRead(A_Args[2] ".rate") "`n", "*"
 		Assert(delivered[1], "Server independently confirms the cross-message Retry-After interval")
 		AssertEqual(failures.Length, 1, "Only the deliberately exhausted first message fails")
 	} finally queue.Close()

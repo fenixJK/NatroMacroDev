@@ -62,6 +62,7 @@ try {
                 }
                 if ($payload.phase -ne 2 -or -not $rateStarted.ContainsKey($key)) { throw 'Missing rate-limit predecessor' }
                 $elapsed = ([Diagnostics.Stopwatch]::GetTimestamp() - $rateStarted[$key]) / [Diagnostics.Stopwatch]::Frequency
+                [IO.File]::WriteAllText("$ReadyFile.$key.rate", $elapsed.ToString('R', [Globalization.CultureInfo]::InvariantCulture))
                 if ($elapsed -lt 2.5) { throw 'Message bypassed predecessor rate limit' }
             } elseif ($context.Request.Url.AbsolutePath -in @('/live', '/live/123')) {
                 $payload = ConvertFrom-Json -InputObject $body -ErrorAction Stop
