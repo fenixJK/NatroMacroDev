@@ -8,8 +8,9 @@ remain owned as well. Reconnect helpers retain their existing silent-breakaway
 policy so launched browsers and Roblox can survive helper cleanup.
 
 The parent retains a process handle and a noninherited job handle. Normal cleanup
-terminates the job, polls its active-process count for up to two seconds, and
-confirms the root process is terminal through its retained handle before releasing
+captures handles to current job members, terminates the job, polls its
+active-process count for up to two seconds, and waits on the observed descendants'
+handles as well as the root process handle before releasing
 resources and deleting owned temporary files. Termination already in progress
 may reject a second TerminateProcess call; cleanup waits for the handle rather
 than classifying that transient response as failure. Failure to confirm completion
@@ -17,6 +18,16 @@ retains the handles and files. PowerShell workers cannot continue after abrupt
 owner termination closes the last job handle. This relies on the Windows job
 contract, not on an exit callback or PID/name-based process lookup. See
 [Microsoft's job-object documentation](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects).
+
+Member capture verifies job membership after opening each handle, observes newly
+listed members while termination is pending, and retains at most 256 handles.
+Confirmed exited members are released before reusing slots. Exceeding the bound
+or failing to observe a member is a cleanup error. Job accounting reaching zero
+alone does not establish that every observed process handle is already signaled;
+a later native run exposed that distinction and motivated the additional waits.
+Processes already absent from the job before capture do not have retained
+observation handles. The no-active-members check and observed-handle waits are
+separate evidence, not a historical inventory of every descendant ever created.
 
 Only the fixed PowerShell script path and a random channel name appear on the
 command line. A 16 KiB named mapping holds a versioned header and at most 8,000

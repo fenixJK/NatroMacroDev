@@ -107,7 +107,7 @@ File workers now belong to a Windows job at process creation. Unlike reconnect
 launchers, they cannot let child processes break away. Abrupt owner termination
 therefore closes the last job handle and stops the worker and its descendants,
 without relying on AHK exit callbacks. Normal cleanup terminates the job, checks
-its active-process count and waits for the retained process handle to become
+its active-process count and waits for the root and observed descendant handles to become
 terminal before deleting temporary data. Failure to confirm termination retains
 ownership and temporary files. The helper requires Windows 10 / Server 2016 or
 newer, matching the existing reconnect ownership path.

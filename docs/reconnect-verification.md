@@ -68,6 +68,9 @@ A failed launch/cleanup helper otherwise consumes a reconnect attempt. Requests,
 process/thread handles and mapping views are released after completion.
 
 Cleanup replaces broad WMI name/command-line matching with a process snapshot.
+Heartbeat's automatic restart path now uses this same owned cleanup helper;
+it no longer keeps a separate broad WMI process-kill loop. Its restart attempts
+and main-process selection are covered in [watchdog verification](watchdog-verification.md).
 It selects only the exact `RobloxPlayerBeta.exe` basename, then verifies the image,
 user SID and session using an opened process handle. It requests WM_CLOSE only on
 that process's windows, allows a short grace period, and terminates remaining

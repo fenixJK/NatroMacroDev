@@ -1439,3 +1439,62 @@ Crash-left directories, uncertain final publication/notification, durable receip
 recovery, hard bounds for native/filesystem calls, live Discord/game verification
 and the full production plan remain open. No merge, deployment or production
 release is claimed.
+
+## Bounded watchdog recovery and process identity checkpoint
+
+Code checkpoint: `0a223b221b2c5b98727bf983b2ca255ac2e3fd57`.
+[Windows run 34450918133](https://github.com/fenixJK/NatroMacroDev/actions/runs/34450918133)
+passed **62 regression groups on each AHK architecture**, native process/GUI
+suites including watchdog identity and stronger file-worker descendant waits,
+seven production-script and four emitted-worker validations per architecture,
+**eight file-channel checks**, **43 attachment checks** and **35 updater scenarios**
+on each PowerShell version. No AHK warnings occurred. The checkout Node runtime
+notice remains.
+
+Heartbeat's restart path still had a broad WMI Roblox process-kill query and an
+unbounded retry loop. It now uses the verified player cleanup helper and exact
+main-script identity: full script-window title, runtime image, user and session,
+with short/long Windows path normalization and PID/title rechecks after opening
+the process. Cleanup uses retained handles. Replacements retain CreateProcessW
+handles and require their own PID's visible final main-GUI title before release.
+Same-name scripts elsewhere and different-runtime decoys are excluded.
+
+Recovery has at most three attempts, five minutes per attempt including cleanup,
+and a rolling limit of three attempts per thirty minutes across successful-looking
+replacements. Failed replacements are stopped before another launch; unconfirmed
+cleanup aborts recovery. Exhaustion logs a local diagnostic, shows a bounded
+message and exits the watchdog. Heartbeat timing now uses monotonic milliseconds,
+preserving existing two-minute script and ten-minute window thresholds. Arming
+from stopped establishes fresh baselines. Disappearing recipients mean missed
+replies rather than an immediate watchdog fault; unexpected faults log and exit.
+
+Controller tests verify attempt ordering, finite hung startup, failed launch,
+rolling budget/expiry, production clock/sleeper and no relaunch after failed
+cleanup. Native fixtures verify GUI ownership, exact path/runtime selection,
+Windows short-path equivalence, decoy survival and closed creation handles.
+Review and CI exposed logger initialization, a native Sleep binding, a
+fixture-only missing helper and a Buffer naming error. Identity diagnostics
+identified short-path notation as the discovery mismatch without weakening the
+identity requirement.
+
+The native suites also exposed a race in the prior file-worker checkpoint: zero
+active job accounting could precede an observed descendant handle becoming
+signaled. Cleanup now captures and verifies member handles before termination,
+observes additional members while termination is pending, and waits on those
+handles as well as the root. Retained member handles are bounded at 256; confirmed
+exited members are released. The previous accounting-only completion evidence
+was too weak for the stronger descendant-handle assertion.
+
+Watchdog process counts returned to their starting values (196/196 on 64-bit,
+213/213 on 32-bit) and released handles were directly invalid. Subsequent fixture
+directory deletion increased process-wide counts to 378/390. The assertion now
+measures the process lifecycle before separate filesystem cleanup; it does not
+claim a complete resource soak or establish the cause/growth pattern of that
+filesystem-related increase.
+
+[Watchdog verification](watchdog-verification.md) and updated startup, reconnect,
+file-worker and remote-permission docs record the contracts and limits. Full
+Heartbeat/main restart, helper readiness, cross-instance IPC, main's separate
+legacy CloseScripts ownership, live Roblox/Discord behavior, crash-state
+reconciliation, resource soaks and the complete production plan remain open.
+No merge, deployment or production release is claimed.

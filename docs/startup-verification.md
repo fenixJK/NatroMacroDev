@@ -72,3 +72,8 @@ receive the existing validation checks.
 
 F18 remains partially addressed. A passing fixture suite is not a production or
 in-game verification claim.
+
+Heartbeat automatic replacement now waits for the launched process's own final
+main-GUI title and limits restart attempts. See
+[watchdog verification](watchdog-verification.md). This does not close the separate
+helper-readiness and live startup checks above.
