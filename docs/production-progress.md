@@ -979,3 +979,42 @@ and monitor restart, missing messages, reset/rollover coordination, positive gam
 event receipts and a shared persistent state writer remain open. The full
 production plan is still active. No live Roblox/Discord verification, performance
 gain, release, deployment or merge is claimed.
+
+## Serialized simple command replies checkpoint
+
+Code checkpoint: `56ccf31b4e49af5cdea06d06ad52b195a1dd3eb6`.
+[Windows run 34431356153](https://github.com/fenixJK/NatroMacroDev/actions/runs/34431356153)
+passed **48 regression groups on each AHK architecture**, the existing native
+Windows integration suites, seven production-script and four emitted-worker
+validations per architecture, **43 attachment checks** and **35 updater scenarios**
+on each PowerShell version. No AHK warnings occurred. The checkout Node runtime
+deprecation notice remains.
+
+SendEmbed previously concatenated raw description/content into JSON while some
+callers pre-escaped paths and newlines and others passed unescaped errors or user
+values. It now uses the existing raw-text serializer. All repository SendEmbed
+call sites were checked; pre-escaped window/file/command strings were removed and
+message newlines converted to AHK newlines, including separately assembled
+priority-list text. Embedded regex patterns and INI paths retain their literal
+backslashes. The helper preserves explicit channel and synchronous response
+behavior, numeric color, bounded text and attachment references.
+
+A shared reply-object builder serializes disabled parsed mentions, the message ID
+and the boolean missing-message fallback. File/image reply references use this
+builder. The setting-value reply now serializes its fields with Discord-sized,
+Unicode-safe bounds and preserves the existing blank-value marker. Reply IDs are
+checked as decimal strings no longer than 20 digits.
+
+The new test group invokes production SendEmbed and the missing-file reply caller
+with only HTTP transport replaced. It verifies quote/backslash/control-character
+and Unicode round trips, actual versus literal newlines, channel and response
+behavior, numeric color, reply metadata, setting fields, length bounds and invalid
+IDs. Existing loopback multipart and queue tests passed. No real Discord request
+or user message was sent.
+
+[Reporting verification](reporting-verification.md) lists unfinished work. Larger
+help/timer/planter/shrine/blender/memory-match payload builders, live honey edits,
+command queue migration, global rate limits, durable outbox/recovery and live
+end-to-end reporting remain open. Synchronous command replies still lack queue
+retry/acknowledgement guarantees. F23 and the full production plan remain active;
+no live verification, deployment, merge or production release is claimed.

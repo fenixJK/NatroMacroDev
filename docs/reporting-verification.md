@@ -20,7 +20,7 @@ The Windows adapter polls with `WaitForResponse(0)` and aborts expired requests;
 Microsoft documents that a timed-out wait alone does not abort a request in
 [WaitForResponse](https://learn.microsoft.com/en-us/windows/win32/winhttp/iwinhttprequest-waitforresponse).
 
-Automated embed text uses JSON serialization, including quotes, backslashes and
+Automated and simple command embed text uses JSON serialization, including quotes, backslashes and
 control characters. Description/content lengths are bounded without splitting a
 UTF-16 surrogate pair. Night announcement names/URLs are serialized too. Attachment
 encoding uses explicit CRLF boundaries and checked stream operations, and releases
@@ -65,8 +65,10 @@ bitmap has been disposed. No test contacts Discord or uses real credentials.
 
 Still required for F23 and the broader production plan:
 
-- Migrate legacy command payload builders/escaped `SendEmbed` call sites and live
-  honey edits to the raw-text serializer and common delivery contract.
+- Migrate the remaining structured command payload builders (help, timer,
+  planter, shrine, blender and memory-match displays) and live honey edits to the
+  raw-text serializer and common delivery contract. Simple `SendEmbed` callers
+  and the setting-value reply now use serialization.
 - Coordinate rate limits and dispatch across helpers, commands and bot polling;
   persist ordinary queued reports with explicit destination identity and recovery.
 - Add user-visible pending/failed report management and controlled resend; verify
@@ -77,6 +79,30 @@ Still required for F23 and the broader production plan:
 - Run a Windows resource soak for repeated screenshots, failed encoding and reports.
 
 No live Discord or Roblox verification is claimed by this checkpoint.
+
+## Command reply encoding
+
+`SendEmbed` now accepts raw text and uses the same serializer as queued automated
+embeds. Its callers use AHK newlines rather than pre-escaped JSON text; window
+titles, filenames, error messages, command options and settings are not escaped
+twice. Literal backslash-n in user text remains literal, while actual line breaks
+remain line breaks. Colors serialize as numbers, descriptions/content retain the
+existing length bounds, and attachment references are preserved.
+
+Replies serialize their message reference and disabled parsed mentions through a
+shared object builder. Missing-reference fallback remains a JSON boolean. File
+and image replies use the same reference builder, and setting-value fields use
+bounded, Unicode-safe serialized names/values with `<blank>` for an empty value.
+Reply IDs must be decimal strings of at most 20 digits. These encoding changes
+preserve synchronous command delivery and its return value; they do not provide
+queue retries or guaranteed acknowledgement for those paths.
+
+Windows regression tests invoke the actual `SendEmbed` and missing-file caller
+with only HTTP transport replaced. They check quotes, backslashes, actual and
+literal newlines, control characters, Unicode, explicit channel, reply metadata,
+setting fields and invalid IDs. Existing multipart/loopback tests still cover the
+shared encoder and queued transport. Live Discord behavior, structured command
+templates and delivery coordination remain open.
 
 ## Counter consistency
 
