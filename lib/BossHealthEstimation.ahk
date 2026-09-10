@@ -118,6 +118,13 @@ nm_PublishBossHealth(bossName, health) {
 	Input%bossName%Health := health
 	MainGui[bossName "HealthText"].Text := Format("{:.2f}", health) "%"
 	MainGui[bossName "HealthText"].Opt("+c" Format("0x{1:02x}{2:02x}{3:02x}", Round(Min(3 * (100 - health), 150)), Round(Min(3 * health, 150)), 0) " +Redraw")
-	maximum := bossName = "Snail" ? 30000000 : (CommandoChickHealth.Has(ChickLevel) ? CommandoChickHealth[ChickLevel] : 10000000)
+	maximum := bossName = "Snail" ? 30000000 : nm_CommandoMaximumHealth(ChickLevel)
 	MainGui[bossName "HealthEdit"].Value := Round(maximum * health / 100)
+}
+
+; Preserve the existing ten-million fallback for supported levels beyond the
+; bundled table. Startup and later health publishing must use the same rule.
+nm_CommandoMaximumHealth(level) {
+	global CommandoChickHealth
+	return CommandoChickHealth.Has(level) ? CommandoChickHealth[level] : 10000000
 }

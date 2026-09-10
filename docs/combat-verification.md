@@ -52,6 +52,11 @@ than wall-clock FILETIME. The rate uses the timestamp after the observation seri
 The elapsed interval includes real time while paused because game health can still
 change. This does not change the separate macro runtime accounting, which excludes
 pause. Duration formatting uses seconds consistently, including minute/hour carries.
+The Commando GUI now updates the shared level value when edited, and startup uses
+the same ten-million fallback as later health publishing for levels absent from the
+bundled table (20–25). Previously startup indexed the partial table directly and
+could fail on those selectable levels. This preserves an existing estimate; it does
+not verify the table or fallback against current game values.
 
 Remaining gates:
 

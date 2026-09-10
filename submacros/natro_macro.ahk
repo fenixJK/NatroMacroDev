@@ -3168,7 +3168,7 @@ MainGui.Add("UpDown", "w10 h16 vChickLevel Range3-25 Disabled Hidden", ChickLeve
 MainGui.Add("Text", "x325 y186 vSnailHPText Hidden", "HP:")
 MainGui.Add("Text", "xp yp+21 vChickHPText Hidden", "HP:")
 MainGui.Add("Edit", "x343 y184 w60 h18 Number Limit8 vSnailHealthEdit Disabled Hidden", Round(30000000*ValidateNumber(&InputSnailHealth)/100)).OnEvent("Change", nm_setSnailHealth)
-MainGui.Add("Edit", "xp yp+21 w60 h18 Number Limit8 vChickHealthEdit Disabled Hidden", Round(CommandoChickHealth[ValidateInt(&ChickLevel, 7)]*ValidateNumber(&InputChickHealth)/100)).OnEvent("Change", nm_setChickHealth)
+MainGui.Add("Edit", "xp yp+21 w60 h18 Number Limit8 vChickHealthEdit Disabled Hidden", Round(nm_CommandoMaximumHealth(ValidateInt(&ChickLevel, 7))*ValidateNumber(&InputChickHealth)/100)).OnEvent("Change", nm_setChickHealth)
 MainGui.SetFont("s7")
 MainGui.Add("Text", "x405 y188 w40 vSnailHealthText Hidden c" Format("0x{1:02x}{2:02x}{3:02x}", Round(Min(3*(100-InputSnailHealth), 150)), Round(Min(3*InputSnailHealth, 150)), 0), InputSnailHealth "%")
 MainGui.Add("Text", "xp yp+21 w40 vChickHealthText Hidden c" Format("0x{1:02x}{2:02x}{3:02x}", Round(Min(3*(100-InputChickHealth), 150)), Round(Min(3*InputChickHealth, 150)), 0), InputChickHealth "%")
@@ -5440,11 +5440,11 @@ nm_setSnailHealth(GuiCtrl, *)
 }
 nm_setChickHealth(GuiCtrl, *)
 {
-	global InputChickHealth, CommandoChickHealth
+	global InputChickHealth, CommandoChickHealth, ChickLevel
 
 	inputHP := MainGui["ChickHealthEdit"].Value
 	ChickLevel := MainGui["ChickLevel"].Value
-	MaxHealth := CommandoChickHealth.Has(ChickLevel) ? CommandoChickHealth[ChickLevel] : 10000000
+	MaxHealth := nm_CommandoMaximumHealth(ChickLevel)
 
 	if (GuiCtrl.Name = "ChickHealthEdit")
 	{
@@ -5460,7 +5460,7 @@ nm_setChickHealth(GuiCtrl, *)
 		MainGui["ChickHealthEdit"].Value := (inputHP := MaxHealth)
 	MainGui["ChickLevelText"].Text := ChickLevel
 
-	InputChickHealth := Round(Min(100, ((inputHP || 0) / (CommandoChickHealth.Has(ChickLevel) ? CommandoChickHealth[ChickLevel] : 10000000)) * 100), 2)
+	InputChickHealth := Round(Min(100, ((inputHP || 0) / (nm_CommandoMaximumHealth(ChickLevel))) * 100), 2)
 	MainGui["ChickHealthText"].Opt("+c" Format("0x{1:02x}{2:02x}{3:02x}", Round(Min(3*(100-InputChickHealth), 150)), Round(Min(3*InputChickHealth, 150)), 0) " +Redraw")
 	MainGui["ChickHealthText"].Text := InputChickHealth "%"
 	IniWrite ChickLevel, "settings\nm_config.ini", "Collect", "ChickLevel"

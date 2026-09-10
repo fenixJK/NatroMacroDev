@@ -47,6 +47,9 @@ TestBossHealthReporting() {
 	global MainGui, InputSnailHealth, InputChickHealth, CommandoChickHealth, ChickLevel, LastTestStatus
 	InputSnailHealth := InputChickHealth := 100
 	CommandoChickHealth := Map(7, 1000000), ChickLevel := 7
+	AssertEqual(nm_CommandoMaximumHealth(7), 1000000, "Configured level uses the bundled health table")
+	for level in [20, 21, 25]
+		AssertEqual(nm_CommandoMaximumHealth(level), 10000000, "Supported level beyond the table uses consistent startup fallback")
 	for name in ["Snail", "Chick"] {
 		MainGui[name "HealthText"] := BossHealthTestControl()
 		MainGui[name "HealthEdit"] := BossHealthTestControl()
