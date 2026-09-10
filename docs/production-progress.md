@@ -1018,3 +1018,44 @@ command queue migration, global rate limits, durable outbox/recovery and live
 end-to-end reporting remain open. Synchronous command replies still lack queue
 retry/acknowledgement guarantees. F23 and the full production plan remain active;
 no live verification, deployment, merge or production release is claimed.
+
+## Serialized and complete command help checkpoint
+
+Code checkpoint: `2b5e3604e323578c53b1021770111f736e4f1492`.
+[Windows run 34431820405](https://github.com/fenixJK/NatroMacroDev/actions/runs/34431820405)
+passed **49 regression groups on each AHK architecture**, the existing native
+Windows integration suites, seven production-script and four emitted-worker
+validations per architecture, **43 attachment checks** and **35 updater scenarios**
+on each PowerShell version. No AHK warnings occurred. The checkout Node runtime
+deprecation notice remains. Initial implementation run 34431719309 also passed;
+the final run includes stronger per-setting completeness checks.
+
+Useful, advanced, priority and settings help now build structured objects and
+serialize them. Every existing alias is retained. Custom prefixes are inserted as
+raw strings, including in the settings title; quotes/backslashes cannot corrupt
+the help JSON. Numeric colors and boolean inline flags replace concatenated
+values. Screenshot and debug descriptions now reflect the current capture default,
+desktop permission and redacted support-report behavior.
+
+Settings help no longer relies on a local-copy trimming loop or a ten-iteration
+page ceiling. Eligible setting names are grouped under section headings, including
+additional sections, then paginated without losing text. Each description fits
+4096 UTF-16 units; splitting prefers newlines and preserves Unicode pairs on an
+overlong line. Multi-page titles show position. All pages suppress parsed mentions,
+and only the first references the originating command. Status sends each returned
+payload through the existing synchronous API.
+
+Regression tests cover every help alias, quoted/backslash prefixes, all twelve
+entries in both command lists, the full eight-item priority explanation, additional
+settings sections, and exclusion of settings without a setter regex. A synthetic
+1,800-setting list exceeds ten pages; every eligible name must appear exactly once,
+and concatenated descriptions must preserve all source text through the final
+page. Another test splits a long Unicode line at the description limit without
+truncation or surrogate damage. These tests generate/parse payloads, not live
+Discord messages.
+
+[Reporting verification](reporting-verification.md) retains the open limits:
+timer/planter/shrine/blender/memory-match builders, live honey edits, synchronous
+command delivery, rate-limit/outage recovery, durable outbox and full end-to-end
+report verification remain work. F23 and the full production plan remain active.
+No real Discord/Roblox verification, deployment, merge or release is claimed.

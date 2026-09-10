@@ -65,10 +65,10 @@ bitmap has been disposed. No test contacts Discord or uses real credentials.
 
 Still required for F23 and the broader production plan:
 
-- Migrate the remaining structured command payload builders (help, timer,
+- Migrate the remaining structured command payload builders (timer,
   planter, shrine, blender and memory-match displays) and live honey edits to the
   raw-text serializer and common delivery contract. Simple `SendEmbed` callers
-  and the setting-value reply now use serialization.
+  and the setting-value reply now use serialization, as do all help variants.
 - Coordinate rate limits and dispatch across helpers, commands and bot polling;
   persist ordinary queued reports with explicit destination identity and recovery.
 - Add user-visible pending/failed report management and controlled resend; verify
@@ -103,6 +103,19 @@ literal newlines, control characters, Unicode, explicit channel, reply metadata,
 setting fields and invalid IDs. Existing multipart/loopback tests still cover the
 shared encoder and queued transport. Live Discord behavior, structured command
 templates and delivery coordination remain open.
+
+Useful, advanced, priority and settings help now build objects and serialize them.
+All aliases use the current prefix, including prefixes with quotes/backslashes.
+The useful-command screenshot description reflects the Roblox default and desktop
+permission; debug help describes the redacted report. Settings lists retain their
+section headings, include only entries with a supported setter, and paginate
+without a ten-page ceiling or truncating settings. Pages split at newlines where
+possible and preserve Unicode pairs when a single line exceeds the description
+limit. Page titles show position, the first page replies to the command, and all
+pages disable parsed mentions. Regression tests cover more than ten pages and
+verify every eligible setting appears exactly once, including the last page.
+Delivery still uses the existing synchronous API, so these tests do not prove
+multi-page delivery through a Discord outage or rate limit.
 
 ## Counter consistency
 
