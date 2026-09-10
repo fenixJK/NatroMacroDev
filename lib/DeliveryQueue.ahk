@@ -5,22 +5,34 @@ class nm_DeliveryQueue {
 		this.Factory := IsSet(factory) ? factory : nm_HttpDelivery
 		this.Clock := IsSet(clock) ? clock : (() => DllCall("GetTickCount64", "UInt64"))
 		this.Failure := IsSet(failure) ? failure : ((job, reason) => 0)
-		this.Items := [], this.Bytes := 0, this.Busy := false
+		this.Items := [], this.Bytes := 0, this.Busy := false, this.Closed := false
 		this.Limit := 100, this.ByteLimit := 32 * 1024 * 1024
 		this.Timeout := 20000, this.MaxAttempts := 5, this.MaxAge := 3600000
 	}
 
-	Enqueue(data, contentType, url, token := "", label := "Report", completed := unset) {
+	Enqueue(data, contentType, url, token := "", label := "Report", completed := unset, options := unset) {
+		options := IsSet(options) ? options : {}
+		method := options.HasOwnProp("method") ? options.method : "POST"
+		if method != "POST" && method != "PATCH"
+			throw ValueError("Unsupported queued HTTP method")
 		bytes := nm_DeliveryPayloadSize(data)
 		job := {data: data, contentType: contentType, url: url, token: token,
 			label: label, bytes: bytes, attempts: 0, created: this.Clock.Call(),
-			next: 0, request: 0, started: 0, completed: IsSet(completed) ? completed : 0}
-		if this.Items.Length >= this.Limit || bytes > this.ByteLimit - this.Bytes {
+			next: 0, request: 0, started: 0, completed: IsSet(completed) ? completed : 0, method: method,
+			result: options.HasOwnProp("result") ? options.result : 0, owner: options.HasOwnProp("owner") ? options.owner : 0,
+			maxAge: options.HasOwnProp("maxAge") ? options.maxAge : this.MaxAge, cancelled: false}
+		if this.Closed || this.Items.Length >= this.Limit || bytes > this.ByteLimit - this.Bytes {
 			this.Failure.Call(job, "Queue capacity reached; report was not queued")
 			return false
 		}
 		this.Items.Push(job), this.Bytes += bytes
 		return true
+	}
+
+	Cancel(owner) {
+		for job in this.Items
+			if job.owner == owner
+				job.cancelled := true
 	}
 
 	Pump() {
@@ -29,8 +41,12 @@ class nm_DeliveryQueue {
 		this.Busy := true
 		try {
 			job := this.Items[1], current := this.Clock.Call()
-			if current - job.created >= this.MaxAge {
-				this.Finish(job, false, "Delivery expired after one hour")
+			if job.cancelled {
+				this.Finish(job, false, "Cancelled")
+				return
+			}
+			if current - job.created >= Min(this.MaxAge, job.maxAge) {
+				this.Finish(job, false, "Delivery expired before confirmation")
 				return
 			}
 			if !job.request {
@@ -53,25 +69,27 @@ class nm_DeliveryQueue {
 					this.Retry(job, current, 0, "Network request timed out; delivery is uncertain")
 				return
 			}
-			if response.status >= 200 && response.status < 300
-				this.Finish(job, true)
+			if job.cancelled
+				this.Finish(job, false, "Cancelled")
+			else if response.status >= 200 && response.status < 300
+				this.Finish(job, true,, response)
 			else if response.status = 429 || response.status = 408 || response.status >= 500
 				this.Retry(job, current, response.status = 429 ? response.retryAfter : 0, "HTTP " response.status)
 			else
-				this.Finish(job, false, "HTTP " response.status "; automatic retry stopped")
+				this.Finish(job, false, "HTTP " response.status "; automatic retry stopped", response)
 		} finally this.Busy := false
 	}
 
 	Retry(job, current, retryAfter, reason) {
 		this.Abort(job)
+		delay := Max(1000 * 2 ** job.attempts, IsNumber(retryAfter) ? retryAfter * 1000 : 0)
+		job.next := current + delay
 		if job.attempts >= this.MaxAttempts {
 			this.Finish(job, false, reason "; attempt limit reached")
 			return
 		}
 		; Never shorten a server-requested delay. Age expiry bounds retention even
 		; when Discord asks us to wait longer than the remaining queue lifetime.
-		delay := Max(1000 * 2 ** job.attempts, IsNumber(retryAfter) ? retryAfter * 1000 : 0)
-		job.next := current + delay
 	}
 
 	Abort(job) {
@@ -80,17 +98,24 @@ class nm_DeliveryQueue {
 		job.request := 0
 	}
 
-	Finish(job, delivered, reason := "") {
+	Finish(job, delivered, reason := "", response := 0) {
 		this.Abort(job)
 		; Record failure before removing the only in-memory copy.
-		if !delivered
+		if !delivered && reason != "Cancelled"
 			this.Failure.Call(job, reason)
 		this.Items.RemoveAt(1), this.Bytes -= job.bytes
 		if job.completed
 			job.completed.Call(delivered)
+		if job.result {
+			if !IsObject(response)
+				response := {status: 0, id: ""}
+			response.retryAt := job.next
+			job.result.Call(delivered, response)
+		}
 	}
 
 	Close() {
+		this.Closed := true
 		while this.Items.Length
 			this.Finish(this.Items[1], false, "Helper stopped before delivery was confirmed")
 	}
@@ -110,7 +135,8 @@ class nm_HttpDelivery {
 		wr.Option[9] := 2720
 		wr.Option[6] := false ; do not forward a bot credential through redirects
 		wr.SetTimeouts(5000, 5000, 10000, 10000)
-		wr.Open("POST", job.url, true)
+		this.WantResult := job.result
+		wr.Open(job.method, job.url, true)
 		wr.SetRequestHeader("Content-Type", job.contentType)
 		if job.token {
 			wr.SetRequestHeader("User-Agent", "DiscordBot (AHK, " A_AhkVersion ")")
@@ -137,7 +163,18 @@ class nm_HttpDelivery {
 			if !delay
 				delay := 60
 		}
-		return {status: this.Request.Status, retryAfter: delay}
+		messageID := ""
+		if this.WantResult && this.Request.Status >= 200 && this.Request.Status < 300 {
+			try {
+				text := this.Request.ResponseText
+				if StrLen(text) <= 65536 {
+					body := JSON.parse(text)
+					if body is Map && body.Has("id") && Type(body["id"]) = "String" && RegExMatch(body["id"], "^[0-9]{1,20}$")
+						messageID := body["id"]
+				}
+			}
+		}
+		return {status: this.Request.Status, retryAfter: delay, id: messageID}
 	}
 
 	Abort() => this.Request.Abort()

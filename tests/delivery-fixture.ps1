@@ -30,7 +30,17 @@ try {
                 continue
             }
             $body = $reader.ReadToEnd()
-            if ($context.Request.Url.AbsolutePath -eq '/multipart') {
+            if ($context.Request.Url.AbsolutePath -in @('/live', '/live/123')) {
+                $payload = ConvertFrom-Json -InputObject $body -ErrorAction Stop
+                $expectedMethod = if ($context.Request.Url.AbsolutePath -eq '/live') { 'POST' } else { 'PATCH' }
+                $expectedFrame = if ($expectedMethod -eq 'POST') { 1 } else { 2 }
+                if ($context.Request.HttpMethod -ne $expectedMethod -or $payload.frame -ne $expectedFrame) { throw 'Incorrect live method/frame' }
+                $bytes = [Text.Encoding]::UTF8.GetBytes('{"id":"123"}')
+                $context.Response.StatusCode = 200
+                $context.Response.ContentType = 'application/json'
+                $context.Response.ContentLength64 = $bytes.Length
+                $context.Response.OutputStream.Write($bytes, 0, $bytes.Length)
+            } elseif ($context.Request.Url.AbsolutePath -eq '/multipart') {
                 if ($context.Request.ContentType -notmatch 'boundary=(.+)$') { throw 'Missing boundary' }
                 $boundary = $Matches[1]
                 if (-not $body.EndsWith("--$boundary--`r`n")) { throw 'Incorrect closing boundary' }

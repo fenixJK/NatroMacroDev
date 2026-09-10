@@ -23,6 +23,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "Discord.ahk"
 #Include "DiscordHelp.ahk"
 #Include "DiscordReports.ahk"
+#Include "LiveHoneyDelivery.ahk"
 #Include "DurationFromSeconds.ahk"
 #Include "Roblox.ahk"
 #Include "ErrorHandling.ahk"
@@ -790,23 +791,24 @@ nm_status(status)
 
 nm_honey()
 {
-	static id := ""
-	if !HoneyUpdateSSCheck
-		return id := ""
-	if HoneyUpdate
-	{
-		payload_json := nm_DiscordHoneyPayload("[" A_Hour ":" A_Min ":" A_Sec "] Current Honey/Pollen", HoneyUpdate)
-		pBM := CreateHoneyBitmap()
-		if pBM <= 0
-			return
-		try discord.CreateFormData(&postdata, &contentType
-			, [Map("name","payload_json", "content-type","application/json", "content",payload_json)
-			, Map("name","files[0]", "filename","honey.png", "content-type","image/png", "pBitmap",pBM)])
-		finally Gdip_DisposeImage(pBM)
-		try id ? discord.EditMessageAPI(id, postdata, contentType) : ((message := JSON.parse(discord.SendMessageAPI(postdata, contentType))).Has("id") && (id := message["id"]))
-	}
-	else if id
-		id := ""
+	static live := 0
+	if !live
+		live := nm_LiveHoneyDelivery(discord.DeliveryQueue())
+	live.Configure(HoneyUpdateSSCheck && HoneyUpdate ? nm_LiveHoneyDestination() : 0)
+	if !live.Ready()
+		return
+	owner := live.Owner
+	payload_json := nm_DiscordHoneyPayload("[" A_Hour ":" A_Min ":" A_Sec "] Current Honey/Pollen", HoneyUpdate)
+	pBM := CreateHoneyBitmap()
+	if pBM <= 0
+		return
+	try discord.CreateFormData(&postdata, &contentType
+		, [Map("name","payload_json", "content-type","application/json", "content",payload_json)
+		, Map("name","files[0]", "filename","honey.png", "content-type","image/png", "pBitmap",pBM)])
+	finally Gdip_DisposeImage(pBM)
+	live.Configure(HoneyUpdateSSCheck && HoneyUpdate ? nm_LiveHoneyDestination() : 0)
+	if owner == live.Owner
+		live.Submit(postdata, contentType)
 }
 
 CreateHoneyBitmap(honey := 1, backpack := 1)
