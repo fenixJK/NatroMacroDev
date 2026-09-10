@@ -86,7 +86,7 @@ class nm_ReconnectObservation {
 		width := disconnectOnly ? Min(200, snapshot.width - x) : snapshot.width
 		height := disconnectOnly ? Min(80, snapshot.height - y) : snapshot.height - 30
 		capture := Gdip_BitmapFromScreen(snapshot.x + x "|" snapshot.y + y "|" width "|" height)
-		if !capture
+		if capture <= 0
 			throw Error("Reconnect frame capture failed")
 		try {
 			result := this.Classify(Gdip_ImageSearch(capture, bitmaps["disconnected"], , , , , , 2),
