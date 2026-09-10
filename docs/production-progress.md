@@ -639,3 +639,60 @@ Status operations can delay the outer watchdog. Live Discord receipt, redacted
 support preview, broader command/report delivery, remaining game features,
 optimizations, proposed features and release verification remain in scope. The
 full production objective remains active.
+
+## Redacted support report checkpoint
+
+Code checkpoint: `65d1903366cea76329afbcaf7d42892b445de042`.
+[Windows run 34425348962](https://github.com/fenixJK/NatroMacroDev/actions/runs/34425348962)
+passed **42 regression groups on each AHK architecture**, native GUI/image/health/
+pointer checks, six script and four emitted-worker validations per architecture,
+**43 attachment checks** and **35 updater scenarios** on each PowerShell version.
+No AHK warnings occurred. CI first caught local/global name shadowing, which was
+corrected with explicit local scope.
+
+An intervening run passed the support-report group but exceeded the attachment
+fixture's former 15-second native-startup observation. That test now observes the
+same worker through its existing 45-second production watchdog and records its
+outcome; it does not restart a still-running worker. The aggregate suite deadline
+is 90 seconds to accommodate this plus other tests; individual script validation
+remains 60 seconds. The final native workers completed URL rejection normally
+after about 5.1 seconds (64-bit) and 10.0 seconds (32-bit). This does not establish
+the cause of the earlier delay or change production timeout policy.
+
+The debug hotkey, tray and Debug Options now open a local support-report preview.
+Opening it does not touch the clipboard. Recent log excerpts start excluded;
+users can opt in, review the text, copy the displayed report or choose a local
+text-file destination. The Debug Options window was enlarged so its report button
+fits inside the client area. Shared registry-based Roblox installation detection
+was extracted without changing its detection rules.
+
+The report keeps runtime/hardware and setup observations, including arbitrary
+display scaling, registry-based Roblox type, RDP/touchscreen checks and the main
+process's available recent offset/newer-version observations. Full installation
+paths and raw configuration dumps are omitted. Hardware inspection uses registry
+and native memory reads rather than WMI.
+
+Known configured credentials and IDs are replaced, credential-bearing lines are
+removed, and URLs, drive/UNC paths and local identities are filtered. Optional
+recent issues use a bounded tail, discard an incomplete first line and retain at
+most ten matching lines. Oversized lines are omitted whole. Missing/unreadable/
+oversized redaction configuration excludes log excerpts; missing logs produce an
+unavailable result instead of aborting the report.
+
+Remote debug commands now build a text attachment directly and never read or
+write the system clipboard. The obsolete clipboard IPC handler was removed.
+Remote log sends a redacted recent-issue report rather than the raw log file.
+These commands still require Diagnostics permission and explicit identity
+authorization. JSON metadata disables incidental mentions and preserves the reply
+ID; multipart encoding owns the prepared text before queue handoff.
+
+Tests cover configured/unlabeled secrets, credential lines, IDs/URLs/paths,
+missing/unreadable config and missing logs, bounded recent-issue selection,
+retained useful context, native preview opt-in and exact clipboard copy, and the
+actual encoded attachment's metadata and redacted text. No test sends a Discord
+message. [Remote permissions](remote-permissions.md) records the filtering limits,
+Save dialog/multiple-DPI/live-Discord checks and broader diagnostics still open.
+Arbitrary free text is not guaranteed anonymous; local review remains useful.
+The full recovery objective stays active, including remaining game features,
+state/recovery/reporting work, measured optimization, proposed features and
+production release/live-verification gates.
