@@ -34,8 +34,6 @@ nm_ProbeBeePreflight() {
 		for hwnd in WinGetList("ahk_class #32770 ahk_pid " DllCall("GetCurrentProcessId"))
 			if WinGetTitle("ahk_id " hwnd) = "Auto-Jelly stopped" {
 				FileAppend "dismiss`n", "probe-phase.txt"
-				SetTimer DismissDialog, 0
-				dismissed++
 				if !InStr(WinGetText("ahk_id " hwnd), "Select at least one bee") {
 					FileAppend "unexpected dialog: " WinGetText("ahk_id " hwnd) "`n", "probe-phase.txt"
 					ExitApp 1
@@ -46,6 +44,10 @@ nm_ProbeBeePreflight() {
 					if StrReplace(ControlGetText(control), "&") = "OK"
 						button := control
 				}
+				if !button
+					return
+				SetTimer DismissDialog, 0
+				dismissed++
 				FileAppend "button=" button "`n", "probe-phase.txt"
 				DllCall("PostMessageW", "Ptr", button, "UInt", 0xF5, "UPtr", 0, "Ptr", 0)
 			}
