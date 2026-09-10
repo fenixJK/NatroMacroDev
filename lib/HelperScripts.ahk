@@ -2,7 +2,7 @@
 #Include "%A_ScriptDir%\..\lib\RobloxProcesses.ahk"
 
 class nm_HelperScripts {
-	static Names := ["Heartbeat", "Status", "background", "StatMonitor", "PlanterTimers", "reconnect-worker", "inline-worker"]
+	static Names := ["Heartbeat", "Status", "background", "StatMonitor", "PlanterTimers", "reconnect-worker", "inline-worker", "receiving-cleanup"]
 	static Close(root, runtimes, keepHeartbeat := 0) {
 		seen := Map()
 		for executable in runtimes {
