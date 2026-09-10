@@ -851,3 +851,46 @@ scheduling still prevent a hard real-time guarantee. Other-user/session testing,
 live browser/UAC/update behavior, full cross-process input ownership, positive
 hive receipts, timer crash consistency and the rest of the production plan remain
 active. No live Roblox scenario, deployment or production release is claimed.
+
+## Kernel-enforced reconnect helper ownership checkpoint
+
+Code checkpoint: `d846e09890536644af6db3cad9ad1bb8668a50c5`.
+[Windows run 34429327670](https://github.com/fenixJK/NatroMacroDev/actions/runs/34429327670)
+passed **45 regression groups on each AHK architecture**, native geometry,
+owned-process and crash/application-survival integrations, seven script and four
+emitted-worker validations per architecture, **43 attachment checks** and **35
+updater scenarios** on each PowerShell version. No AHK warnings occurred. The
+existing checkout action's Node runtime deprecation notice remains.
+
+Reconnect helpers are now placed in an unnamed Windows job through the JOB_LIST
+startup attribute in the same CreateProcessW call that starts them. Kill-on-close
+is enabled and the job handle is not inherited. A parent hard crash therefore
+closes its only job handle and Windows terminates the helper without relying on
+AHK exit callbacks. There is no separate launch/assign interval in which the
+helper could escape ownership if the parent dies.
+
+Silent breakaway preserves applications launched by the helper: closing its job
+must not kill an already launched browser/game. A helper that creates another
+owned helper gives it an independent job. Normal cleanup still waits on the exact
+process handle, closes the job and mapping handles, and destroys the startup
+attribute list on both successful and failed creation. Job setup/creation failures
+do not fall back to an unowned process. This startup path requires Windows 10 /
+Server 2016 or newer; the exercised CI host remains Windows Server 2022.
+
+Native fixtures keep a nested helper alive, verify process/job membership, kill
+its owner directly with TerminateProcess (bypassing OnExit), and require the
+nested helper to terminate while the harness still holds the outer job. Other
+fixtures launch a disposable application, verify it is outside the helper job,
+and require it to survive normal and forced helper cleanup. Failed executable
+creation is repeated with process-handle counts checked afterward. Tests also
+check that crash-fixture cleanup leaves surrounding jobs unchanged. The earlier
+shared-memory, timeout, player selection and decoy-survival coverage remains.
+
+[Reconnect verification](reconnect-verification.md) documents the current limits
+and primary Windows API references. This closes the previously recorded ordinary
+parent-hard-crash ownership gap for these helpers. It does not undo external
+launches already dispatched, provide durable launch receipts across power loss,
+or impose hard real-time bounds on every native API or delayed main-thread poll.
+Live browser/UAC/update behavior, full input coordination, other-user/session
+exclusions, positive hive receipts, crash-consistent timers and the remaining
+production plan stay active. No live Roblox scenario or release is claimed.

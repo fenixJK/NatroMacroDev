@@ -99,8 +99,8 @@ no real browser/deeplink launch. Tests refuse to proceed if a real player is
 already running. Further native fixtures forcibly terminate a parent while its
 owned helper is alive and require the helper to become terminal without parent
 cleanup. Disposable applications must survive both normal and forced launch-helper
-cleanup; job-membership checks verify their breakaway. Other-user/session exclusions still require multi-session Windows
-verification.
+cleanup; job-membership checks verify their breakaway. Other-user/session
+exclusions still require multi-session Windows verification.
 
 Browser/game processes intentionally survive helper completion. Timing out after
 a successful external launch can leave its outcome unknown; terminating the
@@ -118,7 +118,8 @@ hive, pause/stop during loading or walking, and recovery exhaustion. No live gam
 scenario has been marked passed.
 
 The Explorer-shell launcher retains the Lexikos public-domain ShellRun approach
-credited in the original main program. The native lifecycle follows Microsoft's documentation for
+credited in the original main program. The native lifecycle follows Microsoft's
+documentation for
 [CreateProcessW](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw),
 [process handles](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-process_information)
 and [image-name verification](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-queryfullprocessimagenamew).
