@@ -107,3 +107,11 @@ Tracking and tooltips are stopped before graphics teardown. System-wide cursor
 replacement is removed. [Mouse verification](auto-jelly-mouse-verification.md)
 records the native hover/capture/foreign-window tests and remaining display/input
 scope; this is not a whole-program CPU benchmark.
+
+## Auto-Jelly run-limit editor follow-up
+
+The main GUI has a new Limits row, with its original controls preserved above it
+and the Roll row below. A native editor displays and validates both run limits,
+restores its owner on Save/Cancel, and is closed before main GUI teardown.
+[Run-limit verification](auto-jelly-limits-verification.md) records control bounds,
+invalid/save/reopen/cancel behavior and budget enforcement scope.

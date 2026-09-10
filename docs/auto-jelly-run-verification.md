@@ -67,8 +67,9 @@ remains. No live game or production release is established by these checks.
 The legacy WinRT OCR helper has been replaced by a scoped engine and bounded
 polling; [OCR verification](auto-jelly-ocr-verification.md) records its later
 checkpoint and native failure/recognition tests. Synchronous native calls still
-cannot be preempted by the polling deadline. No click or royal-jelly consumption
-budget has been added, and an individual click may cause
+cannot be preempted by the polling deadline. Click-attempt and elapsed-time limits
+have since been added; [run-limit verification](auto-jelly-limits-verification.md)
+records that checkpoint. There is no exact royal-jelly inventory budget, and an individual click may cause
 the game's own auto-jelly setting to consume multiple items. The first click still
 relies on the user's prepared game dialog; this is not visual confirmation of its
 button or a receipt proving that exactly one roll occurred. Missing results stop

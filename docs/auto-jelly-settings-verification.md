@@ -60,3 +60,13 @@ separate from a dedicated settings-repair interface. These checks do not validat
 Auto-Jelly's OCR result recognition, consumption budgets, in-game stop behavior,
 monitor placement, or all COM/image lifetimes. No Windows/Roblox machine is
 available for live testing.
+
+## Run-limit schema follow-up
+
+The schema now contains 50 fields, adding finite click-attempt and elapsed-minute
+limits. Existing files get defaults of 100 attempts and 10 minutes without a load
+rewrite. These numeric fields cannot use the boolean toggle writer. The limits
+editor validates both values before a single dedicated section write and publishes
+UI values afterward. [Run-limit verification](auto-jelly-limits-verification.md)
+records boundary, persistence, native input and GUI tests. This remains IniWrite
+persistence rather than a crash-atomic transaction or exact item accounting.

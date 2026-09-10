@@ -1846,3 +1846,43 @@ verification. Synchronous drawing and INI calls remain. Consumption limits,
 mutation accuracy, positive roll receipts and live game checks remain production
 work. No Windows/Roblox machine is available. The full production goal remains
 active; no merge, deployment or release is claimed.
+
+## Auto-Jelly finite run limits checkpoint
+
+Code checkpoint: `ec98d3bf2a28fb038ad98fddc32e04ae773add9b`.
+[Windows run 34464663269](https://github.com/fenixJK/NatroMacroDev/actions/runs/34464663269)
+passed **67 regression groups on both AHK architectures**, native process/GUI
+suites, **nine production-script, four test-entry and seven emitted-worker
+validations** per architecture, plus **eight file-channel checks, 43 attachment
+checks and 35 updater scenarios** per PowerShell version. No AHK warnings occurred;
+the checkout Node runtime deprecation notice remains.
+
+Auto-Jelly now defaults to 100 click attempts or 10 elapsed minutes. A visible
+Limits row opens a native editor, whose validation and Save/Cancel behavior preserve
+the current configuration on rejection. Existing files receive the defaults in
+memory without being rewritten. Both numeric fields are validated before one
+limits-section write; the UI publishes them only afterward. The fixed schema now
+has 50 fields, and limit values cannot use the boolean toggle writer.
+
+Each run snapshots its limits before OCR preflight. The input surface checks the
+shared deadline during input, waits and captures, and OCR uses the same callback.
+The attempt cap is checked before pointer movement and again at reservation before
+mouse-down. Uncertain attempts are not refunded. The final permitted result can
+still be observed while time remains; another click is blocked. Declining a match
+does not reset elapsed time or attempts.
+
+Regression tests cover finite defaults/bounds, malformed fields, save/reload,
+failed-write publication and exact attempt/time boundaries, including a 32-bit
+tick boundary. Native fixtures verify extra-input rejection and last-result capture,
+expired capture/wait rejection, limits-row bounds and editor invalid/save/reopen/
+cancel behavior. Existing GUI/input, mouse and real OCR checks also pass. CI's
+initial fixture callback-binding error was corrected without weakening assertions.
+
+[Run-limit verification](auto-jelly-limits-verification.md) records the contract
+and limits. These are click attempts, not royal-jelly inventory accounting: one
+game action can consume multiple items. The time limit is cooperative and cannot
+preempt a stuck native call or dismiss a user decision dialog. IniWrite remains
+non-atomic across crashes. Positive roll receipts, mutation/animation accuracy,
+actual item budgets and live game behavior remain work. No Windows/Roblox machine
+is available. The full production goal remains active; no merge, deployment or
+release is claimed.
