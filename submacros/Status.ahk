@@ -102,7 +102,7 @@ OnMessage(0x5553, nm_setGlobalStr, 255)
 OnMessage(0x5556, nm_sendHeartbeat)
 OnMessage(0x5559, nm_sendItemPicture)
 
-discord.SendEmbed("Connected to Discord!", 5066239)
+nm_DiscordCommandReply.SendEmbed("Connected to Discord!", 5066239)
 
 planters := Map(), planters.CaseSense := 0
 planters["blueclayplanter"] := {bitmap: Gdip_BitmapFromBase64("iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAMAAAC7IEhfAAAB2lBMVEUAAAAeHh42NjY1NTUyMjIoKCgkJCQaGho1NTU2NjYzMzM0NDQzMzMvLy8tLS0qKio2NjY2NjYzMzM0NDQxMTEuLi4uLi4qKio2NjY1NTU0NDQsLCwvLy8kJCQyMjIzMzMzMzMzMzMyMjI0NDQ1NTUyMjIyMjIxMTEvLy8wMDEtLS0tLS05WbpAZs8/UH82NjY2NjdAZs5NcddAZcw4WLZOctg2N0I1NjY5WrsyTqE4WLg3V7QyT6Q5Wrg1VLE/UIJMb9Y9Ycc6W70tSJU+UYRMb9NFadFCZ9BBZ85Mbco4VbEzUKc3UKYxTZ4sRpM3O0w1Nz01NztJbdVFaM1KacJBYLo2VrMwTKAuSpo/VJE3TJFAU403SYo/Uoc4R3s3RHA6QmQ3P2A2PVc2O1E2NjlNb9BHactBZMlGZ8ZFZL40VK40U6w3U6szUqpAWaQ2Tp88U5wwTJw1SY03Qmw2QGk2OkdGa9NHa9JJa88+ZMpKasg6XcBEYbU8W643VK1EXqo4U6Y3UaItSJc6To41RYs/Uok3RXg3PVtEZsJAYcI/YL4+XbdBXbFGYK9EXKM2TZo/VplBVpY3TJU7TIo7S4c4SIIyO1xKbM9CZMY8X8I4Va49UJIuQ4U1QYKebRTcAAAALHRSTlMABP33xTITCfH73sqGY0Ia6uK7tXtMLB3awKxGOyWwpZmTb9fQzoBsW1lZI7SYQXAAAANuSURBVDjLfdVnV9pQGMDxECxiAdFau/ceofdmEPaSpSAbyl6Ce++9q3bvPb5rb5KCKNj/i5wc7i95yD05J1i1ZuUjheJGE5dMDABoa2q6pLjcjB3rqvyOVAMAhGwgECj1FQulAAsBaGm/eUVUwx7fbAOh+YLjw9s30R5Uf79z6MWrqc/5+TIUXzpfdecuQPbJmxUnRanVFGV19vesDD1/8Z2m6ZdTsyHQpBSY6NQFWFhDxvptYGj49cT79J7DYbE4ssmJWPfC4BQLLgr/9JYUFqKUMxKbSO45LE9qs2xSVOQTFPPDr0qDuRVrZDOJTF3ZAbUzNo8rOHgK7EeskYknDUsuqRcHD8BZHmo+dbvpZEOXfq6m3HShAr/QKvK1o05Z9t5GKcqlomfBPQHmaZWKjL1PZy0CcGSz6fSHzWg/2ioXqSJzQCbiYXFQhepe6okOD6+txYaHBgaWnJSasi64uAXyMzzNwXMtgZc8DFspCi2r+ajwoptEd+PgrgCbb7OvOIio2+1aCIfDiy6Xu1t12C8BYnfL66qGkSqhXY0AZXCXbKyE6DwQ4Fm8OPgfSK6zsAPjOi8OTdHkSdOXuw6guJWHzTLIrp8EbV0eFl5vrr6O+zYVeYygaNuqltgKwU7sX514ybBqs9F8JIkOy8s2249VrZYgiMlyS2sFSqTBbcJEaLXaLi5unSNCKdimrEBRB8gQJ/R0JoTfxyopYF5fb7ifGKP9K7hWha0tfRtmhl98ahZOmFGj0WvWj0/7v4KOKryM9037vHo0yDid8BnN6ILxhN/u03l99t8suH54Rzw4s7MzQph1dr8/odONGrwJf3x0XKfz2UsacWcVSmQgN2JPGOM7du+IwaxDwB9n0IDRke2gRi7Camcbxqd18biZf1Kv0WhEjusdxK9ihymlwS1Cb2CIujKgXVIDRWfgDNGwHDiD1SYHc3pTA8fMHYOdOLtNHMZfM+Yhenv7wI0jUHIRzDFEr8FEML0MQuhgmpkkNj4GwQPsSK3i0EfTs0kt4fnjQROf/UR4TD9W1IivHIWia+DAMDbJGY8J7YoBnW1kShrNJRF2tHNt5RSDCMFvEuPZSs3OQ4CfkWDHkwN2bnb/SyaVyuTyxQBb1kC8/Wy9w863AwAgH+BqEV98qMQadaoDB5Wk8ltXJLXfjr8sUSDBBtdhwQAAAABJRU5ErkJggg==")
@@ -664,7 +664,7 @@ discordUIDCommands_is_role := strlen(discordUIDCommands) && SubStr(discordUIDCom
 
 Loop
 {
-	nm_AttachmentDownloads.Pump((message, ok, id) => discord.SendEmbed(message, ok ? 5066239 : 16711731,,,,id))
+	nm_AttachmentDownloads.Pump((message, ok, id) => nm_DiscordCommandReply.SendEmbed(message, ok ? 5066239 : 16711731,,,,id))
 	(status_buffer.Length > 0) && nm_status(status_buffer[1])
 	(Mod(A_Index, 5) = 0) && discord.GetCommands(MainChannelID)
 	(command_buffer.Length > 0) && nm_command(command_buffer[1])
@@ -835,7 +835,7 @@ nm_command(command)
 	id := command.id, params := [], user_id := command.user_id
 
 	if !UserHasPermission() {
-		discord.SendEmbed("Remote command denied. Configure an authorized user or role in Natro before using commands.", 16711731,,,,id)
+		nm_DiscordCommandReply.SendEmbed("Remote command denied. Configure an authorized user or role in Natro before using commands.", 16711731,,,,id)
 		return command_buffer.RemoveAt(1)
 	}
 
@@ -857,7 +857,7 @@ nm_command(command)
 			params.Push(A_LoopField)
 	params.Length := 10, params.Default := ""
 	if (denied := nm_RemoteCapabilities.Denied(params, ssmode)) {
-		discord.SendEmbed("Remote permission disabled: " denied ". Enable it locally in Status > Permissions if needed.", 16711731,,,,id)
+		nm_DiscordCommandReply.SendEmbed("Remote permission disabled: " denied ". Enable it locally in Status > Permissions if needed.", 16711731,,,,id)
 		return command_buffer.RemoveAt(1)
 	}
 
@@ -866,7 +866,7 @@ nm_command(command)
 	{
 		case "help", "":
 		for helpPayload in nm_DiscordHelpPayloads(params[2], commandPrefix, settings, id)
-			discord.SendMessageAPI(helpPayload)
+			nm_DiscordCommandReply.SendMessageAPI(helpPayload)
 
 		case "ss","screenshot":
 		switch params[2], 0
@@ -875,17 +875,17 @@ nm_command(command)
 			if ((params[3] = "roblox") || (params[3] = "all") || (params[3] = "window") || (params[3] = "screen"))
 			{
 				ssmode := RegExReplace(params[3], "(?:^|\.|\R)[- 0-9\*\(]*\K(.)([^\.\r\n]*)", "$U1$L2")
-				discord.SendEmbed("Set screenshot mode to " ssmode "!", 5066239, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Set screenshot mode to " ssmode "!", 5066239, , , , id)
 			}
 			else
-				discord.SendEmbed("Invalid ``Mode``!`nMust be ``Roblox``, ``All``, ``Window``, or ``Screen``", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Invalid ``Mode``!`nMust be ``Roblox``, ``All``, ``Window``, or ``Screen``", 16711731, , , , id)
 
 			default:
 			pBM := nm_RemoteCapture(ssmode)
 			if pBM <= 0
-				discord.SendEmbed("Screenshot unavailable. Roblox must be visible and focused, or the selected desktop capture permission must be enabled.", 16711731,,,,id)
+				nm_DiscordCommandReply.SendEmbed("Screenshot unavailable. Roblox must be visible and focused, or the selected desktop capture permission must be enabled.", 16711731,,,,id)
 			else {
-				try discord.SendImage(pBM, "ss.png", id)
+				try nm_DiscordCommandReply.SendImage(pBM, "ss.png", id)
 				finally Gdip_DisposeImage(pBM)
 			}
 		}
@@ -896,25 +896,25 @@ nm_command(command)
 		if WinExist("natro_macro ahk_class AutoHotkey")
 		{
 			PostMessage 0x5550, 3
-			discord.SendEmbed("Stopping Macro...", 5066239, , , , id)
+			nm_DiscordCommandReply.SendEmbed("Stopping Macro...", 5066239, , , , id)
 		}
 		else
-			discord.SendEmbed("Error: Macro not found!", 16711731, , , , id)
+			nm_DiscordCommandReply.SendEmbed("Error: Macro not found!", 16711731, , , , id)
 
 
 		case "pause","unpause":
 		if (MacroState = 0)
-			discord.SendEmbed("Macro is not running!", 16711731, , , , id)
+			nm_DiscordCommandReply.SendEmbed("Macro is not running!", 16711731, , , , id)
 		else
 		{
 			DetectHiddenWindows 1
 			if WinExist("natro_macro ahk_class AutoHotkey")
 			{
 				PostMessage 0x5550, 2
-				discord.SendEmbed(((MacroState = 2) ? "Pausing" : "Unpausing") " Macro...", 5066239, , , , id)
+				nm_DiscordCommandReply.SendEmbed(((MacroState = 2) ? "Pausing" : "Unpausing") " Macro...", 5066239, , , , id)
 			}
 			else
-				discord.SendEmbed("Error: Macro not found!", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Error: Macro not found!", 16711731, , , , id)
 		}
 
 
@@ -924,13 +924,13 @@ nm_command(command)
 			DetectHiddenWindows 1
 			if WinExist("natro_macro ahk_class AutoHotkey"){
 				PostMessage 0x5550, 1
-				discord.SendEmbed("Starting Macro...", 5066239, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Starting Macro...", 5066239, , , , id)
 			}
 			else
-				discord.SendEmbed("Error: Macro not found!", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Error: Macro not found!", 16711731, , , , id)
 		}
 		else
-			discord.SendEmbed("Macro has already been started!", 16711731, , , , id)
+			nm_DiscordCommandReply.SendEmbed("Macro has already been started!", 16711731, , , , id)
 
 
 		case "close":
@@ -943,18 +943,18 @@ nm_command(command)
 				natroPID := WinGetPID()
 			DetectHiddenWindows 0
 			if (windowPID = natroPID)
-				discord.SendEmbed("Cannot close Natro Macro window!", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Cannot close Natro Macro window!", 16711731, , , , id)
 			else
 			{
 				title := WinGetTitle("ahk_id " hwnd)
 				Loop 3
 					if WinExist("ahk_id" hwnd)
 						WinKill
-				discord.SendEmbed('Closed Window: ``' title '``', 5066239, , , , id)
+				nm_DiscordCommandReply.SendEmbed('Closed Window: ``' title '``', 5066239, , , , id)
 			}
 		}
 		else
-			discord.SendEmbed('Window ``' window '`` not found!', 16711731, , , , id)
+			nm_DiscordCommandReply.SendEmbed('Window ``' window '`` not found!', 16711731, , , , id)
 
 
 		case "activate":
@@ -965,13 +965,13 @@ nm_command(command)
 			try
 			{
 				WinActivate "ahk_id " hwnd
-				discord.SendEmbed('Activated Window: ``' title '``', 5066239, , , , id)
+				nm_DiscordCommandReply.SendEmbed('Activated Window: ``' title '``', 5066239, , , , id)
 			}
 			catch as e
-				discord.SendEmbed("Error:`n" e.Message " " e.What, 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Error:`n" e.Message " " e.What, 16711731, , , , id)
 		}
 		else
-			discord.SendEmbed('Window ``' window '`` not found!', 16711731, , , , id)
+			nm_DiscordCommandReply.SendEmbed('Window ``' window '`` not found!', 16711731, , , , id)
 
 
 		case "minimise","minimize":
@@ -982,13 +982,13 @@ nm_command(command)
 			try
 			{
 				WinMinimize "ahk_id " hwnd
-				discord.SendEmbed('Minimized Window: ``' title '``', 5066239, , , , id)
+				nm_DiscordCommandReply.SendEmbed('Minimized Window: ``' title '``', 5066239, , , , id)
 			}
 			catch as e
-				discord.SendEmbed("Error:`n" e.Message " " e.What, 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Error:`n" e.Message " " e.What, 16711731, , , , id)
 		}
 		else
-			discord.SendEmbed('Window ``' window '`` not found!', 16711731, , , , id)
+			nm_DiscordCommandReply.SendEmbed('Window ``' window '`` not found!', 16711731, , , , id)
 
 
 		case "rejoin":
@@ -999,13 +999,13 @@ nm_command(command)
 			if WinExist("natro_macro ahk_class AutoHotkey")
 			{
 				PostMessage 0x5557, delay
-				discord.SendEmbed((delay > 0) ? ("Rejoining after " delay " seconds!") : "Rejoining...", 5066239, , , , id)
+				nm_DiscordCommandReply.SendEmbed((delay > 0) ? ("Rejoining after " delay " seconds!") : "Rejoining...", 5066239, , , , id)
 			}
 			else
-				discord.SendEmbed("Error: Macro not found!", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Error: Macro not found!", 16711731, , , , id)
 		}
 		else
-			discord.SendEmbed("Reconnect delay must be an integer less than or equal to 600!`nYou entered ``" params[2] "``.", 16711731, , , , id)
+			nm_DiscordCommandReply.SendEmbed("Reconnect delay must be an integer less than or equal to 600!`nYou entered ``" params[2] "``.", 16711731, , , , id)
 
 
 		case "log":
@@ -1023,20 +1023,20 @@ nm_command(command)
 			switch result
 			{
 				case 2:
-				discord.SendEmbed("No Roblox window found!", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("No Roblox window found!", 16711731, , , , id)
 
 				case 1:
-				discord.SendEmbed("Kept Old Amulet", 5066239, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Kept Old Amulet", 5066239, , , , id)
 
 				case 0:
-				discord.SendEmbed("No Keep/Replace prompt found!", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("No Keep/Replace prompt found!", 16711731, , , , id)
 
 				default:
-				discord.SendEmbed("Error: SendMessage Timeout!", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Error: SendMessage Timeout!", 16711731, , , , id)
 			}
 		}
 		else
-			discord.SendEmbed("Error: Macro not found!", 16711731, , , , id)
+			nm_DiscordCommandReply.SendEmbed("Error: Macro not found!", 16711731, , , , id)
 
 
 		case "replace":
@@ -1050,20 +1050,20 @@ nm_command(command)
 			switch result
 			{
 				case 2:
-				discord.SendEmbed("No Roblox window found!", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("No Roblox window found!", 16711731, , , , id)
 
 				case 1:
-				discord.SendEmbed("Replaced Amulet!", 5066239, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Replaced Amulet!", 5066239, , , , id)
 
 				case 0:
-				discord.SendEmbed("No Keep/Replace prompt found!", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("No Keep/Replace prompt found!", 16711731, , , , id)
 
 				default:
-				discord.SendEmbed("Error: SendMessage Timeout!", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Error: SendMessage Timeout!", 16711731, , , , id)
 			}
 		}
 		else
-			discord.SendEmbed("Error: Macro not found!", 16711731, , , , id)
+			nm_DiscordCommandReply.SendEmbed("Error: Macro not found!", 16711731, , , , id)
 
 
 		case "planter","planters":
@@ -1083,13 +1083,13 @@ nm_command(command)
 				{
 					UpdateInt("PlanterHarvestNow" n, 1, "Planters")
 					UpdateInt("PlanterHarvestTime" n, nowUnix()-1, "Planters")
-					discord.SendEmbed("Harvest planter in Slot " n "!", 5066239, , , , id)
+					nm_DiscordCommandReply.SendEmbed("Harvest planter in Slot " n "!", 5066239, , , , id)
 				}
 				else
-					discord.SendEmbed("There is no planter in Slot " n "!", 16711731, , , , id)
+					nm_DiscordCommandReply.SendEmbed("There is no planter in Slot " n "!", 16711731, , , , id)
 			}
 			else
-				discord.SendEmbed((StrLen(params[3]) = 0) ? "You must specify a Planter Slot to harvest!" : ("Planter Slot must be 1, 2, or 3!`nYou entered " params[3] "."), 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed((StrLen(params[3]) = 0) ? "You must specify a Planter Slot to harvest!" : ("Planter Slot must be 1, 2, or 3!`nYou entered " params[3] "."), 16711731, , , , id)
 
 			case "smoking":
 			if ((params[3] = 1) || (params[3] = 2) || (params[3] = 3))
@@ -1099,13 +1099,13 @@ nm_command(command)
 				if (vars["PlanterName" n] && (vars["PlanterName" n] != "None") && (vars["MPlanterHold" n] = 1) && (vars["PlanterMode"] = 1))
 				{
 					UpdateInt("MPlanterSmoking" n, 1, "Planters")
-					discord.SendEmbed("Set held planter in Slot " n " to smoking!", 5066239, , , , id)
+					nm_DiscordCommandReply.SendEmbed("Set held planter in Slot " n " to smoking!", 5066239, , , , id)
 				}
 				else
-					discord.SendEmbed("There is no held planter in Slot " n "!", 16711731, , , , id)
+					nm_DiscordCommandReply.SendEmbed("There is no held planter in Slot " n "!", 16711731, , , , id)
 			}
 			else
-				discord.SendEmbed((StrLen(params[3]) = 0) ? "You must specify a Planter Slot to set as smoking!" : ("Planter Slot must be 1, 2, or 3!`nYou entered " params[3] "."), 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed((StrLen(params[3]) = 0) ? "You must specify a Planter Slot to set as smoking!" : ("Planter Slot must be 1, 2, or 3!`nYou entered " params[3] "."), 16711731, , , , id)
 
 			case "add":
 			if ((params[4] = 1) || (params[4] = 2) || (params[4] = 3))
@@ -1128,7 +1128,7 @@ nm_command(command)
 								time_delta += times[A_Index]*(60**(A_Index-1))
 							else
 							{
-								discord.SendEmbed("``" params[3] "`` is not a valid time!`nMake sure your time is in the form ``h:m:s`` and does not exceed 24 hours!", 16711731, , , , id)
+								nm_DiscordCommandReply.SendEmbed("``" params[3] "`` is not a valid time!`nMake sure your time is in the form ``h:m:s`` and does not exceed 24 hours!", 16711731, , , , id)
 								break 2
 							}
 						}
@@ -1136,14 +1136,14 @@ nm_command(command)
 						UpdateInt("PlanterHarvestTime" n, vars["PlanterHarvestTime" n] := Max(t, vars["PlanterHarvestTime" n]) + time_delta, "Planters")
 						delta := hmsFromSeconds(time_delta)
 						duration := DurationFromSeconds(timer := (vars["PlanterHarvestTime" n] - nowUnix()), (timer > 0) ? (((timer >= 86400) ? "d'd' h" : "") ((timer >= 3600) ? "h'h' m" : "") ((timer >= 60) ? "m'm' s" : "") "s's'") : "'Ready'")
-						discord.SendEmbed("Added " delta " to planter in Slot " n "!`nNew Remaining Time: " duration, 5066239, , , , id)
+						nm_DiscordCommandReply.SendEmbed("Added " delta " to planter in Slot " n "!`nNew Remaining Time: " duration, 5066239, , , , id)
 					}
 				}
 				else
-					discord.SendEmbed("There is no planter in Slot " n "!", 16711731, , , , id)
+					nm_DiscordCommandReply.SendEmbed("There is no planter in Slot " n "!", 16711731, , , , id)
 			}
 			else
-				discord.SendEmbed((StrLen(params[4]) = 0) ? "You must specify a Planter Slot to add time to!" : ("Planter Slot must be 1, 2, or 3!`nYou entered " params[4] "."), 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed((StrLen(params[4]) = 0) ? "You must specify a Planter Slot to add time to!" : ("Planter Slot must be 1, 2, or 3!`nYou entered " params[4] "."), 16711731, , , , id)
 
 			case "sub","subtract":
 			if ((params[4] = 1) || (params[4] = 2) || (params[4] = 3))
@@ -1166,7 +1166,7 @@ nm_command(command)
 								time_delta += times[A_Index]*(60**(A_Index-1))
 							else
 							{
-								discord.SendEmbed("``" params[3] "`` is not a valid time!`nMake sure your time is in the form ``h:m:s`` and does not exceed 24 hours!", 16711731, , , , id)
+								nm_DiscordCommandReply.SendEmbed("``" params[3] "`` is not a valid time!`nMake sure your time is in the form ``h:m:s`` and does not exceed 24 hours!", 16711731, , , , id)
 								break 2
 							}
 						}
@@ -1174,14 +1174,14 @@ nm_command(command)
 						UpdateInt("PlanterHarvestTime" n, vars["PlanterHarvestTime" n] := Max(t, vars["PlanterHarvestTime" n] - time_delta), "Planters")
 						delta := hmsFromSeconds(time_delta)
 						duration := DurationFromSeconds(timer := (vars["PlanterHarvestTime" n] - nowUnix()), (timer > 0) ? (((timer >= 86400) ? "d'd' h" : "") ((timer >= 3600) ? "h'h' m" : "") ((timer >= 60) ? "m'm' s" : "") "s's'") : "'Ready'")
-						discord.SendEmbed("Subtracted " delta " from planter in Slot " n "!`nNew Remaining Time: " duration, 5066239, , , , id)
+						nm_DiscordCommandReply.SendEmbed("Subtracted " delta " from planter in Slot " n "!`nNew Remaining Time: " duration, 5066239, , , , id)
 					}
 				}
 				else
-					discord.SendEmbed("There is no planter in Slot " n "!", 16711731, , , , id)
+					nm_DiscordCommandReply.SendEmbed("There is no planter in Slot " n "!", 16711731, , , , id)
 			}
 			else
-				discord.SendEmbed((StrLen(params[4]) = 0) ? "You must specify a Planter Slot to subtract time from!" : ("Planter Slot must be 1, 2, or 3!`nYou entered " params[4] "."), 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed((StrLen(params[4]) = 0) ? "You must specify a Planter Slot to subtract time from!" : ("Planter Slot must be 1, 2, or 3!`nYou entered " params[4] "."), 16711731, , , , id)
 
 			case "clear":
 			if ((params[3] = 1) || (params[3] = 2) || (params[3] = 3))
@@ -1195,10 +1195,10 @@ nm_command(command)
 				UpdateInt("PlanterEstPercent" n, 0, "Planters")
 				UpdateInt("PlanterGlitter" n, 0, "Planters")
 				UpdateInt("PlanterGlitterC" n, 0, "Planters")
-				discord.SendEmbed("Cleared planter in Slot " n "!", 5066239, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Cleared planter in Slot " n "!", 5066239, , , , id)
 			}
 			else
-				discord.SendEmbed((StrLen(params[3]) = 0) ? "You must specify a Planter Slot to clear!" : ("Planter Slot must be 1, 2, or 3!`nYou entered " params[3] "."), 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed((StrLen(params[3]) = 0) ? "You must specify a Planter Slot to clear!" : ("Planter Slot must be 1, 2, or 3!`nYou entered " params[3] "."), 16711731, , , , id)
 
 			case "screenshot","ss":
 			if ((params[3] = 1) || (params[3] = 2) || (params[3] = 3))
@@ -1207,16 +1207,16 @@ nm_command(command)
 				if (vars["PlanterName" n] && (vars["PlanterName" n] != "None"))
 					{
 						UpdateInt("PlanterSS" n, 1, "Planters")
-						discord.SendEmbed("Take screenshot of planter in Slot " n "!", 5066239, , , , id)
+						nm_DiscordCommandReply.SendEmbed("Take screenshot of planter in Slot " n "!", 5066239, , , , id)
 					}
 				else
-					discord.SendEmbed("There is no planter in Slot " n "!", 16711731, , , , id)
+					nm_DiscordCommandReply.SendEmbed("There is no planter in Slot " n "!", 16711731, , , , id)
 			}
 			else
-				discord.SendEmbed((StrLen(params[3]) = 0) ? "You must specify a Planter Slot to screenshot!" : ("Planter Slot must be 1, 2, or 3!`nYou entered " params[3] "."), 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed((StrLen(params[3]) = 0) ? "You must specify a Planter Slot to screenshot!" : ("Planter Slot must be 1, 2, or 3!`nYou entered " params[3] "."), 16711731, , , , id)
 
 			default:
-			nm_DiscordPlanterReport(vars, planters, commandPrefix, id, nowUnix()).Send()
+			nm_DiscordPlanterReport(vars, planters, commandPrefix, id, nowUnix()).Send(nm_DiscordCommandReply)
 		}
 
 
@@ -1248,12 +1248,12 @@ nm_command(command)
 			{
 				UpdateInt("Last" varname, nowUnix(), "Collect")
 				duration := DurationFromSeconds(time := (cooldown*((section = "mobs") ? (1-(vars["MonsterRespawnTime"]?vars["MonsterRespawnTime"]:0)*0.01) : 1)), ((time >= 86400) ? "d'd' h" : "") ((time >= 3600) ? "h'h' m" : "") ((time >= 60) ? "m'm' s" : "") "s's'")
-				discord.SendEmbed("Reset timer for " displayname "!`n" displayname " will now be " ((section = "mobs") ? "killed" : "collected") " in " duration ".", 5066239, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Reset timer for " displayname "!`n" displayname " will now be " ((section = "mobs") ? "killed" : "collected") " in " duration ".", 5066239, , , , id)
 			}
 			else if IsSet(varname)
-				discord.SendEmbed(displayname " is not enabled!`nUse ``?set`` to enable this timer first.", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed(displayname " is not enabled!`nUse ``?set`` to enable this timer first.", 16711731, , , , id)
 			else
-				discord.SendEmbed("``" ((StrLen(var) > 0) ? var : "<blank>") "`` is not recognised as a valid timer!`nUse ``?timers`` for a list of enabled timers.", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("``" ((StrLen(var) > 0) ? var : "<blank>") "`` is not recognised as a valid timer!`nUse ``?timers`` for a list of enabled timers.", 16711731, , , , id)
 
 			case "ready":
 			var := StrReplace(SubStr(command.content, InStr(command.content, "ready")+5), " ")
@@ -1273,12 +1273,12 @@ nm_command(command)
 			if IsSet(cooldown)
 			{
 				UpdateInt("Last" varname, 1, "Collect")
-				discord.SendEmbed("Set " displayname " to be " ((section = "mobs") ? "killed" : "collected") " as soon as possible!", 5066239, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Set " displayname " to be " ((section = "mobs") ? "killed" : "collected") " as soon as possible!", 5066239, , , , id)
 			}
 			else if IsSet(varname)
-				discord.SendEmbed(displayname " is not enabled!`nUse ``?set`` to enable this timer first.", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed(displayname " is not enabled!`nUse ``?set`` to enable this timer first.", 16711731, , , , id)
 			else
-				discord.SendEmbed("``" ((StrLen(var) > 0) ? var : "<blank>") "`` is not recognised as a valid timer!`nUse ``?timers`` for a list of enabled timers.", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("``" ((StrLen(var) > 0) ? var : "<blank>") "`` is not recognised as a valid timer!`nUse ``?timers`` for a list of enabled timers.", 16711731, , , , id)
 
 			case "add":
 			var := params[3] ? StrReplace(SubStr(command.content, InStr(command.content, params[3])+StrLen(params[3])), " ") : ""
@@ -1312,7 +1312,7 @@ nm_command(command)
 							time_delta += times[A_Index]*(60**(A_Index-1))
 						else
 						{
-							discord.SendEmbed("``" params[3] "`` is not a valid time!`nMake sure your time is in the form ``h:m:s`` and does not exceed 24 hours!", 16711731, , , , id)
+							nm_DiscordCommandReply.SendEmbed("``" params[3] "`` is not a valid time!`nMake sure your time is in the form ``h:m:s`` and does not exceed 24 hours!", 16711731, , , , id)
 							break 2
 						}
 					}
@@ -1320,13 +1320,13 @@ nm_command(command)
 					UpdateInt("Last" varname, vars["Last" varname] := Round(Max(t-(cooldown*((section = "mobs") ? (1-(vars["MonsterRespawnTime"]?vars["MonsterRespawnTime"]:0)*0.01) : 1)), vars["Last" varname]) + time_delta), "Collect")
 					delta := hmsFromSeconds(time_delta)
 					duration := DurationFromSeconds(timer := (vars["Last" varname] + cooldown*((section = "mobs") ? (1-(vars["MonsterRespawnTime"]?vars["MonsterRespawnTime"]:0)*0.01) : 1) - t), (timer > 0) ? (((timer >= 86400) ? "d'd' h" : "") ((timer >= 3600) ? "h'h' m" : "") ((timer >= 60) ? "m'm' s" : "") "s's'") : ((section = "mobs") ? "'Alive'" : "'Ready'"))
-					discord.SendEmbed("Added " delta " to " displayname " timer!`nNew Remaining Time: " duration, 5066239, , , , id)
+					nm_DiscordCommandReply.SendEmbed("Added " delta " to " displayname " timer!`nNew Remaining Time: " duration, 5066239, , , , id)
 				}
 			}
 			else if IsSet(varname)
-				discord.SendEmbed(displayname " is not enabled!`nUse ``?set`` to enable this timer first.", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed(displayname " is not enabled!`nUse ``?set`` to enable this timer first.", 16711731, , , , id)
 			else
-				discord.SendEmbed("``" ((StrLen(var) > 0) ? var : "<blank>") "`` is not recognised as a valid timer!`nUse ``?timers`` for a list of enabled timers.", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("``" ((StrLen(var) > 0) ? var : "<blank>") "`` is not recognised as a valid timer!`nUse ``?timers`` for a list of enabled timers.", 16711731, , , , id)
 
 			case "sub","subtract":
 			var := params[3] ? StrReplace(SubStr(command.content, InStr(command.content, params[3])+StrLen(params[3])), " ") : ""
@@ -1360,7 +1360,7 @@ nm_command(command)
 							time_delta += times[A_Index]*(60**(A_Index-1))
 						else
 						{
-							discord.SendEmbed("``" params[3] "`` is not a valid time!`nMake sure your time is in the form ``h:m:s`` and does not exceed 24 hours!", 16711731, , , , id)
+							nm_DiscordCommandReply.SendEmbed("``" params[3] "`` is not a valid time!`nMake sure your time is in the form ``h:m:s`` and does not exceed 24 hours!", 16711731, , , , id)
 							break 2
 						}
 					}
@@ -1368,16 +1368,16 @@ nm_command(command)
 					UpdateInt("Last" varname, vars["Last" varname] := Round(Max(t-(cooldown*((section = "mobs") ? (1-(vars["MonsterRespawnTime"]?vars["MonsterRespawnTime"]:0)*0.01) : 1)), vars["Last" varname] - time_delta)), "Collect")
 					delta := hmsFromSeconds(time_delta)
 					duration := DurationFromSeconds(timer := (vars["Last" varname] + cooldown*((section = "mobs") ? (1-(vars["MonsterRespawnTime"]?vars["MonsterRespawnTime"]:0)*0.01) : 1) - t), (timer > 0) ? (((timer >= 86400) ? "d'd' h" : "") ((timer >= 3600) ? "h'h' m" : "") ((timer >= 60) ? "m'm' s" : "") "s's'") : ((section = "mobs") ? "'Alive'" : "'Ready'"))
-					discord.SendEmbed("Subtracted " delta " from " displayname " timer!`nNew Remaining Time: " duration, 5066239, , , , id)
+					nm_DiscordCommandReply.SendEmbed("Subtracted " delta " from " displayname " timer!`nNew Remaining Time: " duration, 5066239, , , , id)
 				}
 			}
 			else if IsSet(varname)
-				discord.SendEmbed(displayname " is not enabled!`nUse ``?set`` to enable this timer first.", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed(displayname " is not enabled!`nUse ``?set`` to enable this timer first.", 16711731, , , , id)
 			else
-				discord.SendEmbed("``" ((StrLen(var) > 0) ? var : "<blank>") "`` is not recognised as a valid timer!`nUse ``?timers`` for a list of enabled timers.", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("``" ((StrLen(var) > 0) ? var : "<blank>") "`` is not recognised as a valid timer!`nUse ``?timers`` for a list of enabled timers.", 16711731, , , , id)
 
 			default:
-			nm_DiscordTimerReport(vars, timers, commandPrefix, id, nowUnix()).Send()
+			nm_DiscordTimerReport(vars, timers, commandPrefix, id, nowUnix()).Send(nm_DiscordCommandReply)
 		}
 
 
@@ -1386,10 +1386,10 @@ nm_command(command)
 		{
 			commandPrefix := newPrefix
 			IniWrite commandPrefix, "settings\nm_config.ini", "Status", "commandPrefix"
-			discord.SendEmbed("Set ``" newPrefix "`` as your command prefix!" ((StrLen(params[2]) > 3) ? "`nThe maximum prefix length is 3." : ""), 5066239, , , , id)
+			nm_DiscordCommandReply.SendEmbed("Set ``" newPrefix "`` as your command prefix!" ((StrLen(params[2]) > 3) ? "`nThe maximum prefix length is 3." : ""), 5066239, , , , id)
 		}
 		else
-			discord.SendEmbed("``" ((StrLen(params[2]) > 0) ? params[2] : "<blank>") "`` is not a valid prefix!" ((StrLen(params[2]) = 0) ? "`nYou cannot have an empty prefix!" : ""), 16711731, , , , id)
+			nm_DiscordCommandReply.SendEmbed("``" ((StrLen(params[2]) > 0) ? params[2] : "<blank>") "`` is not a valid prefix!" ((StrLen(params[2]) = 0) ? "`nYou cannot have an empty prefix!" : ""), 16711731, , , , id)
 
 
 		case "set":
@@ -1405,7 +1405,7 @@ nm_command(command)
 				UpdateInt("BugrunMantisCheck", 1, "Collect")
 				UpdateInt("BugrunScorpionsCheck", 1, "Collect")
 				UpdateInt("BugrunWerewolfCheck", 1, "Collect")
-				discord.SendEmbed("Set ``BugrunLadybugsCheck``, ``BugrunRhinoBeetlesCheck``, ``BugrunSpiderCheck``, ``BugrunMantisCheck``, ``BugrunScorpionCheck``, ``BugrunWerewolfCheck``, to ``1``!", 5066239, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Set ``BugrunLadybugsCheck``, ``BugrunRhinoBeetlesCheck``, ``BugrunSpiderCheck``, ``BugrunMantisCheck``, ``BugrunScorpionCheck``, ``BugrunWerewolfCheck``, to ``1``!", 5066239, , , , id)
 
 				case "off",0:
 				UpdateInt("BugrunLadybugsCheck", 0, "Collect")
@@ -1414,10 +1414,10 @@ nm_command(command)
 				UpdateInt("BugrunMantisCheck", 0, "Collect")
 				UpdateInt("BugrunScorpionsCheck", 0, "Collect")
 				UpdateInt("BugrunWerewolfCheck", 0, "Collect")
-				discord.SendEmbed("Set ``BugrunLadybugsCheck``, ``BugrunRhinoBeetlesCheck``, ``BugrunSpiderCheck``, ``BugrunMantisCheck``, ``BugrunScorpionCheck``, ``BugrunWerewolfCheck``, to ``0``!", 5066239, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Set ``BugrunLadybugsCheck``, ``BugrunRhinoBeetlesCheck``, ``BugrunSpiderCheck``, ``BugrunMantisCheck``, ``BugrunScorpionCheck``, ``BugrunWerewolfCheck``, to ``0``!", 5066239, , , , id)
 
 				default:
-				discord.SendEmbed("``" ((StrLen(params[3]) > 0) ? params[3] : "<blank>") "`` is not a valid setting!`n``?set bugrun`` must be followed by ``on``, ``off``, ``1``, or ``0``", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("``" ((StrLen(params[3]) > 0) ? params[3] : "<blank>") "`` is not a valid setting!`n``?set bugrun`` must be followed by ``on``, ``off``, ``1``, or ``0``", 16711731, , , , id)
 			}
 			case "priority", "priorityList", "priorityListNumeric":
 			value:=((params[3] = "default") ? 12345678 : params[3]),v := Settings["PriorityListNumeric"]
@@ -1426,7 +1426,7 @@ nm_command(command)
 				for i,j in listArr:=StrSplit(value) {
 					for k, v in listArr
 						if (k !== i && j == v) {
-							discord.SendEmbed("``" ((StrLen(value) > 0) ? value : "<blank>") "`` is not an acceptable value for ``PriorityListNumeric``!`n``" commandPrefix "help priority`` for help", 16711731, , , , id)
+							nm_DiscordCommandReply.SendEmbed("``" ((StrLen(value) > 0) ? value : "<blank>") "`` is not an acceptable value for ``PriorityListNumeric``!`n``" commandPrefix "help priority`` for help", 16711731, , , , id)
 							return command_buffer.RemoveAt(1)
 						}
 					if !defaultPriorityList.Has(i)
@@ -1434,10 +1434,10 @@ nm_command(command)
 					newList .= "`n" i " - " defaultPriorityList[j]
 				}
 				UpdateInt("PriorityListNumeric", value, "Settings")
-				discord.SendEmbed("**New Priority List**: ``````" newList "```````n`nnumeric: ``" (priorityListNumeric ?? IniRead(A_ScriptDir . "\..\settings\nm_config.ini", "settings", "PriorityListNumeric")) "``", 2829617, , , , id)
+				nm_DiscordCommandReply.SendEmbed("**New Priority List**: ``````" newList "```````n`nnumeric: ``" (priorityListNumeric ?? IniRead(A_ScriptDir . "\..\settings\nm_config.ini", "settings", "PriorityListNumeric")) "``", 2829617, , , , id)
 			}
 			else
-				discord.SendEmbed("``" ((StrLen(value) > 0) ? value : "<blank>") "`` is not an acceptable value for ``PriorityListNumeric``!`n``" commandPrefix "help priority`` for help", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("``" ((StrLen(value) > 0) ? value : "<blank>") "`` is not an acceptable value for ``PriorityListNumeric``!`n``" commandPrefix "help priority`` for help", 16711731, , , , id)
 			default:
 			Loop 1
 			{
@@ -1449,14 +1449,14 @@ nm_command(command)
 						if (value ~= v.regex)
 						{
 							(v.type = "str") ? UpdateStr(k, (value = "<blank>") ? "" : value, v.section) : UpdateInt(k, value, v.section)
-							discord.SendEmbed("Set ``" k "`` to ``" value "``!", 5066239, , , , id)
+							nm_DiscordCommandReply.SendEmbed("Set ``" k "`` to ``" value "``!", 5066239, , , , id)
 						}
 						else
-							discord.SendEmbed("``" ((StrLen(value) > 0) ? value : "<blank>") "`` is not an acceptable value for ``" k "``!", 16711731, , , , id)
+							nm_DiscordCommandReply.SendEmbed("``" ((StrLen(value) > 0) ? value : "<blank>") "`` is not an acceptable value for ``" k "``!", 16711731, , , , id)
 						break 2
 					}
 				}
-				discord.SendEmbed("``" ((StrLen(params[2]) > 0) ? params[2] : "<blank>") "`` is not a valid setting!`nUse ``?help set`` for a list of settings.", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("``" ((StrLen(params[2]) > 0) ? params[2] : "<blank>") "`` is not a valid setting!`nUse ``?help set`` for a list of settings.", 16711731, , , , id)
 			}
 		}
 
@@ -1468,16 +1468,16 @@ nm_command(command)
 			for i, j in StrSplit(priorityListNumeric ?? IniRead(A_ScriptDir "\..\settings\nm_config.ini", "settings", "PriorityListNumeric", '12345678')) {
 				if !defaultPriorityList.Has(i) {
 					UpdateInt("PriorityListNumeric", 12345678, "settings")
-					discord.SendEmbed("1 - " defaultPriorityList[1] "`n2 - " defaultPriorityList[2] "`n3 - " defaultPriorityList[3] "`n4 - " defaultPriorityList[4] "`n5 - " defaultPriorityList[5] "`n6 - " defaultPriorityList[6], 0x2b2d31 ,,,, id)
+					nm_DiscordCommandReply.SendEmbed("1 - " defaultPriorityList[1] "`n2 - " defaultPriorityList[2] "`n3 - " defaultPriorityList[3] "`n4 - " defaultPriorityList[4] "`n5 - " defaultPriorityList[5] "`n6 - " defaultPriorityList[6], 0x2b2d31 ,,,, id)
 				}
 				prioritystring .= "`n" . i " - " defaultPriorityList[i]
 			}
-			discord.SendEmbed(prioritystring .= "`n```````n`nnumeric: ``" (priorityListNumeric ?? IniRead(A_ScriptDir "\..\settings\nm_config.ini", "settings", "PriorityListNumeric", '12345678')) "``", 0x2b2d31, , , , id)
+			nm_DiscordCommandReply.SendEmbed(prioritystring .= "`n```````n`nnumeric: ``" (priorityListNumeric ?? IniRead(A_ScriptDir "\..\settings\nm_config.ini", "settings", "PriorityListNumeric", '12345678')) "``", 0x2b2d31, , , , id)
 
 			default:
 			k := StrReplace(Trim(SubStr(command.content, InStr(command.content, name)+StrLen(name))), " ")
 			if nm_RemoteCapabilities.PrivateSetting(k) {
-				discord.SendEmbed("This setting is private and cannot be returned by remote commands.", 16711731,,,,id)
+				nm_DiscordCommandReply.SendEmbed("This setting is private and cannot be returned by remote commands.", 16711731,,,,id)
 				return command_buffer.RemoveAt(1)
 			}
 			str := ""
@@ -1498,31 +1498,31 @@ nm_command(command)
 				}
 			}
 			if IsSet(s)
-				discord.SendMessageAPI(nm_DiscordSettingPayload(k, v, id))
+				nm_DiscordCommandReply.SendMessageAPI(nm_DiscordSettingPayload(k, v, id))
 			else
-				discord.SendEmbed("``" (k ? k : "<blank>") "`` is not a valid variable!", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("``" (k ? k : "<blank>") "`` is not a valid variable!", 16711731, , , , id)
 		}
 
 		case "send":
 		Send (options := Trim(SubStr(command.content, InStr(command.content, name)+StrLen(name))))
-		discord.SendEmbed('Used ``````ahk`nSend "' options '"``````', 5066239, , , , id)
+		nm_DiscordCommandReply.SendEmbed('Used ``````ahk`nSend "' options '"``````', 5066239, , , , id)
 
 
 		case "upload":
-		try discord.SendFile(nm_RemoteUploadPath(Trim(SubStr(command.content, InStr(command.content, name)+StrLen(name)))), id)
+		try nm_DiscordCommandReply.SendFile(nm_RemoteUploadPath(Trim(SubStr(command.content, InStr(command.content, name)+StrLen(name)))), id)
 		catch as err
-			discord.SendEmbed(err.Message, 16711731,,,,id)
+			nm_DiscordCommandReply.SendEmbed(err.Message, 16711731,,,,id)
 
 
 		case "download":
 		if command.url {
 			try {
 				nm_AttachmentDownloads.Start(command.url, id)
-				discord.SendEmbed("Attachment download started. Completion will be reported separately.", 5066239,,,,id)
+				nm_DiscordCommandReply.SendEmbed("Attachment download started. Completion will be reported separately.", 5066239,,,,id)
 			} catch as err
-				discord.SendEmbed("Attachment download failed: " err.Message, 16711731,,,,id)
+				nm_DiscordCommandReply.SendEmbed("Attachment download failed: " err.Message, 16711731,,,,id)
 		} else
-			discord.SendEmbed("No attachment found to download!", 16711731,,,,id)
+			nm_DiscordCommandReply.SendEmbed("No attachment found to download!", 16711731,,,,id)
 
 
 		case "click":
@@ -1532,10 +1532,10 @@ nm_command(command)
 			if ((params[3] = "screen") || (params[3] = "relative") || (params[3] = "window") || (params[3] = "client"))
 			{
 				CoordMode "Mouse", params[3]
-				discord.SendEmbed("Used ``````ahk`nCoordMode, Mouse, " RegExReplace(params[3], "(?:^|\.|\R)[- 0-9\*\(]*\K(.)([^\.\r\n]*)", "$U1$L2") "``````", 5066239, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Used ``````ahk`nCoordMode, Mouse, " RegExReplace(params[3], "(?:^|\.|\R)[- 0-9\*\(]*\K(.)([^\.\r\n]*)", "$U1$L2") "``````", 5066239, , , , id)
 			}
 			else
-				discord.SendEmbed("Invalid ``CoordMode``!`nMust be either ``Screen``, ``Relative``, ``Window``, or ``Client``", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Invalid ``CoordMode``!`nMust be either ``Screen``, ``Relative``, ``Window``, or ``Client``", 16711731, , , , id)
 
 			default:
 			options := Trim(SubStr(command.content, InStr(command.content, name)+StrLen(name)))
@@ -1564,15 +1564,15 @@ nm_command(command)
 									Click options
 									Sleep 50
 								}
-								discord.SendEmbed('Used ``````ahk`nLoop ' count '`n{`n  Click "' options '"`n  Sleep 50`n}``````', 5066239, , , , id)
+								nm_DiscordCommandReply.SendEmbed('Used ``````ahk`nLoop ' count '`n{`n  Click "' options '"`n  Sleep 50`n}``````', 5066239, , , , id)
 							}
 							else
-								discord.SendEmbed("Click options are not valid!`nWheel scroll count must be an integer!", 16711731, , , , id)
+								nm_DiscordCommandReply.SendEmbed("Click options are not valid!`nWheel scroll count must be an integer!", 16711731, , , , id)
 						}
 						else
 						{
 							Click options
-							discord.SendEmbed('Used ``````ahk`nClick "' options '"``````', 5066239, , , , id)
+							nm_DiscordCommandReply.SendEmbed('Used ``````ahk`nClick "' options '"``````', 5066239, , , , id)
 						}
 					}
 				}
@@ -1580,7 +1580,7 @@ nm_command(command)
 			else
 			{
 				Click options
-				discord.SendEmbed('Used ``````ahk`nClick' ((StrLen(options) > 0) ? (' "' options '"') : "") '``````', 5066239, , , , id)
+				nm_DiscordCommandReply.SendEmbed('Used ``````ahk`nClick' ((StrLen(options) > 0) ? (' "' options '"') : "") '``````', 5066239, , , , id)
 			}
 		}
 
@@ -1600,24 +1600,25 @@ nm_command(command)
 				switch result
 				{
 					case 2:
-					discord.SendEmbed("No Roblox window found!", 16711731, , , , id)
+					nm_DiscordCommandReply.SendEmbed("No Roblox window found!", 16711731, , , , id)
 
 					case -1:
-					discord.SendEmbed("Error: SendMessage Timeout!", 16711731, , , , id)
+					nm_DiscordCommandReply.SendEmbed("Error: SendMessage Timeout!", 16711731, , , , id)
 
 					default:
-					discord.SendEmbed(((state = 1) ? "Enabled" : "Disabled") " Shift Lock!", 5066239, , , , id)
+					nm_DiscordCommandReply.SendEmbed(((state = 1) ? "Enabled" : "Disabled") " Shift Lock!", 5066239, , , , id)
 				}
 			}
 			else
-				discord.SendEmbed("Error: Macro not found!", 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Error: Macro not found!", 16711731, , , , id)
 
 			default:
-			discord.SendEmbed("You must specify ``on`` or ``off``!", 16711731, , , , id)
+			nm_DiscordCommandReply.SendEmbed("You must specify ``on`` or ``off``!", 16711731, , , , id)
 		}
 
 
 		case "restart":
+		; Attempt the final reply before shutdown; queued work cannot survive it.
 		discord.SendEmbed("Restarting System...", 5066239, , , , id)
 		Shutdown 6
 
@@ -1637,10 +1638,10 @@ nm_command(command)
 				n := params[3]
 				Iniwrite 0, "settings\nm_config.ini", "Shrine", "LastShrine"
 				IniWrite n, "settings\nm_config.ini", "Shrine", "ShrineRot"
-				discord.SendEmbed("Readied Slot " n "!", 5066239, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Readied Slot " n "!", 5066239, , , , id)
 			}
 			else
-				discord.SendEmbed((StrLen(params[3]) = 0) ? "You must specify a slot to make ready!" : ("Slot must be 1 or 2!`nYou entered " params[3] "."), 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed((StrLen(params[3]) = 0) ? "You must specify a slot to make ready!" : ("Slot must be 1 or 2!`nYou entered " params[3] "."), 16711731, , , , id)
 
 			case "clear":
 			if ((params[3] = 1) || (params[3] = 2))
@@ -1656,13 +1657,13 @@ nm_command(command)
 					PostMessage 0x5553, 56+n, 9 ; ShrineIndex
 					PostMessage 0x5553, 54+n, 9 ; ShrineItem
 				}
-				discord.SendEmbed("Cleared Slot " n "!", 5066239, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Cleared Slot " n "!", 5066239, , , , id)
 			}
 			else
-				discord.SendEmbed((StrLen(params[3]) = 0) ? "You must specify a slot to clear!" : ("Slot must be 1 or 2!`nYou entered " params[3] "."), 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed((StrLen(params[3]) = 0) ? "You must specify a slot to clear!" : ("Slot must be 1 or 2!`nYou entered " params[3] "."), 16711731, , , , id)
 
 			default:
-			nm_DiscordShrineReport(vars, id, nowUnix()).Send()
+			nm_DiscordShrineReport(vars, id, nowUnix()).Send(nm_DiscordCommandReply)
 		}
 
 
@@ -1683,10 +1684,10 @@ nm_command(command)
 				Iniwrite 0, "settings\nm_config.ini", "Blender", "BlenderTime" n
 				IniWrite n, "settings\nm_config.ini", "Blender", "BlenderRot"
 				IniWrite 1, "settings\nm_config.ini", "Blender", "BlenderEnd"
-				discord.SendEmbed("Readied Slot " n "!", 5066239, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Readied Slot " n "!", 5066239, , , , id)
 			}
 			else
-				discord.SendEmbed((StrLen(params[3]) = 0) ? "You must specify a slot to make ready!" : ("Slot must be 1, 2, or 3!`nYou entered " params[3] "."), 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed((StrLen(params[3]) = 0) ? "You must specify a slot to make ready!" : ("Slot must be 1, 2, or 3!`nYou entered " params[3] "."), 16711731, , , , id)
 
 			case "clear":
 			if ((params[3] = 1) || (params[3] = 2) || (params[3] = 3))
@@ -1705,14 +1706,14 @@ nm_command(command)
 					PostMessage 0x5553, 58+n, 8 ; BlenderIndex
 					PostMessage 0x5553, 61+n, 8 ; BlenderItem
 				}
-				discord.SendEmbed("Cleared Slot " n "!", 5066239, , , , id)
+				nm_DiscordCommandReply.SendEmbed("Cleared Slot " n "!", 5066239, , , , id)
 
 			}
 			else
-				discord.SendEmbed((StrLen(params[3]) = 0) ? "You must specify a slot to clear!" : ("Slot must be 1, 2, or 3!`nYou entered " params[3] "."), 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed((StrLen(params[3]) = 0) ? "You must specify a slot to clear!" : ("Slot must be 1, 2, or 3!`nYou entered " params[3] "."), 16711731, , , , id)
 
 			default:
-			nm_DiscordBlenderReport(vars, blender, id, nowUnix()).Send()
+			nm_DiscordBlenderReport(vars, blender, id, nowUnix()).Send(nm_DiscordCommandReply)
 		}
 
 
@@ -1729,12 +1730,12 @@ nm_command(command)
 			if vars.Has(var := params[3] "MemoryMatchCheck")
 			{
 				if (vars[var] = (params[2] = "enable"))
-					discord.SendEmbed(StrTitle(params[3]) " Memory Match is already " StrLower(params[2]) "d!", 16711731, , , , id)
+					nm_DiscordCommandReply.SendEmbed(StrTitle(params[3]) " Memory Match is already " StrLower(params[2]) "d!", 16711731, , , , id)
 				else
-					UpdateInt(var, (params[2] = "enable"), "Collect"), discord.SendEmbed(StrTitle(params[2]) "d " StrTitle(params[3]) " Memory Match!", 5066239, , , , id)
+					UpdateInt(var, (params[2] = "enable"), "Collect"), nm_DiscordCommandReply.SendEmbed(StrTitle(params[2]) "d " StrTitle(params[3]) " Memory Match!", 5066239, , , , id)
 			}
 			else
-				discord.SendEmbed((StrLen(params[3]) = 0) ? ("You must specify a game to " StrLower(params[2]) "!") : ("[``game``] must be one of the following: ``normal``, ``mega``, ``night``, ``extreme``, ``winter``!`nYou entered " params[3] "."), 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed((StrLen(params[3]) = 0) ? ("You must specify a game to " StrLower(params[2]) "!") : ("[``game``] must be one of the following: ``normal``, ``mega``, ``night``, ``extreme``, ``winter``!`nYou entered " params[3] "."), 16711731, , , , id)
 
 			case "ignore":
 			Loop 1
@@ -1750,30 +1751,30 @@ nm_command(command)
 							if (data.games & (bit := MemoryMatchGames[game].bit))
 							{
 								if (vars[var] & bit)
-									UpdateInt(var, vars[var] & ~bit, "Collect"), discord.SendEmbed("Set " data.name " to be **matched** in " game " Memory Match!", 5066239, , , , id)
+									UpdateInt(var, vars[var] & ~bit, "Collect"), nm_DiscordCommandReply.SendEmbed("Set " data.name " to be **matched** in " game " Memory Match!", 5066239, , , , id)
 								else
-									UpdateInt(var, vars[var] | bit, "Collect"), discord.SendEmbed("Set " data.name " to be **ignored** in " game " Memory Match!", 5066239, , , , id)
+									UpdateInt(var, vars[var] | bit, "Collect"), nm_DiscordCommandReply.SendEmbed("Set " data.name " to be **ignored** in " game " Memory Match!", 5066239, , , , id)
 							}
 							else
-								discord.SendEmbed(data.name " are not a possible item in " game " Memory Match!", 16711731, , , , id)
+								nm_DiscordCommandReply.SendEmbed(data.name " are not a possible item in " game " Memory Match!", 16711731, , , , id)
 
 							case "":
 							if (vars[var] > 0)
-								UpdateInt(var, 0, "Collect"), discord.SendEmbed("Set " data.name " to be **matched** in all Memory Match games!", 5066239, , , , id)
+								UpdateInt(var, 0, "Collect"), nm_DiscordCommandReply.SendEmbed("Set " data.name " to be **matched** in all Memory Match games!", 5066239, , , , id)
 							else
-								UpdateInt(var, data.games, "Collect"), discord.SendEmbed("Set " data.name " to be **ignored** in all Memory Match games!", 5066239, , , , id)
+								UpdateInt(var, data.games, "Collect"), nm_DiscordCommandReply.SendEmbed("Set " data.name " to be **ignored** in all Memory Match games!", 5066239, , , , id)
 
 							default:
-							discord.SendEmbed("You entered an invalid game!`n[``game``] must be either left blank, or one of the following: ``normal``, ``mega``, ``night``, ``extreme``, ``winter``!`nYou entered " params[4] ".", 16711731, , , , id)
+							nm_DiscordCommandReply.SendEmbed("You entered an invalid game!`n[``game``] must be either left blank, or one of the following: ``normal``, ``mega``, ``night``, ``extreme``, ``winter``!`nYou entered " params[4] ".", 16711731, , , , id)
 						}
 						break 2
 					}
 				}
-				discord.SendEmbed((StrLen(params[3]) = 0) ? ("You must specify an item to ignore!") : ("[``item``] must be a valid item name, e.g. ``royaljelly``!`nYou entered " params[3] "."), 16711731, , , , id)
+				nm_DiscordCommandReply.SendEmbed((StrLen(params[3]) = 0) ? ("You must specify an item to ignore!") : ("[``item``] must be a valid item name, e.g. ``royaljelly``!`nYou entered " params[3] "."), 16711731, , , , id)
 			}
 
 			default:
-			nm_DiscordMemoryReport(vars, MemoryMatchGames, MemoryMatch, commandPrefix, id, nowUnix()).Send()
+			nm_DiscordMemoryReport(vars, MemoryMatchGames, MemoryMatch, commandPrefix, id, nowUnix()).Send(nm_DiscordCommandReply)
 		}
 		
 		case "FindItem":
@@ -1781,11 +1782,11 @@ nm_command(command)
 		UI := SubStr(command.content, StrLen(commandPrefix)+10) ; user input
 		if !(UI) {
 			command_buffer.RemoveAt(1)
-			return discord.SendEmbed("Missing item name!`n``````" . commandPrefix . "finditem [itemname]``````", 16711731, , , , id)
+			return nm_DiscordCommandReply.SendEmbed("Missing item name!`n``````" . commandPrefix . "finditem [itemname]``````", 16711731, , , , id)
 		}
 		closestItem:=findClosestItem(items,UI)
 		if closestItem.dist > 6 || not closestItem.item
-			discord.SendEmbed("Item ``" UI "`` is not valid", 5066239, , , , id)
+			nm_DiscordCommandReply.SendEmbed("Item ``" UI "`` is not valid", 5066239, , , , id)
 		else
 			DetectHiddenWindows 1
 			if WinExist("natro_macro ahk_class AutoHotkey")
@@ -1799,7 +1800,7 @@ nm_command(command)
 
 
 		default:
-		discord.SendEmbed("``" commandPrefix name "`` is not a valid command!`nUse ``" commandPrefix "help`` for a list of commonly used commands.", 16711731, , , , id)
+		nm_DiscordCommandReply.SendEmbed("``" commandPrefix name "`` is not a valid command!`nUse ``" commandPrefix "help`` for a list of commonly used commands.", 16711731, , , , id)
 	}
 
 	command_buffer.RemoveAt(1)
@@ -1959,16 +1960,17 @@ nm_sendItemPicture(wParam, lParam,*) {
 		case 0:
 			switch lParam {
 				case 0:
-					discord.SendEmbed("No Roblox window found!", 16711731)
+					nm_DiscordCommandReply.SendEmbed("No Roblox window found!", 16711731)
 				case 1:
-					discord.SendEmbed("Item was not found.", 16711731)
+					nm_DiscordCommandReply.SendEmbed("Item was not found.", 16711731)
 				case 2:
-					discord.SendEmbed("Can't open inventory!", 16711731)
+					nm_DiscordCommandReply.SendEmbed("Can't open inventory!", 16711731)
 			}
 		default:
 			GetRobloxClientPos()
-			discord.SendEmbed("Item Found!", 5066239, , (pBMScreen := Gdip_BitmapFromScreen(windowX "|" wParam "|306|97")))
-			Gdip_DisposeImage(pBMScreen)
+			pBMScreen := Gdip_BitmapFromScreen(windowX "|" wParam "|306|97")
+			try nm_DiscordCommandReply.SendEmbed("Item Found!", 5066239, , pBMScreen)
+			finally Gdip_DisposeImage(pBMScreen)
 	}
 }
 

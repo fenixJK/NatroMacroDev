@@ -162,7 +162,12 @@ TestLocalHttpDelivery() {
 		throw Error("Windows runner must supply the local HTTP fixture port and response gate")
 	delivered := [], failures := []
 	queue := nm_DeliveryQueue(,, (job, reason) => failures.Push(reason))
-	queue.Enqueue(nm_DiscordEmbedPayload('Quoted "text"' "`n" Chr(1)), "application/json", "http://127.0.0.1:" A_Args[1] "/gated?gate=" A_PtrSize * 8, , , (ok) => delivered.Push(ok))
+	previousOutbox := discord.Outbox
+	discord.Outbox := queue
+	try Assert(nm_DiscordCommandReply.SendMessageAPI(nm_DiscordEmbedPayload('Quoted "text"' "`n" Chr(1)),
+		"application/json",, "http://127.0.0.1:" A_Args[1] "/gated?gate=" A_PtrSize * 8), "Command reply accepted before network delivery")
+	finally discord.Outbox := previousOutbox
+	Assert(!queue.Items[1].request, "Command handoff does not start or wait for HTTP")
 	start := A_TickCount
 	while !FileExist(A_Args[2] ".received") && A_TickCount - start < 10000 {
 		queue.Pump()
@@ -183,7 +188,6 @@ TestLocalHttpDelivery() {
 	}
 	AssertEqual(queue.Items.Length, 0, "Real HTTP response completes")
 	AssertEqual(failures.Length, 0, "Real server accepted serialized JSON")
-	AssertEqual(delivered[1], true, "Real success callback confirmed")
 	AssertEqual(queue.Bytes, 0, "Real delivery releases payload")
 
 	pToken := Gdip_Startup(), bitmap := Gdip_CreateBitmap(8, 8)
@@ -197,8 +201,8 @@ TestLocalHttpDelivery() {
 		Sleep 10
 	}
 	AssertEqual(failures.Length, 0, "Real server accepts attachment framing and JSON")
-	AssertEqual(delivered.Length, 2, "Both real requests complete")
-	AssertEqual(delivered[2], true, "Encoded image remains valid after source bitmap disposal")
+	AssertEqual(delivered.Length, 1, "Multipart request callback completes")
+	AssertEqual(delivered[1], true, "Encoded image remains valid after source bitmap disposal")
 }
 
 AssertDeliveryError(action, message) {

@@ -128,7 +128,7 @@ class discord
 		(replyID > 0) && params.Push(Map("name","payload_json","content-type","application/json","content",JSON.stringify(nm_DiscordReplyObject(replyID))))
 		params.Push(Map("name","files[0]","filename",imgname,"content-type","image/png","pBitmap",pBitmap))
 		this.CreateFormData(&postdata, &contentType, params)
-		this.SendMessageAPI(postdata, contentType)
+		return this.SendMessageAPI(postdata, contentType)
 	}
 
 	static SendMessageAPI(postdata, contentType:="application/json", channel:="", url:="")
@@ -361,5 +361,16 @@ class discord
 		StrPut(value, encodedText, "UTF-8")
 		if DllCall("shlwapi\IStream_Write", "Ptr", stream, "Ptr", encodedText, "UInt", encodedText.Size - 1, "Int") != 0
 			throw Error("Could not encode report text")
+	}
+}
+
+; Status command replies need queue acceptance, not a synchronous HTTP body.
+; Borrow the base class's outbox so commands, statuses and live honey serialize
+; network requests through one queue. Existing synchronous library callers retain
+; their response contract, including the pre-shutdown reply.
+class nm_DiscordCommandReply extends discord {
+	static DeliveryQueue() => discord.DeliveryQueue()
+	static SendMessageAPI(postdata, contentType := "application/json", channel := "", url := "") {
+		return this.QueueMessage(postdata, contentType, channel, url, "Command reply")
 	}
 }
