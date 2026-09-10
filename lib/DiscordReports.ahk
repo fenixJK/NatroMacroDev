@@ -94,7 +94,7 @@ nm_DiscordTimerReport(vars, catalog, prefix, replyID, current) {
 			if group != "Mobs" && vars.Get(timer.varname "Check", 0) != 1
 				continue
 			last := vars.Get("Last" timer.varname, ""), respawn := vars.Get("MonsterRespawnTime", 0)
-			deadline := IsNumber(last) && IsNumber(respawn) ? last + timer.cooldown * (group = "Mobs" ? 1 - respawn * 0.01 : 1) : ""
+			deadline := IsNumber(last) && (group != "Mobs" || IsNumber(respawn)) ? last + timer.cooldown * (group = "Mobs" ? 1 - respawn * 0.01 : 1) : ""
 			fields.Push(f(timer.name, nm_DiscordReport.Remaining(deadline, current, group = "Mobs" ? "Alive" : "Ready")))
 		}
 		if fields.Length {

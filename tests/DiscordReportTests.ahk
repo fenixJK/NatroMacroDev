@@ -55,6 +55,10 @@ TestDiscordReports() {
 		AssertEqual(report.Payload["embeds"][2]["fields"][1]["value"], "Alive", "Monster respawn reduction applied")
 		AssertEqual(report.Payload["embeds"][3]["fields"][1]["value"], "50s", "Machine/event cooldown is not reduced")
 		AssertEqual(report.Files[1]["name"], "files[0]", "Enabled groups use dense attachment indexes")
+		vars["MonsterRespawnTime"] := "invalid"
+		report := nm_DiscordTimerReport(vars, timers, prefix, "123", 150)
+		AssertEqual(report.Payload["embeds"][2]["fields"][1]["value"], "Unknown", "Invalid monster modifier does not invent a mob timer")
+		AssertEqual(report.Payload["embeds"][3]["fields"][1]["value"], "50s", "Unrelated monster modifier does not invalidate machine/event timers")
 		AssertEqual(nm_DiscordReport.Remaining("invalid", 100), "Unknown", "Invalid time does not become ready")
 
 		games := Map("Normal", {bit: 1, cooldown: 100}, "Mega", {bit: 2, cooldown: 100})
