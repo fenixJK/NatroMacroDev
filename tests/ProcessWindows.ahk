@@ -79,6 +79,7 @@ ProcessTests() {
 		RequireProcess(!player.Running(), "Verified player process terminated")
 		RequireProcess(decoy.Running(), "Studio/Roblox-named command-line decoy survives")
 		RequireProcess(nm_OwnedProcessJob.Execute(Map("kind", "close")) = 0, "Repeated cleanup does not target unrelated survivors")
+		TestProcessCrashOwnership()
 		FileAppend "PASS Windows owned-process and reconnect cleanup integration (" A_PtrSize * 8 "-bit)`n", "*"
 	} finally {
 		if observed
@@ -87,6 +88,57 @@ ProcessTests() {
 			job.Close()
 		DirDelete directory, true
 	}
+}
+TestProcessCrashOwnership() {
+	parent := 0, childHandle := 0
+	try {
+		parent := nm_OwnedProcessJob(Map("mode", "owner"), A_ScriptDir "\ProcessFixture.ahk")
+		WaitProcessReady(parent)
+		RequireProcess(DllCall("IsProcessInJob", "Ptr", parent.Process, "Ptr", parent.Job, "IntP", &owned := 0) && owned, "Helper belongs to the creation-time job")
+		childHandle := DllCall("OpenProcess", "UInt", 0x101001, "Int", false, "UInt", NumGet(parent.View, 12, "Int"), "Ptr")
+		RequireProcess(childHandle && DllCall("WaitForSingleObject", "Ptr", childHandle, "UInt", 0) = 258, "Nested helper is running before owner crash")
+		; The nested helper must be owned by its immediate parent, not killed
+		; accidentally by the harness's outer job when that job is later closed.
+		RequireProcess(DllCall("IsProcessInJob", "Ptr", childHandle, "Ptr", parent.Job, "IntP", &outerOwned := 0) && !outerOwned, "Nested helper has independent ownership")
+		RequireProcess(DllCall("TerminateProcess", "Ptr", parent.Process, "UInt", 77), "Abruptly terminate owner without AHK cleanup")
+		RequireProcess(DllCall("WaitForSingleObject", "Ptr", parent.Process, "UInt", 2000) = 0, "Owner crash is terminal")
+		RequireProcess(DllCall("WaitForSingleObject", "Ptr", childHandle, "UInt", 2000) = 0, "Kernel kills nested helper after owner crash")
+	} finally {
+		if childHandle {
+			DllCall("TerminateProcess", "Ptr", childHandle, "UInt", 1)
+			DllCall("WaitForSingleObject", "Ptr", childHandle, "UInt", 2000)
+			DllCall("CloseHandle", "Ptr", childHandle)
+		}
+		if parent
+			parent.Close()
+	}
+	for mode in ["spawn", "spawn_idle"] {
+		launcher := 0, survivorHandle := 0
+		try {
+			launcher := nm_OwnedProcessJob(Map("mode", mode), A_ScriptDir "\ProcessFixture.ahk")
+			if mode = "spawn"
+				pid := launcher.Wait()
+			else {
+				WaitProcessReady(launcher)
+				pid := NumGet(launcher.View, 12, "Int")
+			}
+			survivorHandle := DllCall("OpenProcess", "UInt", 0x101001, "Int", false, "UInt", pid, "Ptr")
+			RequireProcess(survivorHandle && DllCall("IsProcessInJob", "Ptr", survivorHandle, "Ptr", launcher.Job, "IntP", &owned := 0) && !owned, "Launched application breaks away from helper job")
+			launcher.Close()
+			RequireProcess(DllCall("WaitForSingleObject", "Ptr", survivorHandle, "UInt", 0) = 258, "Launched application survives normal or forced helper cleanup")
+		} finally {
+			if survivorHandle {
+				DllCall("TerminateProcess", "Ptr", survivorHandle, "UInt", 1)
+				DllCall("WaitForSingleObject", "Ptr", survivorHandle, "UInt", 2000)
+				DllCall("CloseHandle", "Ptr", survivorHandle)
+			}
+			if launcher
+				launcher.Close()
+		}
+	}
+	; Remaining jobs belong to the surrounding player/decoy fixture and are
+	; released by its own finally block.
+	FileAppend "PASS Windows crash ownership and application survival (" A_PtrSize * 8 "-bit)`n", "*"
 }
 RequireProcess(condition, message) {
 	if !condition

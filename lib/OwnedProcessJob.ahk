@@ -1,6 +1,6 @@
 ; Requests live in a private named mapping, never in shell text or temporary files.
-; Only the owned process handle is terminated; launched browser/game processes
-; deliberately survive normal helper completion.
+; A kernel job owns each helper from process creation, including parent crashes.
+; Children launched by a helper deliberately break away and survive its cleanup.
 class nm_ProcessJobError extends Error {
 }
 class nm_OwnedProcessJob {
@@ -8,7 +8,8 @@ class nm_OwnedProcessJob {
 	static Initialized := false
 	static Bytes := 16384
 	__New(request, script := "", executable := "") {
-		this.Process := this.Mapping := this.View := 0
+		this.Process := this.Mapping := this.View := this.Job := 0
+		attributesReady := false
 		this.Started := DllCall("GetTickCount64", "UInt64")
 		if !nm_OwnedProcessJob.Initialized {
 			OnExit(ObjBindMethod(nm_OwnedProcessJob, "CloseAll"))
@@ -38,17 +39,43 @@ class nm_OwnedProcessJob {
 			command := '"' executable '" /ErrorStdOut=UTF-8 "' script '" "' this.Name '"'
 			mutableCommand := Buffer((StrLen(command) + 1) * 2)
 			StrPut(command, mutableCommand, "UTF-16")
-			startup := Buffer(A_PtrSize = 8 ? 104 : 68, 0), info := Buffer(A_PtrSize * 2 + 8, 0)
+			this.Job := DllCall("CreateJobObjectW", "Ptr", 0, "Ptr", 0, "Ptr")
+			if !this.Job
+				throw OSError()
+			limits := Buffer(A_PtrSize = 8 ? 144 : 112, 0)
+			; KILL_ON_JOB_CLOSE | SILENT_BREAKAWAY_OK. The helper stays owned;
+			; browser/game processes it creates are not killed with the helper.
+			NumPut("UInt", 0x3000, limits, 16)
+			if !DllCall("SetInformationJobObject", "Ptr", this.Job, "Int", 9, "Ptr", limits, "UInt", limits.Size)
+				throw OSError()
+			DllCall("InitializeProcThreadAttributeList", "Ptr", 0, "UInt", 1, "UInt", 0, "UPtrP", &attributeBytes := 0)
+			if !attributeBytes || attributeBytes > 65536
+				throw Error("Invalid process attribute allocation")
+			attributes := Buffer(attributeBytes)
+			if !DllCall("InitializeProcThreadAttributeList", "Ptr", attributes, "UInt", 1, "UInt", 0, "UPtrP", &attributeBytes)
+				throw OSError()
+			attributesReady := true, jobList := Buffer(A_PtrSize)
+			NumPut("Ptr", this.Job, jobList)
+			; JOB_LIST assigns ownership atomically with CreateProcessW. There is
+			; no interval where a started or suspended helper is outside the job.
+			if !DllCall("UpdateProcThreadAttribute", "Ptr", attributes, "UInt", 0, "UPtr", 0x2000D,
+				"Ptr", jobList, "UPtr", jobList.Size, "Ptr", 0, "Ptr", 0)
+				throw OSError()
+			startup := Buffer(A_PtrSize = 8 ? 112 : 72, 0), info := Buffer(A_PtrSize * 2 + 8, 0)
 			NumPut("UInt", startup.Size, startup), NumPut("UInt", 1, startup, A_PtrSize = 8 ? 60 : 44)
+			NumPut("Ptr", attributes.Ptr, startup, A_PtrSize = 8 ? 104 : 68)
 			if !DllCall("CreateProcessW", "Str", executable, "Ptr", mutableCommand, "Ptr", 0, "Ptr", 0, "Int", false,
-				"UInt", 0x08000000, "Ptr", 0, "Str", A_WorkingDir, "Ptr", startup, "Ptr", info)
+				"UInt", 0x08080000, "Ptr", 0, "Str", A_WorkingDir, "Ptr", startup, "Ptr", info)
 				throw OSError()
 			this.Process := NumGet(info, 0, "Ptr"), this.Pid := NumGet(info, A_PtrSize * 2, "UInt")
 			DllCall("CloseHandle", "Ptr", NumGet(info, A_PtrSize, "Ptr"))
 			nm_OwnedProcessJob.Jobs[this.Pid] := this
 		} catch {
 			this.Close()
-			throw nm_ProcessJobError("Could not start the reconnect helper")
+			throw nm_ProcessJobError("Could not start an owned reconnect helper (Windows 10 or newer is required)")
+		} finally {
+			if attributesReady
+				DllCall("DeleteProcThreadAttributeList", "Ptr", attributes)
 		}
 	}
 	Running() {
@@ -88,6 +115,8 @@ class nm_OwnedProcessJob {
 			if nm_OwnedProcessJob.Jobs.Has(this.Pid)
 				nm_OwnedProcessJob.Jobs.Delete(this.Pid)
 		}
+		if this.Job
+			DllCall("CloseHandle", "Ptr", this.Job), this.Job := 0
 		if this.View
 			DllCall("UnmapViewOfFile", "Ptr", this.View), this.View := 0
 		if this.Mapping

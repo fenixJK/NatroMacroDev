@@ -10,6 +10,28 @@ if request["mode"] = "echo" {
 	channel.Close()
 	ExitApp 0
 }
+
+if request["mode"] = "owner" {
+	; This fixture becomes a macro-like owner of a second helper. The harness
+	; kills this process directly, bypassing all AHK OnExit callbacks.
+	child := nm_OwnedProcessJob(Map("mode", "idle"), A_ScriptFullPath)
+	deadline := DllCall("GetTickCount64", "UInt64") + 20000
+	while NumGet(child.View, 8, "Int") != 3 {
+		if !child.Running() || DllCall("GetTickCount64", "UInt64") >= deadline
+			ExitApp 1
+		Sleep 20
+	}
+	NumPut("Int", child.Pid, channel.View, 12)
+}
+if request["mode"] = "spawn" || request["mode"] = "spawn_idle" {
+	Run '"' A_AhkPath '" /ErrorStdOut=UTF-8 "' A_ScriptDir '\ProcessSurvivor.ahk"', , , &survivorPid
+	if request["mode"] = "spawn" {
+		channel.Complete(survivorPid)
+		channel.Close()
+		ExitApp 0
+	}
+	NumPut("Int", survivorPid, channel.View, 12)
+}
 ; Keep a real process alive and refuse graceful WM_CLOSE for termination checks.
 OnMessage(0x10, (*) => 0)
 NumPut("Int", 3, channel.View, 8)
