@@ -24,10 +24,10 @@ class nm_OwnedProcessJob {
 				throw OSError()
 			DllCall("ole32\StringFromGUID2", "Ptr", guid, "Ptr", text, "Int", 39)
 			this.Name := "Local\NatroReconnect-" RegExReplace(StrGet(text), "[{}-]")
-			this.Mapping := DllCall("CreateFileMappingW", "Ptr", -1, "Ptr", 0, "UInt", 4, "UInt", 0, "UInt", nm_OwnedProcessJob.Bytes, "Str", this.Name, "Ptr")
+			this.Mapping := DllCall("CreateFileMappingW", "Ptr", -1, "Ptr", 0, "UInt", 4, "UInt", 0, "UInt", this.ChannelBytes(), "Str", this.Name, "Ptr")
 			if !this.Mapping || A_LastError = 183
 				throw Error("Could not create a unique process channel")
-			this.View := DllCall("MapViewOfFile", "Ptr", this.Mapping, "UInt", 0xF001F, "UInt", 0, "UInt", 0, "UPtr", nm_OwnedProcessJob.Bytes, "Ptr")
+			this.View := DllCall("MapViewOfFile", "Ptr", this.Mapping, "UInt", 0xF001F, "UInt", 0, "UInt", 0, "UPtr", this.ChannelBytes(), "Ptr")
 			if !this.View
 				throw OSError()
 			NumPut("UInt", 1, "UInt", StrLen(encoded), "Int", 0, "Int", 0, this.View)
@@ -78,6 +78,7 @@ class nm_OwnedProcessJob {
 				DllCall("DeleteProcThreadAttributeList", "Ptr", attributes)
 		}
 	}
+	ChannelBytes() => nm_OwnedProcessJob.Bytes
 	RequestLimit() => 4096
 	LimitFlags() => 0x3000
 	Command(executable, script) => '"' executable '" /ErrorStdOut=UTF-8 "' script '" "' this.Name '"'
@@ -137,14 +138,17 @@ class nm_OwnedProcessJob {
 }
 
 class nm_ProcessChannel {
-	__New(name) {
+	__New(name, capacity := 16384, maxChars := 4096) {
+		if capacity < 16 || capacity > 4194304 || maxChars < 2 || maxChars * 2 + 18 > capacity
+			throw ValueError("Invalid process channel bounds")
+		this.MaxChars := maxChars
 		this.Mapping := this.View := 0
 		if !RegExMatch(name, "^Local\\NatroReconnect-[A-Fa-f0-9]{32}$")
 			throw ValueError("Invalid process channel")
 		this.Mapping := DllCall("OpenFileMappingW", "UInt", 0xF001F, "Int", false, "Str", name, "Ptr")
 		if !this.Mapping
 			throw OSError()
-		this.View := DllCall("MapViewOfFile", "Ptr", this.Mapping, "UInt", 0xF001F, "UInt", 0, "UInt", 0, "UPtr", nm_OwnedProcessJob.Bytes, "Ptr")
+		this.View := DllCall("MapViewOfFile", "Ptr", this.Mapping, "UInt", 0xF001F, "UInt", 0, "UInt", 0, "UPtr", capacity, "Ptr")
 		if !this.View {
 			this.Close()
 			throw OSError()
@@ -152,7 +156,7 @@ class nm_ProcessChannel {
 	}
 	Read() {
 		length := NumGet(this.View, 4, "UInt")
-		if NumGet(this.View, 0, "UInt") != 1 || length > 4096 || length < 2
+		if NumGet(this.View, 0, "UInt") != 1 || length > this.MaxChars || length < 2
 			throw ValueError("Invalid process request")
 		return JSON.parse(StrGet(this.View + 16, length, "UTF-16"))
 	}

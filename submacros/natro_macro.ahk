@@ -35,6 +35,8 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "StartupControl.ahk"
 #Include "ReconnectSession.ahk"
 #Include "OwnedProcessJob.ahk"
+#Include "InlineScripts.ahk"
+#Include "HelperScripts.ahk"
 #Include "RecoveryActivity.ahk"
 #Include "RemoteCapabilities.ahk"
 #Include "SupportReport.ahk"
@@ -59,6 +61,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Warn VarUnset, Off
 
 nm_Failures.OnFailure := nm_FailClosed
+nm_InlineScripts.OnFailure := (err, role) => nm_Failures.Write(err, "Generated worker: " role)
 SetWorkingDir A_ScriptDir "\.."
 CoordMode "Mouse", "Screen"
 CoordMode "Pixel", "Screen"
@@ -109,16 +112,13 @@ exe_path64 := (A_Is64bitOS && FileExist("submacros\AutoHotkey64.exe")) ? (A_Work
 
 ; close any remnant running natro scripts and start heartbeat
 CloseScripts(hb:=0) {
-	list := WinGetList("ahk_class AutoHotkey ahk_exe " exe_path32)
-	if (exe_path32 != exe_path64)
-		list.Push(WinGetList("ahk_class AutoHotkey ahk_exe " exe_path64)*)
-	for hwnd in list
-		if !((hwnd = A_ScriptHwnd) || ((hb = 1) && A_Args.Has(2) && (hwnd = A_Args[2])))
-			try WinClose "ahk_id " hwnd
+	nm_InlineScripts.CloseAll()
+	nm_OwnedProcessJob.CloseAll()
+	nm_HelperScripts.Close(A_WorkingDir, [exe_path32, exe_path64], hb && A_Args.Has(2) ? A_Args[2] : 0)
 }
 DetectHiddenWindows 1
 CloseScripts(1)
-if !WinExist("Heartbeat.ahk ahk_class AutoHotkey")
+if !nm_HelperScripts.Window(A_WorkingDir, "Heartbeat", exe_path32)
 	run '"' exe_path32 '" /script "' A_WorkingDir '\submacros\Heartbeat.ahk"'
 DetectHiddenWindows 0
 
@@ -285,8 +285,7 @@ nm_importPatterns()
 			'
 			)
 
-			exec := ComObject("WScript.Shell").Exec('"' exe_path64 '" /script /Validate /ErrorStdOut *'), exec.StdIn.Write(script), exec.StdIn.Close()
-			if (stdout := exec.StdOut.ReadAll())
+			if (stdout := nm_InlineScripts.Validate(script, exe_path64))
 			{
 				MsgBox
 				(
@@ -6993,7 +6992,7 @@ nm_WebhookGUI(*){
 	global
 	local script, exec, shell
 
-	try ProcessClose WGUIPID
+	nm_InlineScripts.Close("discord_gui")
 
 	script :=
 	(
@@ -7467,9 +7466,7 @@ nm_WebhookGUI(*){
 	'
 	)
 
-	shell := ComObject("WScript.Shell")
-	exec := shell.Exec('"' exe_path64 '" /script /force *')
-	exec.StdIn.Write(script), exec.StdIn.Close()
+	exec := nm_InlineScripts.Start("discord_gui", script, exe_path64)
 
 	return (WGUIPID := exec.ProcessID)
 }
@@ -8067,9 +8064,7 @@ nm_BitterberryFeeder(*)
 
 	script := nm_BuildBitterberryFeederScript()
 
-	shell := ComObject("WScript.Shell")
-	exec := shell.Exec('"' exe_path64 '" /script /force *')
-	exec.StdIn.Write(script), exec.StdIn.Close()
+	exec := nm_InlineScripts.Start("bitterberry", script, exe_path64)
 }
 nm_BasicEggHatcher(*)
 {
@@ -8081,9 +8076,7 @@ nm_BasicEggHatcher(*)
 
 	script := nm_BuildBasicEggHatcherScript()
 
-	shell := ComObject("WScript.Shell")
-	exec := shell.Exec('"' exe_path64 '" /script /force *')
-	exec.StdIn.Write(script), exec.StdIn.Close()
+	exec := nm_InlineScripts.Start("basic_egg", script, exe_path64)
 }
 nm_GenerateBeeList(*)
 {
@@ -8658,7 +8651,7 @@ nm_MakeSuggestionButton(*){
 blc_mutations(*) {
 	global
 	local script, exec
-	try ProcessClose(MGUIPID)
+	nm_InlineScripts.Close("bee_gui")
 	script :=
 	(
 	'
@@ -9321,8 +9314,7 @@ blc_mutations(*) {
 	}
 	'
 	)
-	exec := ComObject("WScript.shell").Exec('"' exe_path64 '" /script /force *')
-	exec.StdIn.Write(script), exec.StdIn.Close()
+	exec := nm_InlineScripts.Start("bee_gui", script, exe_path64)
 	return (MGUIPID := exec.processID)
 }
 
@@ -9716,7 +9708,7 @@ nm_priorityListGui(*) {
 	global
 	local script, exec
 
-	try ProcessClose(PGUIPID)
+	nm_InlineScripts.Close("priority_gui")
 
 	script := 
 	(
@@ -9916,9 +9908,7 @@ nm_priorityListGui(*) {
 	}
 	'
 	)
-	exec := ComObject("WScript.Shell")
-			.exec('"' exe_path64 '" /script /force *')
-	exec.StdIn.Write(script), exec.StdIn.Close()
+	exec := nm_InlineScripts.Start("priority_gui", script, exe_path64)
 
 	return (PGUIPID := exec.ProcessID)
 }
@@ -15473,7 +15463,7 @@ nm_gather(pattern, index, patternsize:="M", reps:=1, facingcorner:=0){
 		: 1 ; medium (default)
 
 	DetectHiddenWindows 1
-	if ((index = 1) || !WinExist("ahk_class AutoHotkey ahk_pid " currentWalk.pid))
+	if ((index = 1) || !nm_InlineScripts.Window("walk"))
 		nm_createWalk(patterns[pattern], "pattern",
 			(
 			'
@@ -15561,34 +15551,31 @@ nm_createWalk(movement, name:="", vars:="") ; this function generates the 'walk'
 
 	DetectHiddenWindows 1 ; allow communication with walk script
 
-	if WinExist("ahk_pid " currentWalk.pid " ahk_class AutoHotkey")
+	if nm_InlineScripts.Window("walk")
 		nm_endWalk()
 
 	script := nm_BuildWalkScript(movement, vars, NewWalk, MoveSpeedNum, GetYOffset(), nm_KeyVars(),
 		LeftKey, RightKey, FwdKey, BackKey, SC_Space, SC_E)
 
-	shell := ComObject("WScript.Shell")
-	exec := shell.Exec('"' exe_path64 '" /script /force *')
-	exec.StdIn.Write(script), exec.StdIn.Close()
+	exec := nm_InlineScripts.Start("walk", script, exe_path64)
 
-	if WinWait("ahk_class AutoHotkey ahk_pid " exec.ProcessID, , 2) {
+	if exec.ProcessID && WinWait("ahk_class AutoHotkey ahk_pid " exec.ProcessID, , 2) {
 		DetectHiddenWindows 0
 		currentWalk.pid := exec.ProcessID, currentWalk.name := name
 		return 1
 	}
 	else {
+		nm_InlineScripts.Close("walk")
 		DetectHiddenWindows 0
 		return 0
 	}
 }
-nm_endWalk() ; this function ends the walk script
+nm_endWalk() ; stop the owned worker and release movement even after forced termination
 {
-	global currentWalk
-	DetectHiddenWindows 1
-	try WinClose "ahk_class AutoHotkey ahk_pid " currentWalk.pid
-	DetectHiddenWindows 0
+	global currentWalk, LeftKey, RightKey, FwdKey, BackKey, SC_Space, SC_E
+	nm_InlineScripts.Close("walk")
 	currentWalk.pid := currentWalk.name := ""
-	; if issues, we can check if closed, else kill and force keys up
+	SendInput "{" LeftKey " up}{" RightKey " up}{" FwdKey " up}{" BackKey " up}{" SC_Space " up}{F14 up}{" SC_E " up}"
 }
 nm_loot(length, reps, direction, tokenlink:=0){ ; length in tiles instead of ms (old)
 	global FwdKey, LeftKey, BackKey, RightKey, KeyDelay, bitmaps
@@ -20346,6 +20333,7 @@ getout(*){
 }
 
 Background() {
+	nm_InlineScripts.Reap()
 	if MacroState = 2 && nm_StartSession.Running()
 		nm_RecoveryActivity.RunBackground(nm_BackgroundActions)
 }
@@ -20707,7 +20695,7 @@ nm_Pause(*){
 		nm_LockTabs()
 		ActivateRoblox()
 		DetectHiddenWindows 1
-		if WinExist("ahk_class AutoHotkey ahk_pid " currentWalk.pid)
+		if nm_InlineScripts.Window("walk")
 			Send "{F16}"
 		else
 		{
@@ -20739,7 +20727,7 @@ nm_Pause(*){
 		if (ShowOnPause = 1)
 			WinActivate "ahk_id " MainGui.Hwnd
 		DetectHiddenWindows 1
-		if WinExist("ahk_class AutoHotkey ahk_pid " currentWalk.pid)
+		if nm_InlineScripts.Window("walk")
 			Send "{F16}"
 		else
 		{
@@ -20794,7 +20782,7 @@ nm_WM_COPYDATA(wParam, lParam, *){
 		nm_setStatus("Detected", "Guiding Star in " . StringText)
 		;pause
 		DetectHiddenWindows 1
-		if WinExist("ahk_class AutoHotkey ahk_pid " currentWalk.pid)
+		if nm_InlineScripts.Window("walk")
 			Send "{F16}"
 		else
 		{
@@ -20822,7 +20810,7 @@ nm_WM_COPYDATA(wParam, lParam, *){
 			DetectHiddenWindows 0
 			return 0
 		} else {
-			if WinExist("ahk_class AutoHotkey ahk_pid " currentWalk.pid)
+			if nm_InlineScripts.Window("walk")
 				Send "{F16}"
 			else
 			{

@@ -1,8 +1,9 @@
 ; A retained handle identifies a main-script instance through cleanup. Discovery
 ; requires its exact script title, runtime image, current user and session.
 class nm_ScriptProcess {
-	__New(handle, pid, title := "Natro Macro") {
+	__New(handle, pid, title := "Natro Macro", scriptHwnd := 0) {
 		this.Handle := handle, this.Pid := pid, this.Title := title
+		this.ScriptHwnd := scriptHwnd
 	}
 	Running() {
 		result := DllCall("WaitForSingleObject", "Ptr", this.Handle, "UInt", 0, "UInt")
@@ -32,6 +33,20 @@ class nm_ScriptProcess {
 	Release() {
 		if this.Handle
 			DllCall("CloseHandle", "Ptr", this.Handle), this.Handle := 0
+	}
+	Shutdown() {
+		if this.Running() && this.ScriptHwnd {
+			hiddenBefore := A_DetectHiddenWindows
+			DetectHiddenWindows true
+			try {
+				if WinGetPID("ahk_id " this.ScriptHwnd) = this.Pid
+					DllCall("PostMessageW", "Ptr", this.ScriptHwnd, "UInt", 0x10, "Ptr", 0, "Ptr", 0)
+			} finally DetectHiddenWindows hiddenBefore
+			deadline := DllCall("GetTickCount64", "UInt64") + 500
+			while this.Running() && DllCall("GetTickCount64", "UInt64") < deadline
+				Sleep 20
+		}
+		this.Close()
 	}
 	static Launch(script, executable, args := [], title := "Natro Macro") {
 		command := '"' executable '" /ErrorStdOut=UTF-8 "' script '"'
@@ -74,7 +89,7 @@ class nm_ScriptProcess {
 						|| !WinExist("ahk_id " hwnd) || WinGetPID("ahk_id " hwnd) != pid
 						|| StrCompare(WinGetTitle("ahk_id " hwnd), script " - AutoHotkey v" A_AhkVersion, false) != 0
 						continue
-					found.Push(nm_ScriptProcess(handle, pid)), handle := 0
+					found.Push(nm_ScriptProcess(handle, pid, "Natro Macro", hwnd)), handle := 0
 				} finally {
 					if handle
 						DllCall("CloseHandle", "Ptr", handle)

@@ -7,6 +7,10 @@
 #Include "%A_ScriptDir%\NativeFileJobTests.ahk"
 #Include "%A_ScriptDir%\..\lib\ScriptProcess.ahk"
 #Include "%A_ScriptDir%\NativeScriptProcessTests.ahk"
+#Include "%A_ScriptDir%\..\lib\InlineScripts.ahk"
+#Include "%A_ScriptDir%\NativeInlineTests.ahk"
+#Include "%A_ScriptDir%\..\lib\HelperScripts.ahk"
+#Include "%A_ScriptDir%\NativeHelperTests.ahk"
 #Include "%A_ScriptDir%\..\lib\RobloxProcesses.ahk"
 #Include "%A_ScriptDir%\..\lib\ReconnectLaunch.ahk"
 #Include "%A_ScriptDir%\..\lib\DeliveryCooldown.ahk"
@@ -99,6 +103,8 @@ ProcessTests() {
 		TestProcessCrashOwnership()
 		TestNativeFileJobs()
 		TestNativeScriptProcesses()
+		TestNativeInlineWorkers()
+		TestNativeHelperCleanup()
 		TestNativeCooldown()
 		FileAppend "PASS Windows owned-process and reconnect cleanup integration (" A_PtrSize * 8 "-bit)`n", "*"
 	} finally {

@@ -4,8 +4,14 @@
 #Include "%A_ScriptDir%\..\lib\JSON.ahk"
 #Include "%A_ScriptDir%\..\lib\OwnedProcessJob.ahk"
 #Include "%A_ScriptDir%\..\lib\PowerShellJob.ahk"
+#Include "%A_ScriptDir%\..\lib\InlineScripts.ahk"
 channel := nm_ProcessChannel(A_Args[1])
 request := channel.Read()
+if request["mode"] = "inline_owner" {
+	child := nm_InlineWorker('#SingleInstance Off`n#NoTrayIcon`nSleep 60000', A_AhkPath)
+	NumPut("Int", child.Pid, channel.View, 12)
+	NumPut("Int", child.ProcessID, channel.View, 16)
+}
 if request["mode"] = "echo" {
 	channel.Complete(request["text"] == 'Unicode Ω " & $(not-a-command)' ? 42 : -1)
 	channel.Close()
