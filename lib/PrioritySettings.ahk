@@ -56,9 +56,11 @@ class nm_PrioritySettings {
 				catch Error
 					continue
 				try {
-					for instance in instances
-						if instance.Running()
-							try PostMessage 0x5552, 366, 0,, "ahk_id " instance.ScriptHwnd
+					for instance in instances {
+						DllCall("GetWindowThreadProcessId", "Ptr", instance.ScriptHwnd, "UIntP", &windowPid := 0)
+						if windowPid = instance.Pid && instance.Running()
+							DllCall("PostMessageW", "Ptr", instance.ScriptHwnd, "UInt", 0x5552, "UPtr", 366, "Ptr", 0)
+					}
 				} finally {
 					for instance in instances
 						instance.Release()

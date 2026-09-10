@@ -33,7 +33,7 @@ TestNativePriorityNotifications() {
 				Sleep 20
 			}
 			if index <= 2
-				RequireProcess(FileExist(path ".notice") && FileRead(path ".notice") = "366|0`n", "Exact installation and runtime receives one invalidation")
+				RequireProcess(FileExist(path ".notice") && FileRead(path ".notice") = "366|0`n", "Exact installation and runtime receives one invalidation: fixture " index ", received " (FileExist(path ".notice") ? FileRead(path ".notice") : "<missing>"))
 			else
 				RequireProcess(!FileExist(path ".notice"), "Personal script, other installation and wrong runtime receive no priority notice")
 		}
