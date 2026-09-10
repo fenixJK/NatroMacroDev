@@ -24,6 +24,9 @@
 #Include "%A_ScriptDir%\NativeScreenCaptureTests.ahk"
 #Include "%A_ScriptDir%\NativeTextGraphicsTests.ahk"
 #Include "%A_ScriptDir%\NativeMenuTests.ahk"
+#Include "%A_ScriptDir%\..\lib\ResetRecovery.ahk"
+#Include "%A_ScriptDir%\..\lib\HiveObservation.ahk"
+#Include "%A_ScriptDir%\NativeHiveTests.ahk"
 
 bitmaps := Map(), windowX := windowY := windowWidth := windowHeight := 0
 fixture := Gui("-DPIScale", "Natro geometry fixture")
@@ -48,6 +51,7 @@ try {
 	TestNativeScreenCapture()
 	TestNativeTextGraphics()
 	TestNativeMenus()
+	TestNativeHiveObservation()
 	Require(ActivateRoblox(fixture.Hwnd), "Restore fixture focus after startup settings dialogs")
 	fixture.Minimize()
 	Require(!nm_ClientSnapshot(fixture.Hwnd), "Minimized client is unusable")

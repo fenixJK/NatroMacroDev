@@ -35,6 +35,8 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "PrioritySettings.ahk"
 #Include "StartupControl.ahk"
 #Include "ReconnectSession.ahk"
+#Include "ResetRecovery.ahk"
+#Include "HiveObservation.ahk"
 #Include "OwnedProcessJob.ahk"
 #Include "InlineScripts.ahk"
 #Include "HelperScripts.ahk"
@@ -8935,7 +8937,8 @@ nm_Reset(checkAll:=1, wait:=2000, convert:=1, force:=0){
 	}
 	DisconnectCheck()
 	nm_setShiftLock(0)
-	nm_OpenMenu()
+	if !nm_OpenMenu()
+		throw nm_ResetExhausted("Cannot confirm closed menus before hive recovery")
 	if(youDied && !(instr(objective, "mondo") || CheckNight)){ ; add extra time if player died before reset expect when fighting bosses
 		wait:=max(wait, 20000)
 	}
@@ -8953,149 +8956,10 @@ nm_Reset(checkAll:=1, wait:=2000, convert:=1, force:=0){
 	if(force=1) {
 		HiveConfirmed:=0
 	}
-	while (!HiveConfirmed) {
-		;failsafe game frozen
-		if(Mod(A_Index, 10) = 0) {
-			nm_setStatus("Closing", "and Re-Open Roblox")
-			CloseRoblox()
-			DisconnectCheck()
-			continue
-		}
-		DisconnectCheck()
-		ActivateRoblox()
-		nm_setShiftLock(0)
-		nm_OpenMenu()
-
-		hwnd := GetRobloxHWND()
-		offsetY := GetYOffset(hwnd)
-		;check that performance stats is disabled
-		GetRobloxClientPos(hwnd)
-		pBMScreen := Gdip_BitmapFromScreen(windowX "|" windowY+offsetY+36 "|" windowWidth "|24")
-		if ((Gdip_ImageSearch(pBMScreen, bitmaps["perfmem"], &pos, , , , , 2, , 5) = 1)
-		&& (Gdip_ImageSearch(pBMScreen, bitmaps["perfwhitefill"], , x := SubStr(pos, 1, (comma := InStr(pos, ",")) - 1), y := SubStr(pos, comma + 1), x + 17, y + 7, 2) = 0)) {
-			if ((Gdip_ImageSearch(pBMScreen, bitmaps["perfcpu"], &pos, x + 17, y, , y + 7, 2) = 1)
-			&& (Gdip_ImageSearch(pBMScreen, bitmaps["perfwhitefill"], , x := SubStr(pos, 1, (comma := InStr(pos, ",")) - 1), y := SubStr(pos, comma + 1), x + 17, y + 7, 2) = 0)) {
-				if ((Gdip_ImageSearch(pBMScreen, bitmaps["perfgpu"], &pos, x + 17, y, , y + 7, 2) = 1)
-				&& (Gdip_ImageSearch(pBMScreen, bitmaps["perfwhitefill"], , x := SubStr(pos, 1, (comma := InStr(pos, ",")) - 1), y := SubStr(pos, comma + 1), x + 17, y + 7, 2) = 0)) {
-					Send "^{F7}"
-				}
-			}
-		}
-		Gdip_DisposeImage(pBMScreen)
-		;check to make sure you are not in dialog before reset
-		Loop 500
-		{
-			GetRobloxClientPos(hwnd)
-			pBMScreen := Gdip_BitmapFromScreen(windowX+windowWidth//2-50 "|" windowY+2*windowHeight//3 "|100|" windowHeight//3)
-			if (Gdip_ImageSearch(pBMScreen, bitmaps["dialog"], &pos, , , , , 10, , 3) != 1) {
-				Gdip_DisposeImage(pBMScreen)
-				break
-			}
-			Gdip_DisposeImage(pBMScreen)
-			MouseMove windowX+windowWidth//2, windowY+2*windowHeight//3+SubStr(pos, InStr(pos, ",")+1)-15
-			Click
-			Sleep 150
-		}
-		MouseMove windowX+350, windowY+offsetY+100
-		;check to make sure you are not in a yes/no prompt
-		GetRobloxClientPos(hwnd)
-		pBMScreen := Gdip_BitmapFromScreen(windowX+windowWidth//2-250 "|" windowY+windowHeight//2-52 "|500|150")
-		if (Gdip_ImageSearch(pBMScreen, bitmaps["no"], &pos, , , , , 2, , 3) = 1) {
-			MouseMove windowX+windowWidth//2-250+SubStr(pos, 1, InStr(pos, ",")-1), windowY+windowHeight//2-52+SubStr(pos, InStr(pos, ",")+1)
-			Click
-			MouseMove windowX+350, windowY+offsetY+100
-		}
-		Gdip_DisposeImage(pBMScreen)
-		;check to make sure you are not in feed window on accident
-		imgPos := nm_imgSearch("cancel.png",30)
-		If (imgPos[1] = 0){
-			MouseMove windowX+(imgPos[2]), windowY+(imgPos[3])
-			Click
-			MouseMove windowX+350, windowY+offsetY+100
-		}
-		;check to make sure you are not in blender screen
-		BlenderSS := Gdip_BitmapFromScreen(windowX+windowWidth//2 - 275 "|" windowY+Floor(0.48*windowHeight) - 220 "|550|400")
-		if (Gdip_ImageSearch(BlenderSS, bitmaps["CloseGUI"], , , , , , 5) > 0) {
-			MouseMove windowX+windowWidth//2 - 250, windowY+Floor(0.48*windowHeight) - 200
-			Sleep 150
-			click
-		}
-		Gdip_DisposeImage(BlenderSS)
-		;check to make sure you are not in sticker screen
-		pBMScreen := Gdip_BitmapFromScreen(windowX+windowWidth//2 - 275 "|" windowY+4*windowHeight//10-178 "|56|56")
-		if (Gdip_ImageSearch(pBMScreen, bitmaps["CloseGUI"], , , , , , 5) > 0) {
-			MouseMove windowX+windowWidth//2 - 250, windowY+4*windowHeight//10 - 150
-			sleep 150
-			click
-		}
-		Gdip_DisposeImage(pBMScreen)
-		;check to make sure you are not in shop before reset
-		searchRet := nm_imgSearch("e_button.png",30,"high")
-		If (searchRet[1] = 0) {
-			loop 2 {
-				shopG := nm_imgSearch("shop_corner_G.png",30,"right")
-				shopR := nm_imgSearch("shop_corner_R.png",30,"right")
-				If (shopG[1] = 0 || shopR[1] = 0) {
-					sendinput "{" SC_E " down}"
-					Sleep 100
-					sendinput "{" SC_E " up}"
-					Sleep 1000
-				}
-			}
-		}
-		;check to make sure there is not a window open
-		searchRet := nm_imgSearch("close.png",30,"full")
-		If (searchRet[1] = 0) {
-			MouseMove windowX+searchRet[2],windowY+searchRet[3]
-			click
-			MouseMove windowX+350, windowY+offsetY+100
-			Sleep 1000
-		}
-		;check to make sure there is no Memory Match
-		nm_SolveMemoryMatch()
-
-		nm_setStatus("Resetting", "Character " . Mod(A_Index, 10))
-		MouseMove windowX+350, windowY+offsetY+100
-		PrevKeyDelay:=A_KeyDelay
-		SetKeyDelay 250+KeyDelay
-
-		resetTime:=nowUnix()
-		PostSubmacroMessage("background", 0x5554, 1, resetTime)
-
-		;reset
-		ActivateRoblox()
-		GetRobloxClientPos()
-		send "{" SC_Esc "}{" SC_R "}{" SC_Enter "}"
-		n := 0
-		while ((n < 2) && (A_Index <= 80)) {
-			Sleep 100
-			pBMScreen := Gdip_BitmapFromScreen(windowX "|" windowY "|" windowWidth "|50")
-			n += ((Gdip_ImageSearch(pBMScreen, bitmaps["emptyhealth"], , , , , , 10) || nm_HealthBar()) = (n = 0))
-			Gdip_DisposeImage(pBMScreen)
-		}
-
-		SetKeyDelay PrevKeyDelay
-
-		; Nate's quick fix for laggy pcs - Will be removed soon
-		Sleep 2000 + 1000 * A_Index
-
-		; hive check
-		if !atHive() && nm_DetectSpawn() {
-			Sleep 500
-			GetRobloxClientPos(hwnd)
-			MouseMove windowX+350, windowY+offsetY+100
-			send "{" ZoomOut " 8}"
-			movement := nm_spawnMoveTo(slotMove[HiveSlot])
-			nm_createWalk(movement)
-			KeyWait "F14", "D T5 L"
-			KeyWait "F14", "T20 L"
-			nm_endWalk()
-			sleep 500
-			if atHive()
-				HiveConfirmed := 1
-		} else {
-			nm_SetHiveCameraDirection(4)
-		}
+	if !HiveConfirmed {
+		recovery := nm_ResetRecovery(), savedKeyDelay := A_KeyDelay, savedKeyDuration := A_KeyDuration
+		try HiveConfirmed := recovery.Run(nm_ResetAttempt.Bind(force), nm_endWalk)
+		finally SetKeyDelay savedKeyDelay, savedKeyDuration
 	}
 	;convert
 	(convert=1) && nm_convert()
@@ -9107,16 +8971,170 @@ nm_Reset(checkAll:=1, wait:=2000, convert:=1, force:=0){
 		Sleep remainingMs
 	}
 
-	atHive() {
-		ActivateRoblox()
-		GetRobloxClientPos()
-		pBMScreen := Gdip_BitmapFromScreen(windowX + windowWidth // 2 - 150 "|" windowY + GetYOffset() + 40 "|350|60")
-		success := (Gdip_ImageSearch(pBMScreen, bitmaps["colhey"],,,,,,5) = 1)
-		Gdip_DisposeImage(pBMScreen)
-
-		return success
-	}
 }
+
+nm_ResetAttempt(force, recovery) {
+	global HiveConfirmed, resetTime
+	DisconnectCheck()
+	recovery.Check("window preparation")
+	ActivateRoblox()
+	nm_setShiftLock(0)
+	if !nm_OpenMenu()
+		throw nm_ResetExhausted("Cannot confirm closed menus before reset")
+
+	hwnd := GetRobloxHWND()
+	offsetY := GetYOffset(hwnd, &resetOffsetFailed)
+	if resetOffsetFailed
+		throw nm_ResetExhausted("Cannot determine the HUD offset before reset")
+	hiveView := nm_HiveObservation(hwnd)
+	alreadyAtHive := nm_ReadResetHive(hiveView, recovery)
+	if !force && alreadyAtHive && nm_SetHiveCameraDirection(4, recovery, hiveView)
+		return 1
+	;check that performance stats is disabled
+	GetRobloxClientPos(hwnd)
+	pBMScreen := recovery.Capture(windowX "|" windowY+offsetY+36 "|" windowWidth "|24")
+	if ((nm_ResetImageSearch(pBMScreen, bitmaps["perfmem"], &pos, , , , , 2, , 5) = 1)
+	&& (nm_ResetImageSearch(pBMScreen, bitmaps["perfwhitefill"], , x := SubStr(pos, 1, (comma := InStr(pos, ",")) - 1), y := SubStr(pos, comma + 1), x + 17, y + 7, 2) = 0)) {
+		if ((nm_ResetImageSearch(pBMScreen, bitmaps["perfcpu"], &pos, x + 17, y, , y + 7, 2) = 1)
+		&& (nm_ResetImageSearch(pBMScreen, bitmaps["perfwhitefill"], , x := SubStr(pos, 1, (comma := InStr(pos, ",")) - 1), y := SubStr(pos, comma + 1), x + 17, y + 7, 2) = 0)) {
+			if ((nm_ResetImageSearch(pBMScreen, bitmaps["perfgpu"], &pos, x + 17, y, , y + 7, 2) = 1)
+			&& (nm_ResetImageSearch(pBMScreen, bitmaps["perfwhitefill"], , x := SubStr(pos, 1, (comma := InStr(pos, ",")) - 1), y := SubStr(pos, comma + 1), x + 17, y + 7, 2) = 0)) {
+				Send "^{F7}"
+			}
+		}
+	}
+	recovery.Release(pBMScreen)
+	;check to make sure you are not in dialog before reset
+	Loop 500
+	{
+		GetRobloxClientPos(hwnd)
+		pBMScreen := recovery.Capture(windowX+windowWidth//2-50 "|" windowY+2*windowHeight//3 "|100|" windowHeight//3)
+		if (nm_ResetImageSearch(pBMScreen, bitmaps["dialog"], &pos, , , , , 10, , 3) != 1) {
+			recovery.Release(pBMScreen)
+			break
+		}
+		recovery.Release(pBMScreen)
+		MouseMove windowX+windowWidth//2, windowY+2*windowHeight//3+SubStr(pos, InStr(pos, ",")+1)-15
+		Click
+		recovery.Wait(150)
+	}
+	MouseMove windowX+350, windowY+offsetY+100
+	;check to make sure you are not in a yes/no prompt
+	GetRobloxClientPos(hwnd)
+	pBMScreen := recovery.Capture(windowX+windowWidth//2-250 "|" windowY+windowHeight//2-52 "|500|150")
+	if (nm_ResetImageSearch(pBMScreen, bitmaps["no"], &pos, , , , , 2, , 3) = 1) {
+		MouseMove windowX+windowWidth//2-250+SubStr(pos, 1, InStr(pos, ",")-1), windowY+windowHeight//2-52+SubStr(pos, InStr(pos, ",")+1)
+		Click
+		MouseMove windowX+350, windowY+offsetY+100
+	}
+	recovery.Release(pBMScreen)
+	;check to make sure you are not in feed window on accident
+	imgPos := nm_imgSearch("cancel.png",30)
+	If (imgPos[1] = 0){
+		MouseMove windowX+(imgPos[2]), windowY+(imgPos[3])
+		Click
+		MouseMove windowX+350, windowY+offsetY+100
+	}
+	;check to make sure you are not in blender screen
+	BlenderSS := recovery.Capture(windowX+windowWidth//2 - 275 "|" windowY+Floor(0.48*windowHeight) - 220 "|550|400")
+	if (nm_ResetImageSearch(BlenderSS, bitmaps["CloseGUI"], , , , , , 5) > 0) {
+		MouseMove windowX+windowWidth//2 - 250, windowY+Floor(0.48*windowHeight) - 200
+		recovery.Wait(150)
+		click
+	}
+	recovery.Release(BlenderSS)
+	;check to make sure you are not in sticker screen
+	pBMScreen := recovery.Capture(windowX+windowWidth//2 - 275 "|" windowY+4*windowHeight//10-178 "|56|56")
+	if (nm_ResetImageSearch(pBMScreen, bitmaps["CloseGUI"], , , , , , 5) > 0) {
+		MouseMove windowX+windowWidth//2 - 250, windowY+4*windowHeight//10 - 150
+		recovery.Wait(150)
+		click
+	}
+	recovery.Release(pBMScreen)
+	;check to make sure you are not in shop before reset
+	searchRet := nm_imgSearch("e_button.png",30,"high")
+	If (searchRet[1] = 0) {
+		loop 2 {
+			shopG := nm_imgSearch("shop_corner_G.png",30,"right")
+			shopR := nm_imgSearch("shop_corner_R.png",30,"right")
+			If (shopG[1] = 0 || shopR[1] = 0) {
+				sendinput "{" SC_E " down}"
+				recovery.Wait(100)
+				sendinput "{" SC_E " up}"
+				recovery.Wait(1000)
+			}
+		}
+	}
+	;check to make sure there is not a window open
+	searchRet := nm_imgSearch("close.png",30,"full")
+	If (searchRet[1] = 0) {
+		MouseMove windowX+searchRet[2],windowY+searchRet[3]
+		click
+		MouseMove windowX+350, windowY+offsetY+100
+		recovery.Wait(1000)
+	}
+	;check to make sure there is no Memory Match
+	nm_SolveMemoryMatch()
+	recovery.Check("character reset")
+
+	nm_setStatus("Resetting", "Character " . recovery.Attempts)
+	MouseMove windowX+350, windowY+offsetY+100
+	PrevKeyDelay:=A_KeyDelay
+	SetKeyDelay 250+KeyDelay
+
+	resetTime:=nowUnix()
+	PostSubmacroMessage("background", 0x5554, 1, resetTime)
+
+	;reset
+	ActivateRoblox()
+	GetRobloxClientPos()
+	recovery.Check("reset input")
+	if !hiveView.Current(hiveView.Anchor)
+		throw nm_ResetExhausted("Roblox window changed before reset input")
+	send "{" SC_Esc "}{" SC_R "}{" SC_Enter "}"
+	n := 0
+	while ((n < 2) && (A_Index <= 80)) {
+		recovery.Wait(100)
+		pBMScreen := recovery.Capture(windowX "|" windowY "|" windowWidth "|50")
+		n += ((nm_ResetImageSearch(pBMScreen, bitmaps["emptyhealth"], , , , , , 10) || nm_HealthBar()) = (n = 0))
+		recovery.Release(pBMScreen)
+	}
+
+	SetKeyDelay PrevKeyDelay
+
+	; Nate's quick fix for laggy pcs - Will be removed soon
+	recovery.Wait(2000 + 1000 * recovery.Attempts)
+
+	; hive check
+	if !nm_ReadResetHive(hiveView, recovery) && nm_DetectSpawn() {
+		recovery.Wait(500)
+		GetRobloxClientPos(hwnd)
+		MouseMove windowX+350, windowY+offsetY+100
+		send "{" ZoomOut " 8}"
+		movement := nm_spawnMoveTo(slotMove[HiveSlot])
+		if !nm_createWalk(movement) || !recovery.WaitFor(() => GetKeyState("F14"), 5000)
+			return 0
+		if !recovery.WaitFor(() => !GetKeyState("F14"), 20000)
+			return 0
+		nm_endWalk()
+		recovery.Wait(500)
+		if nm_ReadResetHive(hiveView, recovery)
+			HiveConfirmed := 1
+	} else {
+		nm_SetHiveCameraDirection(4, recovery, hiveView)
+	}
+	return HiveConfirmed ? 1 : 0
+}
+
+nm_ReadResetHive(observer, recovery) {
+	recovery.Check("hive prompt")
+	result := observer.Read()
+	recovery.Check()
+	if result < 0
+		throw nm_ResetExhausted("Hive prompt observation was unreadable or the window changed")
+	return result
+}
+
 nm_HealthBar() { 
 	local detection := 0
 	static isDead(c) =>   ((((c) & 0x00FF0000 >= 0x004D0000) && ((c) & 0x00FF0000 <= 0x00830000)) ; 4D4D4D-blackBG|838383-whiteBG
@@ -9208,29 +9226,35 @@ nm_spawnMoveTo(moves) {
     }
     return script
 }
-nm_SetHiveCameraDirection(rotations){
+nm_SetHiveCameraDirection(rotations, recovery := 0, observer := 0){
 	global HiveConfirmed
 	static hivedown := 0
+	if !recovery
+		recovery := nm_ResetRecovery(,, 20000)
+	if !observer
+		observer := nm_HiveObservation()
+	HiveConfirmed := 0
+	recovery.Check("hive camera alignment")
 	if hivedown
 		sendinput "{" RotDown "}"
-	region := windowX "|" windowY+3*windowHeight//4 "|" windowWidth "|" windowHeight//4
-	sconf := windowWidth**2//3200
-	loop (maxindex := 8/rotations*2) { ; 2 full rotations
-		sleep 250+KeyDelay
-		pBMScreen := Gdip_BitmapFromScreen(region), s := 0
-		for i, k in bitmaps["hive"] {
-			s := Max(s, Gdip_ImageSearch(pBMScreen, k, , , , , , 4, , , sconf))
-			if (s >= sconf) {
-				Gdip_DisposeImage(pBMScreen)
-				HiveConfirmed := 1
-				sendinput "{" RotRight " 4}" (hivedown ? ("{" RotUp "}") : "")
-				Send "{" ZoomOut " 5}"
-				return 1
-			}
+	loop (maxindex := 8/rotations*2) { ; two full rotations, within the shared budget
+		recovery.Wait(250+KeyDelay)
+		result := observer.Read("alignment")
+		recovery.Check("hive camera alignment")
+		if result < 0
+			throw nm_ResetExhausted("Hive camera observation was unreadable or the window changed")
+		if result = 1 {
+			sendinput "{" RotRight " 4}" (hivedown ? ("{" RotUp "}") : "")
+			Send "{" ZoomOut " 5}"
+			recovery.Check()
+			if !observer.Current(observer.Anchor)
+				throw nm_ResetExhausted("Roblox window changed during hive alignment")
+			HiveConfirmed := 1
+			return 1
 		}
-		Gdip_DisposeImage(pBMScreen)
 		sendinput "{" RotRight " " rotations "}" ((maxindex/2 = A_Index) ? ("{" ((hivedown := !hivedown) ? RotDown : RotUp) "}") : "")
 	}
+	return 0
 }
 nm_setShiftLock(state, *){
 	global bitmaps, SC_LShift, ShiftLockEnabled
