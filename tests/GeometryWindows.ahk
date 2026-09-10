@@ -44,8 +44,8 @@ try {
 	Require(!GetRobloxClientPos(0) && !windowX && !windowY && !windowWidth && !windowHeight, "Missing HWND clears geometry rather than using last-found window")
 	Require(GetYOffset(0, &offsetFailed) = 0 && offsetFailed = 1, "Missing HWND never reports successful zero offset")
 	FileAppend "PASS Windows geometry integration (" A_PtrSize * 8 "-bit)`n", "*"
-} catch as err {
-	FileAppend "FAIL Windows geometry integration: " err.Message "`n" err.Stack "`n", "*"
+} catch as geometryTestError {
+	FileAppend "FAIL Windows geometry integration: " geometryTestError.Message "`n" geometryTestError.Stack "`n", "*"
 	ExitApp 1
 } finally fixture.Destroy()
 ExitApp 0
