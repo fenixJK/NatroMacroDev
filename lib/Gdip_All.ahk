@@ -1,3 +1,4 @@
+#Include "Gdip_Capture.ahk"
 ; v1.61
 ; NOTE: Some functions have been modified/added!
 ; 		To see which functions these are, you can compare with the
@@ -296,51 +297,8 @@ SetSysColorToControl(hwnd, SysColor:=15)
 ;
 ; notes					if no raster operation is specified, then SRCCOPY is used to the returned bitmap
 
-Gdip_BitmapFromScreen(Screen:=0, Raster:="")
-{
-	hhdc := 0
-	if (Screen = 0) {
-		_x := DllCall( "GetSystemMetrics", "Int", 76 )
-		_y := DllCall( "GetSystemMetrics", "Int", 77 )
-		_w := DllCall( "GetSystemMetrics", "Int", 78 )
-		_h := DllCall( "GetSystemMetrics", "Int", 79 )
-	}
-	else if (SubStr(Screen, 1, 5) = "hwnd:") {
-		Screen := SubStr(Screen, 6)
-		if !WinExist("ahk_id " Screen) {
-			return -2
-		}
-		WinGetRect(Screen,,, &_w, &_h)
-		_x := _y := 0
-		hhdc := GetDCEx(Screen, 3)
-	}
-	else if IsInteger(Screen) {
-		M := GetMonitorInfo(Screen)
-		_x := M.Left, _y := M.Top, _w := M.Right-M.Left, _h := M.Bottom-M.Top
-	}
-	else {
-		S := StrSplit(Screen, "|")
-		_x := S[1], _y := S[2], _w := S[3], _h := S[4]
-	}
-
-	if (_x = "") || (_y = "") || (_w = "") || (_h = "") {
-		return -1
-	}
-
-	chdc := CreateCompatibleDC()
-	hbm := CreateDIBSection(_w, _h, chdc)
-	obm := SelectObject(chdc, hbm)
-	hhdc := hhdc ? hhdc : GetDC()
-	BitBlt(chdc, 0, 0, _w, _h, hhdc, _x, _y, Raster)
-	ReleaseDC(hhdc)
-
-	pBitmap := Gdip_CreateBitmapFromHBITMAP(hbm)
-
-	SelectObject(chdc, obm)
-	DeleteObject(hbm)
-	DeleteDC(hhdc)
-	DeleteDC(chdc)
-	return pBitmap
+Gdip_BitmapFromScreen(Screen:=0, Raster:="") {
+	return Gdip_ScreenCapture.Read(Screen, Raster)
 }
 
 ;#####################################################################################
