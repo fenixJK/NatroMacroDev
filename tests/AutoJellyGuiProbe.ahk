@@ -29,8 +29,10 @@ nm_ProbeBeePreflight() {
 		saved[bee] := %bee%, %bee% := 0
 	saved["SelectAll"] := SelectAll, SelectAll := 0
 	DismissDialog() {
+		FileAppend "timer`n", "probe-phase.txt"
 		for hwnd in WinGetList("ahk_class #32770 ahk_pid " DllCall("GetCurrentProcessId"))
 			if WinGetTitle("ahk_id " hwnd) = "Auto-Jelly stopped" {
+				FileAppend "dismiss`n", "probe-phase.txt"
 				SetTimer DismissDialog, 0
 				dismissed++
 				DllCall("PostMessageW", "Ptr", hwnd, "UInt", 0x111, "UPtr", 1, "Ptr", 0)
@@ -39,6 +41,7 @@ nm_ProbeBeePreflight() {
 	Critical "Off"
 	try {
 		; Positive control: this synthetic Escape can trigger the real hook.
+		FileAppend "positive-control`n", "probe-phase.txt"
 		SendLevel 1
 		stopping := false
 		Hotkey "~*esc", stopToggle, "On"
@@ -47,9 +50,12 @@ nm_ProbeBeePreflight() {
 		if !stopping
 			throw Error("Escape hook positive control failed")
 		Hotkey "~*esc", stopToggle, "Off"
+		FileAppend "positive-passed`n", "probe-phase.txt"
 		Loop 2 {
+			FileAppend "start " A_Index "`n", "probe-phase.txt"
 			SetTimer DismissDialog, 50
 			blc_start()
+			FileAppend "returned " A_Index "`n", "probe-phase.txt"
 			if dismissed != A_Index || !DllCall("IsWindowVisible", "Ptr", mgui.Hwnd)
 				throw Error("Rejected Auto-Jelly startup did not restore its GUI or allow retry")
 			stopping := false

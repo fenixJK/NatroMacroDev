@@ -63,7 +63,12 @@ TestNativeGeneratedGuis() {
 
 			worker := nm_InlineWorker(source, A_AhkPath)
 			try {
-				output := worker.Output()
+				try output := worker.Output()
+				catch as err {
+					if FileExist(directory "\probe-phase.txt")
+						FileAppend "GUI probe phases: " SubStr(FileRead(directory "\probe-phase.txt"), 1, 3000) "`n", "*"
+					throw err
+				}
 				Require(output = "PASS " kind " redraw and close" (config.Has("webhook") ? "|" config["webhook"] : ""), "Generated GUI native lifecycle: " output)
 			} finally worker.Close()
 		}
