@@ -595,3 +595,47 @@ and reliable delivery remain open. All other feature, state, optimization,
 proposed-feature and release gates stay in scope. The full production objective
 remains active; the user has no live Windows/Roblox machine and authorized code
 fixes and CI to continue.
+
+## Bounded attachment receiving checkpoint
+
+Code checkpoint: `3e043a3fc0260b9a3c59aa27b0359f43c17209cd`.
+[Windows run 34424402811](https://github.com/fenixJK/NatroMacroDev/actions/runs/34424402811)
+passed **41 regression groups on each AHK architecture**, native GUI/image/health/
+pointer checks, six script and four emitted-worker validations per architecture,
+**43 attachment checks on each PowerShell version**, and **35 updater scenarios
+on each PowerShell version**. No AHK warnings occurred. CI caught an incorrect
+test helper that expected ValueError for the busy-worker Error; the test was
+corrected without changing the busy rejection behavior. The checkout Node notice
+remains open.
+
+Remote attachment downloads no longer block the Status loop while reading a
+response. One owned Windows PowerShell worker receives JSON through stdin and
+streams into an exclusively created temporary file. It accepts only the named
+Discord CDN hosts over HTTPS, refuses redirects and non-200 responses, and sends
+neither bot credentials nor browser cookies. A 30-second monotonic deadline
+covers headers and body reads. Actual bytes are bounded regardless of the presence
+of Content-Length; an advertised length must also match the completed stream.
+
+Limits are 25 MiB per attachment, 250 MiB of inbox data and 200 files. An exclusive
+inbox lock serializes cooperating workers' quota checks. Successful files are
+flushed and moved to a unique final filename without overwrite; ordinary failures
+remove partial files. Status polls completion, rejects a second active download,
+and uses a polled 45-second watchdog. Normal helper shutdown terminates the owned
+worker before removing its receiving directory.
+
+The HTTP fixtures verify binary byte preservation, rejected URLs/redirects,
+non-200 and truncated responses, fixed/chunked size limits, stalled headers/body,
+quotas, target collisions, partial cleanup and concurrent inbox ownership on
+PowerShell 5.1 and 7. AHK tests exercise pending/completed/malformed worker results,
+busy rejection, watchdog failure, actual production-worker stdin launch from a
+Unicode working directory, and native child termination/partial cleanup. Tests
+use temporary data and loopback HTTP; they do not send Discord messages.
+
+[Remote permissions](remote-permissions.md) documents remaining uncertainty after
+forced process termination/power loss or a crash between file publication and
+the completion reply. Abandoned partials count toward quota; automatic crash
+reconciliation and durable receipt messages remain open. Other legacy blocking
+Status operations can delay the outer watchdog. Live Discord receipt, redacted
+support preview, broader command/report delivery, remaining game features,
+optimizations, proposed features and release verification remain in scope. The
+full production objective remains active.
