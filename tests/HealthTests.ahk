@@ -13,11 +13,13 @@ TestHealthObservation() {
 		Gdip_FillRectangle(graphics, red, 4, 33, 1, 4)
 		bars := nm_HealthBarReader.Read(bitmap)
 		AssertEqual(bars.Length, 4, "Every separate bar is returned exactly once")
-		counts := Map()
-		for value in bars
-			counts[value] := counts.Has(value) ? counts[value] + 1 : 1
-		for value in [0, 25, 50, 100]
-			Assert(counts.Has(value) && counts[value] = 1, "Correct independent percentage: " value)
+		for expected in [0, 25, 50, 100] {
+			matches := 0
+			for value in bars
+				if value = expected
+					matches++
+			AssertEqual(matches, 1, "Correct independent percentage: " expected)
+		}
 		AssertEqual(Gdip_GetPixel(bitmap, 3, 3), 0xFF1FE744, "Reader does not erase caller-owned bitmap")
 		; A narrow capture ending inside a run must never use full-window bounds.
 		narrow := Gdip_CloneBitmapArea(bitmap, 3, 33, 2, 4)
@@ -54,9 +56,9 @@ TestHealthObservation() {
 }
 
 AssertHealthReadFails(bitmap, message) {
-	failed := false
+	readFailed := false
 	try nm_HealthBarReader.Read(bitmap)
 	catch Error
-		failed := true
-	Assert(failed, message)
+		readFailed := true
+	Assert(readFailed, message)
 }
