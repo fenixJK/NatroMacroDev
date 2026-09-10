@@ -1,15 +1,15 @@
 TestNativeAutoJellyOcr() {
 	; Real COM vtables check Cancel/Close ordering and reference ownership,
 	; including a provider that ignores cancellation and remains Started.
-	for mode in ["pending", "cancelled", "completed", "error", "status-error"] {
+	for mode in ["pending", "cancelled", "completed", "error", "status-error", "cancel-error", "close-error"] {
 		provider := OcrNativeAsyncFixture(mode), operation := 0
 		try {
 			operation := nm_OcrOperation(ComValue(13, provider.Operation.Ptr, 1))
 			Require(provider.References = 2, "Async adapter owns operation and queried IAsyncInfo")
 			try operation.Close()
 			Require(provider.References = 0, "Async cleanup releases both native interface references")
-			Require(provider.Cancels = (mode = "pending" || mode = "cancelled"), "Cancellation requested only for Started")
-			Require(provider.Closes = (mode = "cancelled" || mode = "completed" || mode = "error"), "Close is never called on a still-pending operation")
+			Require(provider.Cancels = (mode = "pending" || mode = "cancelled" || mode = "cancel-error"), "Cancellation requested only for Started")
+			Require(provider.Closes = (mode = "cancelled" || mode = "completed" || mode = "error" || mode = "close-error"), "Close is never called on a still-pending operation")
 			operation.Close()
 			Require(provider.References = 0, "Repeated async cleanup cannot release twice")
 		} finally {
@@ -35,6 +35,14 @@ TestNativeAutoJellyOcr() {
 			text := reader.ReadBitmap(hBitmap, (*) => true)
 			Require(InStr(text, "ENERGY") && InStr(text, "5"), "Actual English recognition returns the fixture text")
 		}
+		maximum := reader.MaxDimension, rejected := false
+		reader.MaxDimension := 1
+		try reader.ReadBitmap(hBitmap, (*) => true)
+		catch as err {
+			rejected := InStr(err.Message, "dimensions are unsupported")
+		} finally reader.MaxDimension := maximum
+		Require(rejected, "Actual decoder rejects unsupported dimensions before recognition")
+		Require(InStr(reader.ReadBitmap(hBitmap, (*) => true), "ENERGY"), "OCR can retry after decode-stage failure")
 		; Reject before decoding, then prove the same engine/input remain usable.
 		StopOcr() => nm_NativeOcrCancel()
 		try {
@@ -65,7 +73,7 @@ nm_NativeOcrCancel() {
 class OcrNativeAsyncFixture {
 	__New(mode) {
 		this.Mode := mode, this.References := 1, this.Cancels := this.Closes := 0
-		this.CurrentStatus := mode = "completed" ? 1 : mode = "error" ? 3 : 0
+		this.CurrentStatus := mode = "completed" || mode = "close-error" ? 1 : mode = "error" ? 3 : 0
 		this.Callbacks := [], this.OperationTable := Buffer(9*A_PtrSize, 0), this.InfoTable := Buffer(11*A_PtrSize, 0)
 		this.Operation := Buffer(A_PtrSize), this.Info := Buffer(A_PtrSize)
 		NumPut("Ptr", this.OperationTable.Ptr, this.Operation)
@@ -100,13 +108,15 @@ class OcrNativeAsyncFixture {
 	}
 	Cancel(self) {
 		this.Cancels++
+		if this.Mode = "cancel-error"
+			return 0x80004005
 		if this.Mode = "cancelled"
 			this.CurrentStatus := 2
 		return 0
 	}
 	Close(self) {
 		this.Closes++
-		return 0
+		return this.Mode = "close-error" ? 0x80004005 : 0
 	}
 	Dispose() {
 		for callback in this.Callbacks
