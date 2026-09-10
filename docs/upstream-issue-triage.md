@@ -13,6 +13,8 @@ audit. Similar symptoms do not establish a shared root cause or a resolved repor
 | [1571: gumdrops missed after planter scrolling](https://github.com/NatroTeam/NatroMacro/issues/1571) | Report body and described planter-to-dispenser sequence | Fresh inventory search and guarded Glue workflow | Reproduce starting near inventory bottom and verify the gumdrop is actually located/used |
 | [1599: sprinkler inventory detection](https://github.com/NatroTeam/NatroMacro/issues/1599) | Title; body is empty | Relevant to inventory detection | Usable reproduction or recorded image evidence |
 | [971: Bucko quest repeatedly returns to hive](https://github.com/NatroTeam/NatroMacro/issues/971) | Report body; historical quest screenshot previously measured | Quest completion/unknown classification | Verify current UI and quest planning; screenshot evidence does not prove report resolution |
+| [966: inconsistent Planters+ timers](https://github.com/NatroTeam/NatroMacro/issues/966) | Report body: two-hour setting sometimes harvested after minutes; field-change behavior | Nectar scheduler removes inherited near-due timers and forced sipping/overfill harvests | Reproduce fixed-hour timing and gathering-field changes in the game |
+| [1492: incorrect default planter time](https://github.com/NatroTeam/NatroMacro/issues/1492) | Report body: PoP Coconut/Stump and Petal Sunflower; glitter/full growth | Relevant to the adaptive growth/yield model; existing table has not been recalibrated | Actual field/growth/glitter observations and revised estimates |
 
 No upstream report in this table is marked resolved. Subsequent work should extend
 the table with open/closed reports and proposed fixes, check whether upstream has

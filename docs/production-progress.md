@@ -2074,3 +2074,44 @@ No Windows/Roblox machine is available. Positive planter harvest/placement
 confirmation, remaining reset/input integration, state reconciliation, measured
 optimization and live acceptance remain open. The full production goal stays
 active; no merge, deployment or release is claimed.
+
+
+## Nectar scheduling and the prior Planters branch — 2026-09-10
+
+Code `df5cbec142e56b94cb06082944af2ea87f7c5c5c` passed
+[Windows CI 34541907259](https://github.com/fenixJK/NatroMacroDev/actions/runs/34541907259)
+on its first attempt: 77 regression groups on both AHK architectures, all existing
+native Windows suites, generated-worker validation, and both PowerShell versions.
+The known attachment startup-latency issue did not recur in this run; it remains
+unresolved and its earlier evidence is retained.
+
+The user's upstream `Planters` branch was reviewed through `e1c639f`. Its relative
+buffer, nectar × growth bonus, cross-field selection, projection refresh and
+optional due-harvest gather interruption informed the new implementation. The
+planner now treats harvests as timed events, accounts for decay and the cap, ranks
+imminent shortages before longer-term efficiency, compares eligible field/type
+pairs, and plans short emergency batches or regular maintenance batches. Existing
+priority and allowed-field/type settings remain in use. Field rotation is retained.
+
+Removed paths include forced harvesting of all same-nectar planters at a full bar,
+forced harvesting after a sipping-field change, and timer synchronization that
+could collect a newly placed planter almost immediately. Fixed hours and Full
+Grown remain available; adaptive timing requires Auto. New `Nectar settings...`
+controls expose the branch-compatible relative buffer and gather interrupt; retry
+backoff and boost protection prevent inappropriate repeated interrupts. All five
+nectar bars are read from one bounded bitmap, with failed captures kept distinct
+from empty bars and full-bar initialization corrected.
+
+The production adapter is exercised with temporary INI persistence and controlled
+input/observation callbacks. Model tests cover 72-hour maintenance and seven-day
+build-up from zero, with three interchangeable slots and sufficient modeled yield.
+All five modeled nectars remain above the 70% target during the final day (minimum
+80.90% and 85.42%, respectively). These are deterministic regression results, not
+Roblox measurements or a claim that every inventory can maintain all five nectars.
+
+The [nectar verification record](nectar-planner-verification.md) details mechanics,
+settings, branch differences and limits. Reports #966 and #1492 were added to
+[upstream tracking](upstream-issue-triage.md). Live growth/yield calibration,
+degradation and sipping feedback, positive harvest/placement receipts, offline
+reconciliation, and the rest of the production recovery plan remain open. No
+upstream issue is declared resolved and no release or merge is claimed.
