@@ -32,6 +32,7 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "ErrorHandling.ahk"
 #Include "HashFile.ahk"
 #Include "RuntimePolicy.ahk"
+#Include "ReconnectSession.ahk"
 #Include "RemoteCapabilities.ahk"
 #Include "SupportReport.ahk"
 #Include "GatherProfiles.ahk"
@@ -16074,29 +16075,24 @@ DisconnectCheck(testCheck := 0)
 		, FallbackServer1, FallbackServer2, FallbackServer3, beesmasActive
 	static ServerLabels := Map(0,"Public Server", 1,"Private Server", 2,"Fallback Server 1", 3,"Fallback Server 2", 4,"Fallback Server 3")
 
-	; return if not disconnected or crashed
-	ActivateRoblox()
-	GetRobloxClientPos()
-	if ((windowWidth > 0) && !WinExist("Roblox Crash")) {
-		pBMScreen := Gdip_BitmapFromScreen(windowX+windowWidth//2 "|" windowY+windowHeight//2 "|200|80")
-		if (Gdip_ImageSearch(pBMScreen, bitmaps["disconnected"], , , , , , 2) != 1) {
-			Gdip_DisposeImage(pBMScreen)
-			return 0
-		}
-		Gdip_DisposeImage(pBMScreen)
-	}
+	; Unknown imagery is not a disconnect receipt. Missing processes, the
+	; crash window and the existing disconnect template trigger recovery.
+	observation := nm_ReconnectObservation.Read()
+	if observation != "missing" && observation != "disconnected" && !WinExist("Roblox Crash")
+		return 0
 
 	; Reconnection is runtime, but is not gathering or conversion.
 	nm_TimeTracking.InterruptActions()
 	; end any residual movement and set reconnect start time
 	Click "Up"
 	nm_endWalk()
-	ReconnectStart := nowUnix()
+	ReconnectRequestedDelay := 0
 	nm_updateAction("Reconnect")
 
 	; wait for any requested delay time (e.g. from remote control or daily reconnect)
 	if (ReconnectDelay) {
 		nm_setStatus("Waiting", ReconnectDelay " seconds before Reconnect")
+		ReconnectRequestedDelay := ReconnectDelay
 		Sleep 1000*ReconnectDelay
 		ReconnectDelay := 0
 	}
@@ -16127,13 +16123,12 @@ DisconnectCheck(testCheck := 0)
 	if (!privateSlots.Length && !allowPublic)
 		throw Error("No valid private server is configured and public fallback is disabled.")
 
-	; Each server gets five attempts; an unavailable slot does not force public.
-	Loop {
-		server := nm_SelectReconnectServer(privateSlots, A_Index, allowPublic)
-		;Wait For Success
-		i := A_Index, success := 0
-		Loop 5 {
-			;START
+	; Five actual launches per eligible server, one circuit, with a 30-minute
+	; cooperative deadline across launch, loading, retry and hive-claim work.
+	recovery := nm_ReconnectSession(privateSlots, allowPublic)
+	try Loop {
+		server := recovery.Next(), i := recovery.Attempts
+		Launch() {
 			switch (ReconnectMethod = "Browser") ? 0 : Mod(i, 5) {
 				case 1,2:
 				;Close Roblox
@@ -16161,77 +16156,22 @@ DisconnectCheck(testCheck := 0)
 					RunDeeplink()
 				}
 			}
-			;STAGE 1 - wait for Roblox window
-			Loop 240 {
-				if GetRobloxHWND() {
-					ActivateRoblox()
-					nm_setStatus("Detected", "Roblox Open")
-					break
-				}
-				if (A_Index = 240) {
-					nm_setStatus("Error", "No Roblox Found`nRetry: " i)
-					break 2
-				}
-				Sleep 1000 ; timeout 4 mins, wait for any Roblox update to finish
-			}
-			;STAGE 2 - wait for loading screen (or loaded game)
-			Loop 180 {
-				ActivateRoblox()
-				if !GetRobloxClientPos() {
-					nm_setStatus("Warning", "Disconnected during Reconnect")
-					continue 2
-				}
-				pBMScreen := Gdip_BitmapFromScreen(windowX "|" windowY+30 "|" windowWidth "|" windowHeight-30)
-				if (Gdip_ImageSearch(pBMScreen, bitmaps["loading"], , , , , 150, 4) = 1) {
-					Gdip_DisposeImage(pBMScreen)
-					nm_setStatus("Detected", "Game Open")
-					break
-				}
-				if (Gdip_ImageSearch(pBMScreen, bitmaps["science"], , , , , 150, 2) = 1) {
-					Gdip_DisposeImage(pBMScreen)
-					nm_setStatus("Detected", "Game Loaded")
-					success := 1
-					break 2
-				}
-				if (Gdip_ImageSearch(pBMScreen, bitmaps["disconnected"], , , , , , 2) = 1) {
-					Gdip_DisposeImage(pBMScreen)
-					nm_setStatus("Warning", "Disconnected during Reconnect")
-					continue 2
-				}
-				Gdip_DisposeImage(pBMScreen)
-				if (A_Index = 180) {
-					nm_setStatus("Error", "No BSS Found`nRetry: " i)
-					break 2
-				}
-				Sleep 1000 ; timeout 3 mins, slow loading
-			}
-			;STAGE 3 - wait for loaded game
-			Loop 180 {
-				ActivateRoblox()
-				if !GetRobloxClientPos() {
-					nm_setStatus("Warning", "Disconnected during Reconnect")
-					continue 2
-				}
-				pBMScreen := Gdip_BitmapFromScreen(windowX "|" windowY+30 "|" windowWidth "|" windowHeight-30)
-				if ((Gdip_ImageSearch(pBMScreen, bitmaps["loading"], , , , , 150, 4) = 0) || (Gdip_ImageSearch(pBMScreen, bitmaps["science"], , , , , 150, 2) = 1)) {
-					Gdip_DisposeImage(pBMScreen)
-					nm_setStatus("Detected", "Game Loaded")
-					success := 1
-					break 2
-				}
-				if (Gdip_ImageSearch(pBMScreen, bitmaps["disconnected"], , , , , , 2) = 1) {
-					Gdip_DisposeImage(pBMScreen)
-					nm_setStatus("Warning", "Disconnected during Reconnect")
-					continue 2
-				}
-				Gdip_DisposeImage(pBMScreen)
-				if (A_Index = 180) {
-					nm_setStatus("Error", "BSS Load Timeout`nRetry: " i)
-					break 2
-				}
-				Sleep 1000 ; timeout 3 mins, slow loading
-			}
 		}
+		success := recovery.Join(Launch, ObjBindMethod(nm_ReconnectObservation, "Read"))
+		if !success {
+			nm_setStatus("Retrying", "Reconnect " i "/" recovery.Maximum ": " recovery.LastFailure)
+			recovery.Wait(2000)
+			continue
+		}
+		; A failed claim must not publish success or repeatedly extend timers by
+		; the entire recovery duration. Account once, after an accepted claim.
+		recovery.Stage := "hive claim"
+		if !testCheck && nm_claimHiveSlot(recovery) != 1 {
+			recovery.LastFailure := "hive claim failed"
+			recovery.Wait(2000)
+			continue
+		}
+		recovery.Check()
 
 		;Successful Reconnect
 		if (success = 1)
@@ -16240,7 +16180,7 @@ DisconnectCheck(testCheck := 0)
 			ActivateRoblox()
 			GetRobloxClientPos()
 			MouseMove windowX + windowWidth//2, windowY + windowHeight//2
-			duration := DurationFromSeconds(ReconnectDuration := (nowUnix() - ReconnectStart), "mm:ss")
+			duration := DurationFromSeconds(ReconnectDuration := recovery.ElapsedSeconds() + ReconnectRequestedDelay, "mm:ss")
 			nm_setStatus("Completed", "Reconnect`nTime: " duration " - Attempts: " i)
 			Sleep 500
 
@@ -16268,8 +16208,7 @@ DisconnectCheck(testCheck := 0)
 			}
 			PostSubmacroMessage("Status", 0x5552, 221, (server = 0))
 
-			if (testCheck || (nm_claimHiveSlot() = 1))
-				return 1
+			return 1
 		}
 
 		RunDeeplink(type:="", code:=""){
@@ -16300,8 +16239,13 @@ DisconnectCheck(testCheck := 0)
 			}
 		}
 
+	} catch nm_ReconnectExhausted as err {
+		nm_Failures.Write(err, "Reconnect exhausted; restart after checking Roblox and server settings")
+		nm_setStatus("Error", err.Message "`nReconnect stopped; check Roblox/server settings before restarting.")
+		nm_FailClosed(err)
 	}
 }
+
 /*
 ShellRun by Lexikos
 	requires: AutoHotkey v1.1
@@ -16338,28 +16282,54 @@ ShellRun(prms*)
 	; IShellDispatch2.ShellExecute
 	shell.ShellExecute(prms*)
 }
-nm_claimHiveSlot(){
+nm_claimHiveSlot(recovery := 0){
 	global KeyDelay, FwdKey, RightKey, LeftKey, BackKey, ZoomOut, HiveSlot, HiveConfirmed, SC_E, SC_Esc, SC_R, SC_Enter, bitmaps
 	GetBitmap() {
 		pBMScreen := Gdip_BitmapFromScreen(windowX+windowWidth//2-200 "|" windowY+offsetY "|400|125")
-		loop 20 {
-			for , bitmap in bitmaps["FriendJoin"] {
-				if (Gdip_ImageSearch(pBMScreen, bitmap, , , , , , 6) = 1) {
-					Gdip_DisposeImage(pBMScreen)
-					MouseMove windowX+windowWidth//2-3, windowY+24
-					Click
-					MouseMove windowX+350, windowY+offsetY+100
-					Sleep 500
-					pBMScreen := Gdip_BitmapFromScreen(windowX+windowWidth//2-200 "|" windowY+offsetY "|400|125")
+		try {
+			loop 20 {
+				CheckRecovery()
+				for , bitmap in bitmaps["FriendJoin"] {
+					if (Gdip_ImageSearch(pBMScreen, bitmap, , , , , , 6) = 1) {
+						Gdip_DisposeImage(pBMScreen), pBMScreen := 0
+						MouseMove windowX+windowWidth//2-3, windowY+24
+						Click
+						MouseMove windowX+350, windowY+offsetY+100
+						WaitRecovery(500)
+						pBMScreen := Gdip_BitmapFromScreen(windowX+windowWidth//2-200 "|" windowY+offsetY "|400|125")
+					}
 				}
 			}
+			return pBMScreen
+		} catch as err {
+			if pBMScreen
+				Gdip_DisposeImage(pBMScreen)
+			throw err
 		}
-		return pBMScreen
 	}
 
+	CheckRecovery() {
+		if recovery
+			recovery.Check()
+	}
+	WaitRecovery(ms) {
+		if recovery
+			recovery.Wait(ms)
+		else
+			Sleep ms
+	}
+	WalkWait(seconds, down := false) {
+		CheckRecovery()
+		if recovery
+			seconds := Min(seconds, Max(0.001, (recovery.Deadline - recovery.Clock.Call()) / 1000))
+		KeyWait "F14", (down ? "D " : "") "T" seconds " L"
+		CheckRecovery()
+	}
+	try {
 	DetectHiveslots := 1
 	Loop 5
 	{
+		CheckRecovery()
 		ActivateRoblox()
 		hwnd := GetRobloxHWND()
 		offsetY := GetYOffset(hwnd)
@@ -16379,13 +16349,13 @@ nm_claimHiveSlot(){
 			n := 0
 			while ((n < 2) && (A_Index <= 80))
 			{
-				Sleep 100
+				WaitRecovery(100)
 				GetRobloxClientPos(hwnd)
 				pBMScreen := Gdip_BitmapFromScreen(windowX "|" windowY "|" windowWidth "|50")
 				n += (Gdip_ImageSearch(pBMScreen, bitmaps["emptyhealth"], , , , , , 10) = (n = 0))
 				Gdip_DisposeImage(pBMScreen)
 			}
-			Sleep 1000
+			WaitRecovery(1000)
 		}
 
 		; detect unclaimed hive slots.
@@ -16411,16 +16381,17 @@ nm_claimHiveSlot(){
 			}
 			if (preferred) {
 				movement := nm_spawnMoveTo(slotMove[preferred])
+				CheckRecovery()
 				nm_createWalk(movement)
-				KeyWait "F14", "D T5 L"
-				KeyWait "F14", "T20 L"
+				WalkWait(5, true)
+				WalkWait(20)
 				nm_endWalk()
-				sleep 500
+				WaitRecovery(500)
 				pBMScreen := GetBitmap()
 				if (Gdip_ImageSearch(pBMScreen, bitmaps["claimhive"], , , , , , 2, , 6) = 1) {
 					Gdip_DisposeImage(pBMScreen)
 					Send "{" SC_E " down}"
-					sleep 100
+					WaitRecovery(100)
 					Send "{" SC_E " up}"
 					HiveConfirmed := 1
 					HiveSlot := preferred
@@ -16439,7 +16410,7 @@ nm_claimHiveSlot(){
 		; old system
 		
 		;go to slot 1
-		Sleep 500
+		WaitRecovery(500)
 		GetRobloxClientPos(hwnd)
 		MouseMove windowX+350, windowY+offsetY+100
 		send "{" ZoomOut " 8}"
@@ -16452,9 +16423,10 @@ nm_claimHiveSlot(){
 		Walk(20)
 		Send "{' RightKey ' up}{' FwdKey ' up}"'
 		)
+		CheckRecovery()
 		nm_createWalk(movement)
-		KeyWait "F14", "D T5 L"
-		KeyWait "F14", "T20 L"
+		WalkWait(5, true)
+		WalkWait(20)
 		nm_endWalk()
 
 		;check slots 1 to old HiveSlot
@@ -16464,13 +16436,14 @@ nm_claimHiveSlot(){
 		{
 			if (A_Index > 1)
 			{
+				CheckRecovery()
 				nm_createWalk(movement)
-				KeyWait "F14", "D T5 L"
-				KeyWait "F14", "T20 L"
+				WalkWait(5, true)
+				WalkWait(20)
 				nm_endWalk()
 			}
 
-			Sleep 500
+			WaitRecovery(500)
 			pBMScreen := GetBitmap()
 			if (Gdip_ImageSearch(pBMScreen, bitmaps["claimhive"], , , , , , 2, , 6) = 1)
 				slots[A_Index] := 1
@@ -16484,12 +16457,13 @@ nm_claimHiveSlot(){
 			if ((slot := ObjMinIndex(slots)) > 0)
 			{
 				movement := nm_Walk((HiveSlot - slot) * 9.2, RightKey)
+				CheckRecovery()
 				nm_createWalk(movement)
-				KeyWait "F14", "D T5 L"
-				KeyWait "F14", "T20 L"
+				WalkWait(5, true)
+				WalkWait(20)
 				nm_endWalk()
 
-				Sleep 500
+				WaitRecovery(500)
 				pBMScreen := GetBitmap()
 				if (Gdip_ImageSearch(pBMScreen, bitmaps["claimhive"], , , , , , 2, , 6) = 1) {
 					Gdip_DisposeImage(pBMScreen)
@@ -16501,12 +16475,13 @@ nm_claimHiveSlot(){
 			else {
 				Loop (6 - HiveSlot)
 				{
+					CheckRecovery()
 					nm_createWalk(movement)
-					KeyWait "F14", "D T5 L"
-					KeyWait "F14", "T20 L"
+					WalkWait(5, true)
+					WalkWait(20)
 					nm_endWalk()
 
-					Sleep 500
+					WaitRecovery(500)
 					pBMScreen := GetBitmap()
 					if (Gdip_ImageSearch(pBMScreen, bitmaps["claimhive"], , , , , , 2, , 6) = 1) {
 						Gdip_DisposeImage(pBMScreen)
@@ -16524,7 +16499,7 @@ nm_claimHiveSlot(){
 	}
 
 	SendInput "{" SC_E " down}"
-	Sleep 100
+	WaitRecovery(100)
 	SendInput "{" SC_E " up}"
 	HiveConfirmed := 1
 	;update hive slot
@@ -16534,6 +16509,10 @@ nm_claimHiveSlot(){
 	MouseMove windowX+350, windowY+offsetY+100
 
 	return 1
+	} finally {
+		try Send "{" SC_E " up}"
+		try nm_endWalk()
+	}
 }
 nm_activeHoney(){
 	global HiveBees, GameFrozenCounter
