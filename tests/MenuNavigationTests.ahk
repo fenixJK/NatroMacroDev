@@ -39,8 +39,9 @@ TestMenuNavigation() {
 	AssertEqual(nm_MenuNavigation(surface).Run("unknown-tab"), 0, "Unknown tab rejected before window access")
 	AssertEqual(surface.Prepared, 0, "Invalid request never prepares input")
 	for statuses in [Map("itemmenu", -100), Map("itemmenu", 1, "questlog", 1)]
-		Assert(!nm_MenuFrameReader.Read((tab) => statuses.Has(tab) ? statuses[tab] : 0).valid, "Search error or ambiguous selected tabs is unknown")
+		Assert(!nm_MenuFrameReader.Read(MenuFixtureFind.Bind(statuses)).valid, "Search error or ambiguous selected tabs is unknown")
 }
+MenuFixtureFind(statuses, tab) => statuses.Has(tab) ? statuses[tab] : 0
 
 class MenuNavigationFixture {
 	__New(tabs) {
