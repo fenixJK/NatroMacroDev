@@ -1,4 +1,7 @@
 ; Included only by the generated native GUI test worker, never by production.
+nm_ProbePhase(phase) {
+	FileAppend DllCall("GetTickCount64", "UInt64") " " phase "`n", "probe-phase.txt"
+}
 nm_ProbeBeeAssets() {
 	global bitmaps, beeArr
 	for bee in beeArr {
@@ -91,9 +94,11 @@ nm_ProbeBeeMouse() {
 	}
 	Critical "Off"
 	try {
+		nm_ProbePhase("mouse focus")
 		foreign.Show("x650 y30 w140 h70"), mgui.Move(30, 30)
 		WinActivate "ahk_id " mgui.Hwnd
 		WinWaitActive "ahk_id " mgui.Hwnd,, 2
+		nm_ProbePhase("mouse hover")
 		Place(mgui["Bomber"])
 		WM_MOUSEMOVE(0, 0, 0x200, mgui.Hwnd)
 		Check(mouseUI.Hover = "Bomber" && hovercontrol = "Bomber", "Owned hover is drawn and message returns")
@@ -110,11 +115,13 @@ nm_ProbeBeeMouse() {
 		Place(mgui["Bomber"]), mouseUI.Move(mgui.Hwnd)
 		WinActivate "ahk_id " foreign.Hwnd
 		WinWaitActive "ahk_id " foreign.Hwnd,, 2
+		nm_ProbePhase("mouse foreign focus")
 		mouseUI.Tick()
 		WM_MOUSEMOVE(0, 0, 0x200, foreignControl.Hwnd)
 		Check(!mouseUI.Hover, "Focus loss and foreign messages clear hover without indexing foreign controls")
 		WinActivate "ahk_id " mgui.Hwnd
 		WinWaitActive "ahk_id " mgui.Hwnd,, 2
+		nm_ProbePhase("mouse deferred actions")
 		; Prevent the deferred action from running: the message handler must return
 		; before it starts OCR/game preflight or opens the help modal.
 		Critical "On"
@@ -122,6 +129,7 @@ nm_ProbeBeeMouse() {
 		SetTimer blc_start, 0
 		Place(mgui["help"]), WM_LBUTTONDOWN(1, 0, 0x201, mgui.Hwnd)
 		SetTimer nm_AutoJellyHelp, 0
+		nm_ProbePhase("mouse close capture")
 		OnMessage(0x112, OnClose)
 		Place(mgui["close"]), mouseUI.BeginClose(mgui.Hwnd)
 		Check(mouseUI.Pressed && DllCall("GetCapture", "Ptr") = mgui.Hwnd, "Close press owns capture without waiting")
@@ -140,6 +148,7 @@ nm_ProbeBeeMouse() {
 		mouseUI.BeginClose(mgui.Hwnd), mouseUI.EndClose(mgui.Hwnd)
 		Critical "Off"
 		Sleep 100
+		nm_ProbePhase("mouse close delivered")
 		Check(closes = 1, "Only release on close posts one command to this GUI")
 		mouseUI.Stop(), mouseUI.Stop()
 		Check(!mouseUI.Hover && !mouseUI.Pressed && !mouseUI.Tip, "Mouse teardown is idempotent")
