@@ -1,10 +1,10 @@
 TestAutoJellyLimits() {
 	for invalid in [0, -1, "", "1.5", "1e3", 1000001] {
-		AssertThrows(() => nm_AutoJellySettings.Limits(invalid, 10), "Invalid click limit rejected")
-		AssertThrows(() => nm_AutoJellySettings.Parse("[limits]`nRollClickLimit=" invalid), "Invalid stored click limit rejected")
+		AssertThrows(ObjBindMethod(nm_AutoJellySettings, "Limits", invalid, 10), "Invalid click limit rejected")
+		AssertThrows(ObjBindMethod(nm_AutoJellySettings, "Parse", "[limits]`nRollClickLimit=" invalid), "Invalid stored click limit rejected")
 	}
 	for invalid in [0, -1, "", "1.5", "1e3", 1441]
-		AssertThrows(() => nm_AutoJellySettings.Limits(100, invalid), "Invalid duration rejected")
+		AssertThrows(ObjBindMethod(nm_AutoJellySettings, "Limits", 100, invalid), "Invalid duration rejected")
 	limits := nm_AutoJellySettings.Limits(1000000, 1440)
 	AssertEqual(limits.Clicks, 1000000, "Finite upper click bound accepted")
 	AssertEqual(limits.Minutes, 1440, "Finite upper time bound accepted")
@@ -31,13 +31,19 @@ TestAutoJellyLimits() {
 	budget.Reserve(), budget.Reserve()
 	AssertEqual(budget.Used, 2, "Each reserved attempt consumes one slot")
 	budget.CheckTime() ; the final allowed result can still be observed
-	AssertThrows(ObjBindMethod(budget, "Reserve"), "Attempt beyond the cap cannot be reserved")
+	AutoJellyLimitFailure(ObjBindMethod(budget, "Reserve"))
 	AssertEqual(budget.Used, 2, "Rejected extra attempt does not alter usage")
 	tick := 60999, budget.CheckTime()
 	tick := 61000
-	AssertThrows(ObjBindMethod(budget, "CheckTime"), "Duration expires at the boundary")
+	AutoJellyLimitFailure(ObjBindMethod(budget, "CheckTime"))
 	AssertEqual(budget.Used, 2, "Expired budget cannot refund an uncertain attempt")
 	tick := 0xffffffff, budget := nm_AutoJellyRunBudget(1, 1, (*) => tick)
 	tick += 60000
-	AssertThrows(ObjBindMethod(budget, "Reserve"), "Duration remains finite across a 32-bit tick boundary")
+	AutoJellyLimitFailure(ObjBindMethod(budget, "Reserve"))
+}
+AutoJellyLimitFailure(action) {
+	try action.Call()
+	catch nm_AutoJellyLimitReached
+		return
+	throw Error("Expected the Auto-Jelly run limit to stop the action")
 }
