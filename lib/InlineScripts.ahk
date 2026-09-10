@@ -12,10 +12,19 @@ class nm_InlineWorker extends nm_ContainedProcessJob {
 					throw Error("Generated worker startup was cancelled")
 				phase := NumGet(this.View, 8, "Int"), pid := NumGet(this.View, 12, "UInt")
 				if pid && !this.ChildPid {
+					handle := DllCall("OpenProcess", "UInt", 0x101000, "Int", false, "UInt", pid, "Ptr")
+					if handle {
+						try {
+							if !DllCall("IsProcessInJob", "Ptr", handle, "Ptr", this.Job, "IntP", &owned := 0) || !owned
+								throw Error("Generated worker ownership could not be verified")
+							this.Child := handle, handle := 0
+						} finally {
+							if handle
+								DllCall("CloseHandle", "Ptr", handle)
+						}
+					} else if A_LastError != 87
+						throw Error("Generated worker could not be observed")
 					this.ChildPid := pid
-					this.Child := DllCall("OpenProcess", "UInt", 0x101000, "Int", false, "UInt", pid, "Ptr")
-					if this.Child && (!DllCall("IsProcessInJob", "Ptr", this.Child, "Ptr", this.Job, "IntP", &owned := 0) || !owned)
-						throw Error("Generated worker ownership could not be verified")
 				}
 				if phase = 3 || phase = 1
 					break
