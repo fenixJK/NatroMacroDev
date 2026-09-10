@@ -57,6 +57,8 @@
 #Include "%A_ScriptDir%\..\lib\WindowGeometry.ahk"
 #Include "%A_ScriptDir%\..\lib\InventorySearchEngine.ahk"
 #Include "%A_ScriptDir%\..\lib\InventoryDrag.ahk"
+#Include "%A_ScriptDir%\..\lib\MenuNavigation.ahk"
+#Include "%A_ScriptDir%\MenuNavigationTests.ahk"
 #Include "%A_ScriptDir%\GeometryTests.ahk"
 #Include "%A_ScriptDir%\InventoryDragTests.ahk"
 #Include "%A_ScriptDir%\..\lib\QuestObservation.ahk"
@@ -120,7 +122,7 @@ DirCreate testDirectory "\settings"
 SetWorkingDir testDirectory
 passed := failed := 0
 try {
-	for test in [TestTextGraphics, TestScreenCapture, TestAutoJellyLimits, TestAutoJellyOcr, TestAutoJellySafety, TestPrioritySettings, TestAutoJellySettings, TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
+	for test in [TestMenuNavigation, TestMenuTemplates, TestTextGraphics, TestScreenCapture, TestAutoJellyLimits, TestAutoJellyOcr, TestAutoJellySafety, TestPrioritySettings, TestAutoJellySettings, TestPriorities, TestReconnect, TestBudgets, TestLimitsUpdateLive,
 		TestCancellation, TestHourCap, TestDisabledAFB, TestPermissions, TestWaitUnits, TestFailureLogging, TestUpdateAssets, TestPlanterRecovery, TestPlanterObservation, TestBlenderAccounting, TestTimeTracking, TestConversionCleanup, TestCollectionRecovery, TestDispenserFailures, TestCollectionInterrupts, TestDiscordPayload, TestDeliveryQueue, TestHourlyReportDelivery, TestLocalHttpDelivery, TestGeometryCache, TestInventoryEngine, TestInventoryReader, TestPointerLease, TestInventoryDrag, TestQuestObservation, TestQuestFrames, TestQuestActions, TestQuestUnknownPublication, TestQuestRecovery, TestQuestTurnInRecovery, TestHealthObservation, TestBossHealthEstimation, TestBossHealthReporting, TestImageObservation, TestCombatPresence, TestRemoteCapabilities, TestAttachmentWorker, TestSupportReport, TestGatherProfiles, TestReconnectSession, TestRecoveryActivity, TestPlanterDialog, TestStatCounters, TestDiscordRepliesEncoding, TestDiscordHelp, TestDiscordReports, TestLiveHoneyDelivery, TestLocalLiveHoney, TestUploadOwnership, TestCommandDelivery, TestDeliveryCooldown, TestLocalCooldown, TestBotInbox, TestBotRoles, TestBotRecovery, TestLocalBotInbox, TestStartupControl, TestWatchdogRecovery] {
 		try {
 			test.Call()

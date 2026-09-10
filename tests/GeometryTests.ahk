@@ -20,9 +20,10 @@ class TestInventorySurface {
 		this.observations := observations, this.Valid := true, this.Reads := 0, this.BottomReads := 0
 		this.Height := 140, this.BottomMisses := 0, this.Waits := 0, this.Scrolls := []
 		this.ChangeOnRead := false, this.StopAfterScrolls := 1000
+		this.OpenOk := true
 		this.Client := {width: 800, height: 600, offset: 36}
 	}
-	Open(item) => true
+	Open(item) => this.OpenOk
 	Snapshot() => this.Client.Clone()
 	Current(snapshot) => this.Valid
 	Bottom(snapshot) => (++this.BottomReads <= this.BottomMisses ? 0 : this.Height)
@@ -42,6 +43,11 @@ class TestInventorySurface {
 }
 
 TestInventoryEngine() {
+	surface := TestInventorySurface([{state: "found", y: 50}]), surface.OpenOk := false
+	engine := nm_InventorySearchEngine(surface)
+	AssertEqual(engine.Search("glitter"), 0, "Unconfirmed menu prevents inventory search")
+	AssertEqual(engine.Outcome, "unknown", "Menu failure never reports an item as missing")
+	AssertEqual(surface.Reads + surface.BottomReads + surface.Scrolls.Length, 0, "No inventory reading or scrolling before confirmed menu")
 	surface := TestInventorySurface([{state: "found", y: 50}])
 	engine := nm_InventorySearchEngine(surface)
 	point := engine.Search("glitter")

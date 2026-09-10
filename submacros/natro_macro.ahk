@@ -7632,7 +7632,8 @@ nm_GenerateBeeList(*)
 	offsetY := GetYOffset(hwnd)
 	GetRobloxClientPos(hwnd)
 	nm_OpenMenu()
-	nm_OpenMenu("beemenu")
+	if !nm_OpenMenu("beemenu")
+		return 0
 	MouseMove windowX+30, windowY+offsetY+200, 5
 
 	; obtain lower bound of search
@@ -9836,7 +9837,8 @@ nm_GlueDis(){
 			nm_updateAction("Collect")
 
 			nm_Reset()
-			nm_OpenMenu("itemmenu")
+			if !nm_OpenMenu("itemmenu")
+				return 0
 
 			nm_setStatus("Traveling", "Glue Dispenser" ((A_Index > 1) ? " (Attempt 2)" : ""))
 
@@ -15647,7 +15649,8 @@ nm_HoneyQuestProg(){
 	}
 	try {
 		nm_setShiftLock(0)
-		nm_OpenMenu("questlog")
+		if !nm_OpenMenu("questlog")
+			return 0
 
 		hwnd := GetRobloxHWND()
 		offsetY := GetYOffset(hwnd, &offsetFailed)
@@ -15777,7 +15780,8 @@ nm_PolarQuestProg(){
 		QuestScorpions := 0
 		QuestWerewolf := 0
 		nm_setShiftLock(0)
-		nm_OpenMenu("questlog")
+		if !nm_OpenMenu("questlog")
+			return 0
 
 		hwnd := GetRobloxHWND()
 		offsetY := GetYOffset(hwnd, &offsetFailed)
@@ -15983,7 +15987,8 @@ nm_RileyQuestProg(){
 		RileyScorpions := 0
 		RileyAll := 0
 		nm_setShiftLock(0)
-		nm_OpenMenu("questlog")
+		if !nm_OpenMenu("questlog")
+			return 0
 
 		hwnd := GetRobloxHWND()
 		offsetY := GetYOffset(hwnd, &offsetFailed)
@@ -16225,7 +16230,8 @@ nm_BuckoQuestProg(){
 		BuckoRhinoBeetles := 0
 		BuckoMantis := 0
 		nm_setShiftLock(0)
-		nm_OpenMenu("questlog")
+		if !nm_OpenMenu("questlog")
+			return 0
 
 		hwnd := GetRobloxHWND()
 		offsetY := GetYOffset(hwnd, &offsetFailed)
@@ -16461,7 +16467,8 @@ nm_BlackQuestProg(){
 	try {
 		BlackQuest := ""
 		nm_setShiftLock(0)
-		nm_OpenMenu("questlog")
+		if !nm_OpenMenu("questlog")
+			return 0
 
 		hwnd := GetRobloxHWND()
 		offsetY := GetYOffset(hwnd, &offsetFailed)
@@ -16711,7 +16718,8 @@ nm_BrownQuestProg(){
 	try {
 		BrownQuest := ""
 		nm_setShiftLock(0)
-		nm_OpenMenu("questlog")
+		if !nm_OpenMenu("questlog")
+			return 0
 
 		hwnd := GetRobloxHWND()
 		offsetY := GetYOffset(hwnd, &offsetFailed)
@@ -18141,7 +18149,8 @@ ba_placePlanter(fieldName, planter, planterNum, atField:=0){
 	if (atField = 0)
 	{
 		nm_Reset()
-		nm_OpenMenu("itemmenu")
+		if !nm_OpenMenu("itemmenu")
+			return 0
 		nm_setStatus("Traveling", (planterName . " (" . fieldName . ")"))
 		nm_gotoPlanter(fieldName, 0)
 	}
@@ -18282,7 +18291,8 @@ ba_harvestPlanter(planterNum){
 		ActivateRoblox()
 		GetRobloxClientPos()
 
-		nm_OpenMenu("itemmenu")
+		if !nm_OpenMenu("itemmenu")
+			return 0
 		planterPos := nm_InventorySearch(planterName, "up", 4)
 
 		if nm_PlanterInventoryConfirmsAbsent(planterName, planterPos) { ; reusable planter returned to inventory
@@ -18599,7 +18609,8 @@ mp_PlantPlanter(PlanterIndex) {
 	nm_setShiftLock(0)
 
 	nm_Reset()
-	nm_OpenMenu("itemmenu")
+	if !nm_OpenMenu("itemmenu")
+		return 0
 	nm_setStatus("Traveling", MPlanterName " (" MFieldName ")")
 	nm_gotoPlanter(MFieldName, 0)
 
@@ -18749,7 +18760,8 @@ mp_UseGlitter(PlanterIndex, atField:=0) {
 
 	if (atField = 0) {
 		nm_Reset()
-		nm_OpenMenu("itemmenu")
+		if !nm_OpenMenu("itemmenu")
+			return 0
 		nm_setStatus("Traveling", "Glitter: " PlanterName%PlanterIndex% " (" PlanterField%PlanterIndex% ")")
 		nm_gotoPlanter(PlanterField%PlanterIndex%, 0)
 	}

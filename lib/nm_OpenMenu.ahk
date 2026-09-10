@@ -1,90 +1,20 @@
-﻿nm_OpenMenu(tab:="", refresh:=0){
-	global bitmaps
-	static x := Map("itemmenu",30, "questlog",85, "beemenu",140, "badgelist",195, "settingsmenu",250, "shopmenu",305), open:=""
+#Include "MenuNavigation.ahk"
 
-	if (hwnd := GetRobloxHWND())
-		ActivateRoblox()
-	else
-		return 0
-	offsetY := GetYOffset(hwnd)
-
-	if ((tab = "") || (refresh = 1)) ; close
-	{
-		if open ; close the open tab
-		{
-			Loop 10
-			{
-				GetRobloxClientPos(hwnd)
-				pBMScreen := Gdip_BitmapFromScreen(windowX "|" windowY+offsetY+72 "|350|80")
-				if (Gdip_ImageSearch(pBMScreen, bitmaps[open], , , , , , 2) != 1) {
-					Gdip_DisposeImage(pBMScreen)
-					open := ""
-					break
-				}
-				Gdip_DisposeImage(pBMScreen)
-				SendEvent "{Click " windowX+x[open] " " windowY+offsetY+120 " 0}"
-				Click
-				SendEvent "{Click " windowX+350 " " windowY+offsetY+100 " 0}"
-				sleep 500
-			}
-		}
-		else ; close any open tab
-		{
-			for k,v in x
-			{
-				Loop 10
-				{
-					GetRobloxClientPos(hwnd)
-					pBMScreen := Gdip_BitmapFromScreen(windowX "|" windowY+offsetY+72 "|350|80")
-					if (Gdip_ImageSearch(pBMScreen, bitmaps[k], , , , , , 2) != 1) {
-						Gdip_DisposeImage(pBMScreen)
-						break
-					}
-					Gdip_DisposeImage(pBMScreen)
-					SendEvent "{Click " windowX+v " " windowY+offsetY+120 " 0}"
-					Click
-					SendEvent "{Click " windowX+350 " " windowY+offsetY+100 " 0}"
-					sleep 500
-				}
-			}
-			open := ""
-		}
-	}
-	else
-	{
-		if ((tab != open) && open) ; close the open tab
-		{
-			Loop 10
-			{
-				GetRobloxClientPos(hwnd)
-				pBMScreen := Gdip_BitmapFromScreen(windowX "|" windowY+offsetY+72 "|350|80")
-				if (Gdip_ImageSearch(pBMScreen, bitmaps[open], , , , , , 2) != 1) {
-					Gdip_DisposeImage(pBMScreen)
-					open := ""
-					break
-				}
-				Gdip_DisposeImage(pBMScreen)
-				SendEvent "{Click " windowX+x[open] " " windowY+offsetY+120 " 0}"
-				Click
-				SendEvent "{Click " windowX+350 " " windowY+offsetY+100 " 0}"
-				sleep 500
-			}
-		}
-		; open the desired tab
-		Loop 10
-		{
-			GetRobloxClientPos(hwnd)
-			pBMScreen := Gdip_BitmapFromScreen(windowX "|" windowY+offsetY+72 "|350|80")
-			if (Gdip_ImageSearch(pBMScreen, bitmaps[tab], , , , , , 2) = 1) {
-				Gdip_DisposeImage(pBMScreen)
-				open := tab
-				break
-			}
-			Gdip_DisposeImage(pBMScreen)
-			SendEvent "{Click " windowX+x[tab] " " windowY+offsetY+120 " 0}"
-			Click
-			SendEvent "{Click " windowX+350 " " windowY+offsetY+100 " 0}"
-			sleep 500
-		}
-	}
+; Return 1 only for an observed requested tab state; uncertainty returns 0.
+nm_OpenMenu(tab := "", refresh := 0, &outcome?) {
+	static busy := false
+	outcome := "busy"
+	previousCritical := A_IsCritical
+	Critical "On"
+	try {
+		if busy
+			return 0
+		busy := true
+	} finally Critical previousCritical
+	try {
+		engine := nm_MenuNavigation(nm_MenuSurface())
+		result := engine.Run(tab, refresh)
+		outcome := engine.Outcome
+		return result
+	} finally busy := false
 }
