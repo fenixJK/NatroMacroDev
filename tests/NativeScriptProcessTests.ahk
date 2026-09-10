@@ -6,6 +6,7 @@ TestNativeScriptProcesses() {
 		FileCopy A_ScriptDir "\ScriptProcessFixture.ahk", directory "\" folder "\natro_macro.ahk"
 	FileCopy A_AhkPath, directory "\other-runtime.exe"
 	DllCall("GetProcessHandleCount", "Ptr", -1, "UIntP", &before := 0)
+	handleCounts := "before=" before
 	try {
 		selectedScript := directory "\selected\natro_macro.ahk"
 		selected := nm_ScriptProcess.Launch(selectedScript, A_AhkPath, [1], "Natro fixture"), processes.Push(selected)
@@ -16,6 +17,7 @@ TestNativeScriptProcesses() {
 			RequireProcess(DllCall("GetTickCount64", "UInt64") < deadline, "Decoy fixture GUIs initialize")
 			Sleep 20
 		}
+		handleCounts .= " after launch=" WatchdogFixtureHandleCount()
 		RequireProcess(!selected.Ready(), "Another process's matching GUI cannot satisfy startup readiness")
 		captured := nm_ScriptProcess.Find(selectedScript, A_AhkPath)
 		if captured.Length != 1 || captured[1].Pid != selected.Pid {
@@ -39,7 +41,9 @@ TestNativeScriptProcesses() {
 			for item in captured
 				item.Release()
 		}
+		handleCounts .= " after discovery=" WatchdogFixtureHandleCount()
 		nm_ScriptProcess.Stop(selectedScript, A_AhkPath)
+		handleCounts .= " after stop=" WatchdogFixtureHandleCount()
 		RequireProcess(!selected.Running(), "Watchdog cleanup terminates the verified script through its retained handle")
 		RequireProcess(decoy.Running() && otherRuntime.Running(), "Same-name script and different-runtime decoys survive cleanup")
 		RequireProcess(decoy.Ready(), "Matching owned GUI is a ready application")
@@ -47,6 +51,7 @@ TestNativeScriptProcesses() {
 		catch
 			launchRejected := true
 		RequireProcess(IsSet(launchRejected), "Native launch failure propagates")
+		handleCounts .= " after rejected launch=" WatchdogFixtureHandleCount()
 	} finally {
 		for process in processes {
 			process.Close()
@@ -55,6 +60,12 @@ TestNativeScriptProcesses() {
 		DirDelete directory, true
 	}
 	DllCall("GetProcessHandleCount", "Ptr", -1, "UIntP", &after := 0)
+	if after > before + 2
+		FileAppend "Watchdog handles: " handleCounts " after cleanup=" after "`n", "*"
 	RequireProcess(after <= before + 2, "Watchdog process handles released after discovery and failed launch")
 	FileAppend "PASS Windows watchdog script identity and readiness (" A_PtrSize * 8 "-bit)`n", "*"
+}
+WatchdogFixtureHandleCount() {
+	DllCall("GetProcessHandleCount", "Ptr", -1, "UIntP", &count := 0)
+	return count
 }
