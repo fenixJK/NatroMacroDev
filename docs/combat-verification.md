@@ -123,3 +123,11 @@ Werewolf/Scorpion routines still have timeout/absence-based success and fixed ki
 counts; their positive confirmation, per-field state and retry migration remain
 required. Other boss failure cooldowns and interrupted input ownership also remain
 open. No live combat result has been verified.
+
+[Windows run 34422652220](https://github.com/fenixJK/NatroMacroDev/actions/runs/34422652220)
+verified code `d7681996d285f05207322a1291170c910a6b1c4b`: 39 groups per architecture,
+native shared image search/health capture/geometry/pointer integration, six scripts
+and four emitted workers per architecture, plus 35 updater scenarios per PowerShell
+version. No AHK warnings occurred. The main combat consumers were parsed and reviewed;
+automated action evidence covers their extracted absence/retry/lease policies rather
+than a running Roblox fight.

@@ -511,3 +511,44 @@ evidence, live damage and pause scenarios, kill confirmation, recoverable action
 boundaries and long-run resource/performance measurements. Other feature, reporting,
 state, optimization, proposed-feature and release gates remain open. The full
 production objective remains active.
+
+
+## Shared image search and boss outcome checkpoint
+
+Code checkpoint: `d7681996d285f05207322a1291170c910a6b1c4b`.
+[Windows run 34422652220](https://github.com/fenixJK/NatroMacroDev/actions/runs/34422652220)
+passed **39 regression groups on each AHK architecture**, native shared image
+search, health capture, geometry and pointer checks, six script validations, four
+emitted worker validations per architecture, and **35 updater scenarios on each
+PowerShell version**. No AHK warnings occurred. The separate checkout Node notice
+remains a CI maintenance item.
+
+The shared image helper now uses a fresh focused client snapshot, bounded inclusive
+search regions and a restored pixel coordinate mode. It checks geometry again after
+searching and publishes verified window globals for existing coordinate consumers.
+Missing assets, invalid regions and native errors throw through normal failure
+cleanup instead of abruptly killing the process. Native GUI tests cover full/right
+region matches, client-relative coordinates, published geometry, no match, corrupt
+image decoding and coordinate-mode restoration. Other tests cover small/odd client
+sizes, invalid coordinates, changed focus/geometry and pre-search rejection. CI
+caught a wrongly bound test callback; the fixture was corrected before passing.
+
+Commando and Mondo no longer turn repeated missing health bars into defeat. A
+monotonic absence interval ends an unconfirmed search, with one final check of the
+existing defeat image. Reacquiring health resets the absence interval. Commando
+failure does not advance LastCommando, and LastMondoBuff advances only after its
+buff template is detected. Both reserve a separate five-minute retry before work
+and renew it on failed/interrupted visits. An in-process lease prevents nested
+visits even when a fight outlasts the persisted delay.
+
+The absence/retry/lease policies are covered by controlled tests; the actual main
+consumers passed Windows validation and source review. Live boss actions, current
+notification/template accuracy, unique/fresh receipts and counter transactionality
+remain unverified. Ordinary Spider/Ladybug/Rhino/Mantis/Werewolf/Scorpion code still
+has inferred success and fixed kill counts, which need per-field confirmation and
+recovery. Downstream input calls still need their own freshness guards; validating
+a search does not validate a later click.
+
+[Combat verification](combat-verification.md) records these limits. The full
+production objective remains active, including all other feature, state, reporting,
+optimization, proposed-feature and release/live-verification gates.
