@@ -60,6 +60,7 @@ TestImageObservation() {
 }
 
 TestCombatPresence() {
+	global TestNow
 	for limit in [15000, 60000] {
 		presence := nm_CombatPresence(limit, true)
 		Assert(!presence.Expired([], 0), "Absence starts an observation interval")
@@ -82,4 +83,22 @@ TestCombatPresence() {
 		AssertEqual(nm_CollectionRecovery.Interacted(key), TestNow, key " explicit confirmation advances cooldown")
 		Assert(nm_CollectionRecovery.Ready(key), key " confirmed result clears retry reservation")
 	}
+	originalNow := TestNow
+	try {
+		Assert(nm_BossVisit.Begin("LastCommando"), "Boss visit obtains an active lease")
+		TestNow += 600
+		Assert(!nm_BossVisit.Ready("LastCommando") && !nm_BossVisit.Begin("LastCommando"), "Long fight cannot re-enter after persisted delay expires")
+		nm_BossVisit.Finish("LastCommando", false)
+		Assert(!nm_BossVisit.Active.Has("LastCommando"), "Failed visit releases active lease")
+		Assert(!nm_BossVisit.Ready("LastCommando"), "Failed long visit renews retry delay")
+		TestNow += 300
+		Assert(nm_BossVisit.Begin("LastCommando"), "Retry becomes available after completion delay")
+		nm_CollectionRecovery.Interacted("LastCommando")
+		nm_BossVisit.Finish("LastCommando", true)
+		Assert(nm_BossVisit.Ready("LastCommando"), "Confirmed completed visit releases lease")
+	} finally {
+		TestNow := originalNow
+		nm_BossVisit.Active := Map()
+	}
+
 }

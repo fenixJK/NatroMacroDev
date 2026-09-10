@@ -10294,7 +10294,7 @@ nm_Start(){
 #Include "nm_OpenMenu.ahk"
 ;interrupts
 nm_MondoInterrupt() => (utc_min := FormatTime(A_NowUTC, "m"), now := nowUnix(),
-	((MondoBuffCheck = 1) && nm_CollectionRecovery.Ready("LastMondoBuff") && ((utc_min<14 && (now-LastMondoBuff)>960 && MondoAction="Kill")
+	((MondoBuffCheck = 1) && nm_BossVisit.Ready("LastMondoBuff") && ((utc_min<14 && (now-LastMondoBuff)>960 && MondoAction="Kill")
 		|| (!nm_GatherBoostInterrupt()
 			&& ((utc_min<14 && (now-LastMondoBuff)>960 && MondoAction="Buff")
 			|| (utc_min<12 && (now-LastGuid)<60 && PMondoGuid && MondoAction="Guid")
@@ -14590,7 +14590,7 @@ nm_Bugrun(){
 			return
 
 		;Commando
-		if((CommandoCheck) && (nowUnix()-LastCommando)>floor(1800*(1-(MonsterRespawnTime?MonsterRespawnTime:0)*0.01))) && nm_CollectionRecovery.Begin("LastCommando") {
+		if((CommandoCheck) && (nowUnix()-LastCommando)>floor(1800*(1-(MonsterRespawnTime?MonsterRespawnTime:0)*0.01))) && nm_BossVisit.Begin("LastCommando") {
 			commandoConfirmed := false
 			try { ;30 minutes
 			Loop 2 {
@@ -14858,8 +14858,7 @@ nm_Bugrun(){
 				}
 			}
 			} finally {
-				if !commandoConfirmed
-					nm_CollectionRecovery.Failed("LastCommando", "defeat not verified")
+				nm_BossVisit.Finish("LastCommando", commandoConfirmed)
 			}
 		}
 		if nm_NightInterrupt()
@@ -15037,7 +15036,7 @@ nm_Mondo(){
 	global MondoBuffCheck, PMondoGuid, LastGuid, MondoAction, LastMondoBuff, PMondoGuidComplete, GatherFieldBoostedStart, LastGlitter
 	if nm_NightInterrupt()
 		return
-	if nm_MondoInterrupt() && nm_CollectionRecovery.Begin("LastMondoBuff") {
+	if nm_MondoInterrupt() && nm_BossVisit.Begin("LastMondoBuff") {
 		mondoConfirmed := false
 		try {
 		mondobuff := nm_imgSearch("mondobuff.png",50,"buff")
@@ -15223,8 +15222,7 @@ nm_Mondo(){
 			mondoConfirmed := true
 		}
 		} finally {
-			if !mondoConfirmed
-				nm_CollectionRecovery.Failed("LastMondoBuff", "buff not verified")
+			nm_BossVisit.Finish("LastMondoBuff", mondoConfirmed)
 		}
 	}
 }

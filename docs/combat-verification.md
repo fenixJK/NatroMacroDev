@@ -113,7 +113,9 @@ timed-out or interrupted attempts. Those failures do not advance LastCommando.
 Mondo likewise has a separate retry reservation. LastMondoBuff advances only when
 the existing buff template is detected, including after the visit. Failure to find
 a buff no longer creates a successful-looking timestamp. Recovery uses the existing
-CollectionRecovery storage with explicit boss-specific failure reasons.
+CollectionRecovery storage with explicit boss-specific failure reasons. A separate
+in-process lease remains active until each visit exits, so a long fight cannot
+re-enter after its persisted five-minute delay expires.
 
 These changes do not establish current template accuracy, unique/fresh defeat
 receipts, or visibility beneath overlays. The regular Spider/Ladybug/Rhino/Mantis/
