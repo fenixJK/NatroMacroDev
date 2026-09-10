@@ -77,3 +77,30 @@ Still required for F23 and the broader production plan:
 - Run a Windows resource soak for repeated screenshots, failed encoding and reports.
 
 No live Discord or Roblox verification is claimed by this checkpoint.
+
+## Counter consistency
+
+The main macro uses one increment helper for boss kills, Vicious kills, normal
+bugs, planters, quests and disconnects. An increment of two now adds two to both
+the lifetime and session values and sends two to StatMonitor. The helper maps the
+planter and quest categories to the existing `PlantersCollected` and
+`QuestsComplete` INI keys. It validates the category, amount and current totals
+before writing; zero does nothing. Negative, fractional, oversized or overflowing
+increments are rejected. StatMonitor independently rejects invalid message IDs
+and amounts instead of indexing outside its six counters or wrapping a total.
+
+The helper writes the lifetime and session keys before updating memory and posting
+the monitor message. The regression suite invokes this production helper for all
+six categories, checks saved values at the dispatch boundary, and passes the
+message values to the production receiver logic. It also exercises a real first
+INI-write failure and verifies that it cannot update memory or publish an
+increment. This fixture replaces message transport; it does not prove native
+cross-process delivery or hourly rollover behavior.
+
+The two INI writes are **not one crash-atomic transaction**. Failure after the first
+write can leave a partial saved pair, and a process crash or absent monitor can
+lose a posted increment. Durable receipts, a shared state writer, reset/rollover
+coordination and restart reconciliation remain work. These changes preserve the
+existing event triggers and quantities, including inferred bug kills and the
+legacy planter completion branches; consistent counters do not establish that
+those game events actually happened.

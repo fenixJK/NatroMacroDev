@@ -938,3 +938,44 @@ state/counter updates, live inventory reconciliation, hard-kill key release and
 full input coordination remain unfinished. The polling limit is cooperative and
 no capture-performance improvement is claimed. The full production plan remains
 active; no live Roblox scenario, merge, release or deployment is claimed.
+
+## Consistent statistic increments checkpoint
+
+Code checkpoint: `f5e8b4ab765792890fe4576ae24957b4ce6cb187`.
+[Windows run 34431028805](https://github.com/fenixJK/NatroMacroDev/actions/runs/34431028805)
+passed **47 regression groups on each AHK architecture**, the existing native
+Windows integration suites, seven production-script and four emitted-worker
+validations per architecture, **43 attachment checks** and **35 updater scenarios**
+on each PowerShell version. No AHK warnings occurred. The checkout Node runtime
+deprecation notice remains.
+
+The main increment helper previously always added one locally while forwarding
+its requested amount to StatMonitor. Its unused planter/quest branches also named
+nonexistent globals/keys instead of PlantersCollected and QuestsComplete. The
+helper now validates and maps all six categories, applies the same amount to the
+lifetime/session totals, persists them, updates memory and publishes the same
+amount. Zero is a no-op; invalid names, negative/fractional/oversized amounts,
+corrupt totals and signed-64-bit overflow are rejected before mutation.
+StatMonitor independently validates incoming IDs/amounts and prevents overflow.
+AHK critical state is restored after each helper/receiver operation.
+
+Twenty-eight duplicated main-program accounting blocks and the shared quest
+turn-in counter path now use the helper; the existing Vicious call uses its fixed
+implementation. All original event triggers and one/two-count quantities remain.
+Explicit lifetime/session resets are unchanged. This is shared counter accounting,
+not proof that a route killed the inferred number of bugs or a planter harvested.
+
+New regression coverage invokes the production helper for every category with
+both explicit two and default one, checks canonical saved keys, validates saved
+values before dispatch, and exercises the production receiver logic. It rejects
+malformed/overflowing increments and induces a real first INI-write failure by
+blocking the settings directory, verifying no memory update or publication. The
+transport is a fixture; native cross-process message delivery is not claimed.
+Existing quest outcome/retry tests also passed with the shared counter helper.
+
+[Reporting verification](reporting-verification.md) describes remaining limits:
+the two INI keys are not a crash-atomic pair, posted increments are not durable,
+and monitor restart, missing messages, reset/rollover coordination, positive game
+event receipts and a shared persistent state writer remain open. The full
+production plan is still active. No live Roblox/Discord verification, performance
+gain, release, deployment or merge is claimed.
