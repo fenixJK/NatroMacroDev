@@ -42,11 +42,11 @@ Loop
 	DetectHiddenWindows 1
 	; request heartbeat
 	if WinExist(mainScript " - AutoHotkey v" A_AhkVersion " ahk_class AutoHotkey")
-		PostMessage 0x5556
+		try PostMessage 0x5556
 	if WinExist(A_ScriptDir "\Status.ahk - AutoHotkey v" A_AhkVersion " ahk_class AutoHotkey")
-		PostMessage 0x5556
+		try PostMessage 0x5556
 	if WinExist(A_ScriptDir "\background.ahk - AutoHotkey v" A_AhkVersion " ahk_class AutoHotkey")
-		PostMessage 0x5556
+		try PostMessage 0x5556
 	; check for timeouts
 	if (((MacroState = 2) && (((time - LastMainHeartbeat > 120000) && (reason := "Macro Unresponsive Timeout!"))
 		|| ((time - LastBackgroundHeartbeat > 120000) && (reason := "Background Script Timeout!"))
