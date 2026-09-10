@@ -41,91 +41,14 @@ class __ArrEx extends Array {
 if A_ScreenDPI !== 96
 	throw Error("This macro requires a display-scale of 100%")
 traySetIcon(A_ScriptDir "\nm_image_assets\birb.ico")
+#Include "%A_ScriptDir%\lib\AutoJellySettings.ahk"
 getConfig() {
 	global
-	local k, v, p, c, i, section, key, value, inipath, config, f, ini
-	config := {
-		mutations: {
-			Mutations: 0,
-			Ability: 0,
-			Gather: 0,
-			Convert: 0,
-			Energy: 0,
-			Movespeed: 0,
-			Crit: 0,
-			Instant: 0,
-			Attack: 0
-		},
-		bees: {
-			Bomber: 0,
-			Brave: 0,
-			Bumble: 0,
-			Cool: 0,
-			Hasty: 0,
-			Looker: 0,
-			Rad: 0,
-			Rascal: 0,
-			Stubborn: 0,
-			Bubble: 0,
-			Bucko: 0,
-			Commander: 0,
-			Demo: 0,
-			Exhausted: 0,
-			Fire: 0,
-			Frosty: 0,
-			Honey: 0,
-			Rage: 0,
-			Riley: 0,
-			Shocked: 0,
-			Baby: 0,
-			Carpenter: 0,
-			Demon: 0,
-			Diamond: 0,
-			Lion: 0,
-			Music: 0,
-			Ninja: 0,
-			Shy: 0,
-			Buoyant: 0,
-			Fuzzy: 0,
-			Precise: 0,
-			Spicy: 0,
-			Tadpole: 0,
-			Vector: 0,
-			selectAll: 0
-		},
-		GUI : {
-			xPos: A_ScreenWidth//2-w//2,
-			yPos: A_ScreenHeight//2-h//2
-		},
-		extrasettings: {
-			mythicStop: 0,
-			giftedStop: 0
-		}
-	}
-	for i, section in config.OwnProps()
-		for key, value in section.OwnProps()
-			%key% := value
-	if !FileExist(".\settings")
-		DirCreate(".\settings")
-	inipath := ".\settings\mutations.ini"
-	if FileExist(inipath) {
-		loop parse FileRead(inipath), "`n", "`r" A_Space A_Tab {
-			switch (c:=SubStr(A_LoopField,1,1)) {
-				case "[", ";": continue
-				default:
-				if (p := InStr(A_LoopField, "="))
-					try k := SubStr(A_LoopField, 1, p-1), %k% := IsInteger(v := SubStr(A_LoopField, p+1)) ? Integer(v) : v
-			}
-		}
-	}
-	ini:=""
-	for k, v in config.OwnProps() {
-		ini .= "[" k "]`r`n"
-		for i in v.OwnProps()
-			ini .= i "=" %i% "`r`n"
-		ini .= "`r`n"
-	}
-	(f:=FileOpen(inipath, "w")).Write(ini), f.Close()
+	local settings, name, value
+	settings := nm_AutoJellySettings.Load(A_ScreenWidth//2-w//2, A_ScreenHeight//2-h//2)
+	DirCreate "settings"
+	for name, value in settings
+		%name% := value
 }
 ;===Dimensions===
 w:=500,h:=397
@@ -145,7 +68,11 @@ extrasettings:=[
 	{name:"mythicStop", text: "Stop on mythics"},
 	{name:"giftedStop", text: "Stop on gifteds"}
 ]
-getConfig()
+try getConfig()
+catch as settingsError {
+	FileAppend "Auto-Jelly settings could not be loaded: " settingsError.Message, "*", "UTF-8-RAW"
+	ExitApp 1
+}
 bitmaps := resources.Bitmaps
 #Include "%A_ScriptDir%\nm_image_assets\mutator\bitmaps.ahk"
 #Include "%A_ScriptDir%\nm_image_assets\mutatorgui\bitmaps.ahk"
@@ -292,20 +219,20 @@ WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
 			ReplaceSystemCursors()	
 			Msgbox("This feature allows you to roll royal jellies until you obtain your specified bees and/or mutations!`n`nTo use:`n- Select the bees and mutations you want`n- Make sure your in-game Auto-Jelly settings are right`n- Put a neonberry on the bee you want to change (if trying `n  to obtain a mutated bee) `n- Use one royal jelly on the bee and click Yes`n- Click on Roll.`n`nTo stop: `n- Press the escape key`n`nAdditional options:`n- Stop on Gifteds stops on any gifted bee, `n  ignoring the mutation and your bee selection`n- Stop on Mythics stops on any mythic bee, `n  ignoring the mutation and your bee selection", "Auto-Jelly Help", "0x40040")
 		case "selectAll":
-			IniWrite(%mgui[ctrl].name% ^= 1, ".\settings\mutations.ini", "bees", mgui[ctrl].name)
+			%mgui[ctrl].name% := nm_AutoJellySettings.Toggle(mgui[ctrl].name, %mgui[ctrl].name%)
 		case "Bomber", "Brave", "Bumble", "Cool", "Hasty", "Looker", "Rad", "Rascal", "Stubborn", "Bubble", "Bucko", "Commander", "Demo", "Exhausted", "Fire", "Frosty", "Honey", "Rage", "Riley":
 			if !selectAll
-				IniWrite(%mgui[ctrl].name% ^= 1, ".\settings\mutations.ini", "bees", mgui[ctrl].name)
+				%mgui[ctrl].name% := nm_AutoJellySettings.Toggle(mgui[ctrl].name, %mgui[ctrl].name%)
 		case "Shocked", "Baby", "Carpenter", "Demon", "Diamond", "Lion", "Music", "Ninja", "Shy", "Buoyant", "Fuzzy", "Precise", "Spicy", "Tadpole", "Vector":
 			if !selectAll
-				IniWrite(%mgui[ctrl].name% ^= 1, ".\settings\mutations.ini", "bees", mgui[ctrl].name)
+				%mgui[ctrl].name% := nm_AutoJellySettings.Toggle(mgui[ctrl].name, %mgui[ctrl].name%)
 		case "giftedStop", "mythicStop":
-			IniWrite(%mgui[ctrl].name% ^= 1, ".\settings\mutations.ini", "extrasettings", mgui[ctrl].name)
+			%mgui[ctrl].name% := nm_AutoJellySettings.Toggle(mgui[ctrl].name, %mgui[ctrl].name%)
 		case "mutations":
-			IniWrite(%mgui[ctrl].name% ^= 1, ".\settings\mutations.ini", "mutations", mgui[ctrl].name)
+			%mgui[ctrl].name% := nm_AutoJellySettings.Toggle(mgui[ctrl].name, %mgui[ctrl].name%)
 		default:
 			if mutations
-				IniWrite(%mgui[ctrl].name% ^= 1, ".\settings\mutations.ini", "mutations", mgui[ctrl].name)
+				%mgui[ctrl].name% := nm_AutoJellySettings.Toggle(mgui[ctrl].name, %mgui[ctrl].name%)
 	}
 	DrawGUI()
 }

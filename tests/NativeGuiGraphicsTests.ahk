@@ -30,7 +30,9 @@ TestNativeGeneratedGuis() {
 	workingBefore := A_WorkingDir
 	SetWorkingDir A_ScriptDir "\.."
 	directory := A_Temp "\natro-gui-" DllCall("GetCurrentProcessId")
-	DirCreate directory
+	DirCreate directory "\settings"
+	iniFixture := "[bees]`nBomber=1`nresources=0`nw=1`n[extrasettings]`nmythicStop=1`n[unknown]`nselectAll=1`n"
+	FileAppend iniFixture, directory "\settings\mutations.ini", "UTF-8"
 	try {
 		for kind in ["discord", "priority", "bee"] {
 			config := nm_GuiScripts.Defaults(kind)
@@ -41,9 +43,10 @@ TestNativeGeneratedGuis() {
 			source := "SetWorkingDir " nm_GuiScripts.Literal(directory) "`nSetTimer nm_ProbeGui, -50`n"
 				. nm_GuiScripts.Build(kind, config) "`n"
 				. 'nm_ProbeGui() {`n'
-				. ' global guiReady, resources, config`n'
+				. ' global guiReady, resources, config, Bomber, mythicStop, selectAll`n'
 				. ' if !IsSet(guiReady) || !guiReady {`n SetTimer nm_ProbeGui, -50`n return`n }`n'
 				. ' Critical "On"`n try {`n'
+				. (kind = "bee" ? ' if Bomber != 1 || mythicStop != 1 || selectAll != 0 || FileRead("settings\mutations.ini") != ' nm_GuiScripts.Literal(iniFixture) '`n throw Error("Auto-Jelly settings validation or read-only startup failed")`n' : "")
 				. ' before := DllCall("GetGuiResources", "Ptr", -1, "UInt", 0, "UInt")`n'
 				. ' Loop 50`n ' render '()`n'
 				. ' after := DllCall("GetGuiResources", "Ptr", -1, "UInt", 0, "UInt")`n'
@@ -59,6 +62,16 @@ TestNativeGeneratedGuis() {
 				Require(output = "PASS " kind " redraw and close" (config.Has("webhook") ? "|" config["webhook"] : ""), "Generated GUI native lifecycle: " output)
 			} finally worker.Close()
 		}
+		; Invalid known settings terminate before GUI creation or game input.
+		FileDelete directory "\settings\mutations.ini"
+		FileAppend "[bees]`nBomber=2", directory "\settings\mutations.ini", "UTF-8"
+		worker := nm_InlineWorker("SetWorkingDir " nm_GuiScripts.Literal(directory) "`n" nm_GuiScripts.Build("bee", nm_GuiScripts.Defaults("bee")), A_AhkPath)
+		try {
+			Require(worker.Output() = "Auto-Jelly settings could not be loaded: Invalid Auto-Jelly setting: Bomber", "Invalid Auto-Jelly settings fail with a bounded field-only error")
+			Require(NumGet(worker.View + nm_InlineProtocol.Response, 0, "UInt") = 1, "Invalid settings exit unsuccessfully for parent failure reporting")
+			Require(FileRead(directory "\settings\mutations.ini") = "[bees]`nBomber=2", "Failed GUI startup preserves rejected settings")
+		} finally worker.Close()
+
 	} finally {
 		SetWorkingDir workingBefore
 		DirDelete directory, true
