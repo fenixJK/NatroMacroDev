@@ -7,6 +7,10 @@ function Invoke-NatroFileWorker {
         if ($Channel -notmatch '^Local\\NatroReconnect-[A-Fa-f0-9]{32}$') { throw 'Invalid channel' }
         $mapping = [IO.MemoryMappedFiles.MemoryMappedFile]::OpenExisting($Channel)
         $view = $mapping.CreateViewAccessor(0, 16384, [IO.MemoryMappedFiles.MemoryMappedFileAccess]::ReadWrite)
+        # Reserved space after the maximum request: numeric progress only.
+        # TickCount shares the Windows monotonic clock; signed wrap is preserved.
+        $view.Write(16036, [int][Environment]::TickCount)
+        $view.Write(16032, [int]1)
         $length = $view.ReadInt32(4)
         if ($view.ReadInt32(0) -ne 1 -or $length -lt 2 -or $length -gt 8000) { throw 'Invalid request' }
         $bytes = [byte[]]::new($length * 2)
@@ -21,7 +25,11 @@ function Invoke-NatroFileWorker {
             }
         } finally { $stream.Dispose() }
         $request = [Text.Encoding]::Unicode.GetString($bytes) | ConvertFrom-Json
+        $view.Write(16040, [int][Environment]::TickCount)
+        $view.Write(16032, [int]2)
         $result = & $Action $request
+        $view.Write(16044, [int][Environment]::TickCount)
+        $view.Write(16032, [int]3)
         $reasons = @('worker', 'url', 'storage', 'quota', 'network', 'http', 'size', 'timeout')
         if ($result.ok -eq $true) {
             $view.Write(12, [int]0)
@@ -31,6 +39,8 @@ function Invoke-NatroFileWorker {
             $view.Write(12, [int][Math]::Max(0, $reason))
             $view.Write(8, [int]2)
         }
+        $view.Write(16048, [int][Environment]::TickCount)
+        $view.Write(16032, [int]4)
     } catch {
         if ($null -ne $view) {
             $view.Write(12, [int]0)

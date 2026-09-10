@@ -30,6 +30,11 @@ foreach ($case in @('success', 'throw', 'known', 'unknown', 'version', 'length',
         $expectedState = if ($case -in @('success', 'maximum')) { 1 } else { 2 }
         $expectedReason = if ($case -eq 'known') { 7 } else { 0 }
         if ($view.ReadInt32(8) -ne $expectedState -or $view.ReadInt32(12) -ne $expectedReason) { throw "File worker protocol failed: $case" }
+        $expectedPhase = if ($case -in @('version', 'length', 'json')) { 1 } elseif ($case -eq 'throw') { 2 } else { 4 }
+        if ($view.ReadInt32(16032) -ne $expectedPhase) { throw "File worker progress failed: $case" }
+        for ($phase = 1; $phase -le $expectedPhase; $phase++) {
+            if ($view.ReadInt32(16032 + $phase * 4) -eq 0) { throw "File worker milestone missing: $case phase $phase" }
+        }
         $fileWorkerChecks++
     } finally { $view.Dispose(); $mapping.Dispose() }
 }

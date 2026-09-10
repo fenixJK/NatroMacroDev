@@ -35,7 +35,13 @@ You should have received a copy of the license along with Natro Macro. If not, p
 #Include "GatherProfiles.ahk"
 
 SetWorkingDir A_ScriptDir "\.."
+nm_AttachmentDownloads.OnDiagnostic := nm_AttachmentDiagnostic
 CoordMode "Mouse", "Client"
+
+nm_AttachmentDiagnostic(diagnostic) {
+	if diagnostic["event"] != "completed" || !diagnostic["ok"] || diagnostic["closeMs"] > 1000 || diagnostic["directoryCleanupMs"] > 1000
+		nm_Failures.Write(Error(JSON.stringify(diagnostic)), "Attachment worker lifecycle")
+}
 
 if (A_Args.Length = 0)
 {

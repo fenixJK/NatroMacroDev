@@ -47,7 +47,10 @@ TestAttachmentWorker() {
 		FileCopy A_ScriptDir "\..\lib\PowerShellJob.ps1", "worker-" Chr(233) "\lib\PowerShellJob.ps1"
 		SetWorkingDir "worker-" Chr(233)
 		try {
+			diagnostics := []
+			nm_AttachmentDownloads.OnDiagnostic := (data) => (diagnostics.Push(data), FileAppend("Attachment lifecycle " JSON.stringify(data) "`n", "*"))
 			nm_AttachmentDownloads.Start("http://127.0.0.1:1/not-allowed", "46")
+			Assert(nm_AttachmentDownloads.Active.tick <= nm_AttachmentDownloads.Active.worker.Started, "Owner deadline includes native worker startup")
 			jobDirectory := nm_AttachmentDownloads.Active.directory
 			start := DllCall("GetTickCount64", "UInt64")
 			while nm_AttachmentDownloads.Active && DllCall("GetTickCount64", "UInt64") - start < 50000 {
@@ -60,6 +63,9 @@ TestAttachmentWorker() {
 				FileAppend "Attachment fixture result after " (DllCall("GetTickCount64", "UInt64") - start) " ms: " replies[4][1] "`n", "*"
 			Assert(!nm_AttachmentDownloads.Active && replies.Length = 4 && !replies[4][2], "Native worker launch completes without contacting an unapproved host")
 			Assert(InStr(replies[4][1], "(url)"), "Native worker receives and parses shared-memory JSON")
+			Assert(diagnostics.Length = 1 && diagnostics[1]["stage"] = "result-written" && diagnostics[1]["state"] = 2, "Native failure records its completed protocol stage")
+			Assert(diagnostics[1]["milestonesMs"].Length = 4 && diagnostics[1]["cpuMs"] >= 0 && diagnostics[1]["closeMs"] >= 0, "Native lifecycle records worker and cleanup timings")
+			Assert(!InStr(JSON.stringify(diagnostics), "127.0.0.1") && !InStr(JSON.stringify(diagnostics), "receiving"), "Diagnostics contain no URL or receiving path")
 			Assert(!DirExist(jobDirectory), "Completed worker cleans its owned receiving directory")
 			FileDelete "submacros\attachment-download.ps1"
 			FileAppend "param([string]$Channel); Start-Sleep -Seconds 30", "submacros\attachment-download.ps1"
@@ -71,6 +77,7 @@ TestAttachmentWorker() {
 			Assert(!ProcessExist(pid) && !nm_AttachmentDownloads.Active, "Shutdown terminates the owned native worker")
 			Assert(!DirExist(jobDirectory), "Shutdown removes partial data only after the owned worker exits")
 		} finally {
+			nm_AttachmentDownloads.OnDiagnostic := 0
 			nm_AttachmentDownloads.Close()
 			SetWorkingDir originalDirectory
 		}
