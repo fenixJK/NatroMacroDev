@@ -46,6 +46,15 @@ TestAttachmentWorker() {
 			Assert(!nm_AttachmentDownloads.Active && replies.Length = 4 && !replies[4][2], "Native worker launch completes without contacting an unapproved host")
 			Assert(InStr(replies[4][1], "(url)"), "Native worker receives and parses stdin JSON")
 			Assert(!DirExist(jobDirectory), "Completed worker cleans its owned receiving directory")
+			FileDelete "submacros\attachment-download.ps1"
+			FileAppend "$null = [Console]::In.ReadToEnd(); Start-Sleep -Seconds 30", "submacros\attachment-download.ps1"
+			nm_AttachmentDownloads.Start("http://127.0.0.1:1/not-allowed", "47")
+			jobDirectory := nm_AttachmentDownloads.Active.directory
+			pid := nm_AttachmentDownloads.Active.worker.ProcessID
+			FileAppend "partial", jobDirectory "\payload.partial"
+			nm_AttachmentDownloads.Close()
+			Assert(!ProcessExist(pid) && !nm_AttachmentDownloads.Active, "Shutdown terminates the owned native worker")
+			Assert(!DirExist(jobDirectory), "Shutdown removes partial data only after the owned worker exits")
 		} finally {
 			nm_AttachmentDownloads.Close()
 			SetWorkingDir originalDirectory
