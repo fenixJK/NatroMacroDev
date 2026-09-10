@@ -2,13 +2,13 @@
 ; accepted/no_dialog do not establish that nectar or loot was received.
 class nm_PlanterDialog {
 	static Run(surface, fullOnly, timeout := 8000) {
-		started := surface.Clock(), chosen := "", changed := false
+		started := surface.Clock(), chosen := "", promptAbsent := false
 		before := surface.Observe()
 		if !before.valid || before.blocked || !before.e || before.yes || before.no || !surface.Press(before)
 			return "unconfirmed"
 		Loop {
 			if surface.Clock() - started >= timeout
-				return !chosen && changed ? "no_dialog" : "unconfirmed"
+				return !chosen && promptAbsent ? "no_dialog" : "unconfirmed"
 			frame := surface.Observe()
 			if !frame.valid || frame.blocked
 				return "unconfirmed"
@@ -25,8 +25,8 @@ class nm_PlanterDialog {
 				return "unconfirmed"
 			} else if chosen
 				return chosen = "no" ? "declined" : "accepted"
-			else if !frame.e
-				changed := true
+			else
+				promptAbsent := !frame.e
 			surface.Wait(100)
 		}
 	}
@@ -50,14 +50,23 @@ class nm_PlanterDialogSurface {
 	}
 	Clock() => DllCall("GetTickCount64", "UInt64")
 	Wait(ms) => Sleep(ms)
-	Current(frame) => frame.valid && this.Clock() - frame.tick <= 250 && nm_WindowOwnsFocus(this.Hwnd)
+	Current(frame, fresh := true) => frame.valid && (!fresh || this.Clock() - frame.tick <= 250) && nm_WindowOwnsFocus(this.Hwnd)
 		&& nm_SameClient(frame.snapshot, nm_ClientSnapshot(this.Hwnd))
 	Observe() {
 		global bitmaps
+		local offsetFailed
 		if !this.Hwnd || !nm_WindowOwnsFocus(this.Hwnd) || !(snapshot := nm_ClientSnapshot(this.Hwnd))
 			return {valid: false}
-		offset := GetYOffset(this.Hwnd, &failed)
-		if failed || snapshot.width < 500 || snapshot.height < 400 || !nm_SameClient(snapshot, nm_ClientSnapshot(this.Hwnd))
+		if !this.HasOwnProp("Offset") {
+			offset := GetYOffset(this.Hwnd, &offsetFailed, false)
+			if offsetFailed
+				return {valid: false}
+			this.Offset := offset
+			this.AnchorSnapshot := snapshot
+		}
+		offset := this.Offset
+		if !nm_SameClient(this.AnchorSnapshot, snapshot) || !nm_WindowOwnsFocus(this.Hwnd)
+			|| snapshot.width < 500 || snapshot.height < 400 || !nm_SameClient(snapshot, nm_ClientSnapshot(this.Hwnd))
 			return {valid: false}
 		tick := this.Clock(), capture := Gdip_BitmapFromScreen(snapshot.x "|" snapshot.y "|" snapshot.width "|" snapshot.height)
 		if capture <= 0
@@ -94,7 +103,7 @@ class nm_PlanterDialogSurface {
 			SendEvent "{" this.Key " down}"
 			Critical previousCritical
 			Sleep 100
-			return this.Current(frame)
+			return this.Current(frame, false)
 		} finally {
 			if owns
 				nm_PlanterDialogSurface.Release()
@@ -113,7 +122,7 @@ class nm_PlanterDialogSurface {
 			if !this.Current(frame)
 				return false
 			Click
-			return this.Current(frame)
+			return this.Current(frame, false)
 		} finally {
 			CoordMode "Mouse", previousMode
 			Critical previousCritical

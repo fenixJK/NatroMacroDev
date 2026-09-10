@@ -36,6 +36,8 @@ TestPlanterDialog() {
 	AssertEqual(nm_PlanterDialog.Run(fixture, false, 500), "no_dialog", "No-dialog path is explicitly distinct from confirmation")
 	fixture := PlanterDialogFixture([ready])
 	AssertEqual(nm_PlanterDialog.Run(fixture, false, 500), "unconfirmed", "Unchanged E prompt is not a completed interaction")
+	fixture := PlanterDialogFixture([ready, clear, ready])
+	AssertEqual(nm_PlanterDialog.Run(fixture, false, 500), "unconfirmed", "A reappeared E prompt cannot use an earlier absence")
 
 	nm_PlanterRecovery.Clear("Harvest3")
 	calls := 0

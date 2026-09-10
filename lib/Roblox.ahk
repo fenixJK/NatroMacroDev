@@ -38,7 +38,7 @@ GetRobloxHWND()
 ; Image is specific to BSS but can be altered for use in other games
 ; Optionally takes a known window handle to skip GetRobloxHWND call
 ; Returns: offset (integer), defaults to 0 on fail (ByRef param fail is then set to 1, else 0)
-GetYOffset(hwnd?, &fail?)
+GetYOffset(hwnd?, &fail?, activate := true)
 {
 	static cache := nm_GeometryCache()
 	fail := 1
@@ -54,7 +54,8 @@ GetYOffset(hwnd?, &fail?)
 		return offset
 	}
 	cache.Clear()
-	if !bitmaps.Has("toppollen") || !bitmaps.Has("toppollenfill") || !ActivateRoblox(hwnd)
+	if !bitmaps.Has("toppollen") || !bitmaps.Has("toppollenfill")
+		|| !(activate ? ActivateRoblox(hwnd) : nm_WindowOwnsFocus(hwnd))
 		return 0
 	Loop 20 {
 		if !nm_SameClient(snapshot, nm_ClientSnapshot(hwnd)) || !nm_WindowOwnsFocus(hwnd)

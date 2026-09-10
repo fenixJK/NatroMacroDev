@@ -23,6 +23,7 @@ try {
 	Require(!nm_SameClient(first, second) && second.width > first.width, "Real move/resize invalidates snapshot")
 	Require(ActivateRoblox(fixture.Hwnd), "Explicit HWND activation")
 	TestNativePlanterInput()
+	Require(ActivateRoblox(fixture.Hwnd), "Restore geometry fixture focus after planter tests")
 	TestNativePointer(fixture)
 	TestNativeHealth()
 	TestNativeRemotePermissions(fixture)
@@ -191,6 +192,7 @@ TestNativeSharedImage(capturedGui) {
 
 TestNativePlanterInput() {
 	panel := Gui("-DPIScale", "Planter input fixture"), other := Gui("-DPIScale", "Planter focus fixture"), clicks := 0
+	previousDelay := A_KeyDelay, previousDuration := A_KeyDuration
 	try {
 		button := panel.AddButton("x20 y20 w100 h30", "Fixture")
 		button.OnEvent("Click", (*) => clicks++)
@@ -205,6 +207,10 @@ TestNativePlanterInput() {
 		Require(!surface.Click(frame, "yes") && clicks = 1, "Stale planter observation cannot click")
 		frame.tick := surface.Clock()
 		Require(surface.Press(frame) && !GetKeyState("F13"), "Native interaction releases its key")
+		SetKeyDelay 250
+		frame.tick := surface.Clock()
+		Require(surface.Press(frame) && !GetKeyState("F13"), "Configured key delay does not expire an already authorized press")
+		SetKeyDelay previousDelay, previousDuration
 		frame.tick := surface.Clock()
 		SwitchFocus() => ActivateRoblox(other.Hwnd)
 		SetTimer SwitchFocus, -25
@@ -213,6 +219,7 @@ TestNativePlanterInput() {
 		Require(!surface.Click(frame, "yes") && clicks = 1, "Lost-focus planter observation cannot click")
 		FileAppend "PASS Windows planter input lifecycle (" A_PtrSize * 8 "-bit)`n", "*"
 	} finally {
+		SetKeyDelay previousDelay, previousDuration
 		nm_PlanterDialogSurface.Release()
 		panel.Destroy(), other.Destroy()
 	}
