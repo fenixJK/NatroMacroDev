@@ -70,7 +70,7 @@ TestQuestActions() {
 	global
 	HoneyQuestCheck := PolarQuestCheck := RileyQuestCheck := BuckoQuestCheck := BlackQuestCheck := BrownQuestCheck := 0
 	HoneyQuestComplete := PolarQuestComplete := RileyQuestComplete := BuckoQuestComplete := BlackQuestComplete := BrownQuestComplete := -1
-	PolarQuest := RileyQuest := BuckoQuest := BlackQuest := BrownQuest := ""
+	HoneyQuest := PolarQuest := RileyQuest := BuckoQuest := BlackQuest := BrownQuest := ""
 	LastBugrunLadybugs := LastBugrunRhinoBeetles := LastBugrunSpider := LastBugrunMantis := LastBugrunScorpions := LastBugrunWerewolf := 0
 	MonsterRespawnTime := 0, QuestBarSize := 50, QuestBarGapSize := 10, QuestBarInset := 16
 	TestQuestMode := true
